@@ -379,32 +379,99 @@ export type Database = {
         ]
       }
       profiles: {
+
         Row: {
           avatar_url: string | null
           created_at: string
+          desired_feeling: string | null
+          desires: string | null
           display_name: string | null
           email: string | null
+          focus_areas: string[]
           id: string
+          last_notified_on: string | null
+          notifications_enabled: boolean
+          notify_hour: number
+          notify_minute: number
+          obstacles: string | null
+          onboarded_at: string | null
           subscription_tier: string
           timezone: string | null
+          tone: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          desired_feeling?: string | null
+          desires?: string | null
           display_name?: string | null
           email?: string | null
+          focus_areas?: string[]
           id: string
+          last_notified_on?: string | null
+          notifications_enabled?: boolean
+          notify_hour?: number
+          notify_minute?: number
+          obstacles?: string | null
+          onboarded_at?: string | null
           subscription_tier?: string
           timezone?: string | null
+          tone?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          desired_feeling?: string | null
+          desires?: string | null
           display_name?: string | null
           email?: string | null
+          focus_areas?: string[]
           id?: string
+          last_notified_on?: string | null
+          notifications_enabled?: boolean
+          notify_hour?: number
+          notify_minute?: number
+          obstacles?: string | null
+          onboarded_at?: string | null
           subscription_tier?: string
           timezone?: string | null
+          tone?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          failure_count: number
+          id: string
+          last_success_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          failure_count?: number
+          id?: string
+          last_success_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          failure_count?: number
+          id?: string
+          last_success_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
