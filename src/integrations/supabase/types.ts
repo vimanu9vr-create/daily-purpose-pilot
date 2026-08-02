@@ -191,6 +191,7 @@ export type Database = {
           created_at: string
           feeling: string | null
           id: string
+          obstacles: string | null
           progress: number
           status: string
           target_date: string | null
@@ -203,6 +204,7 @@ export type Database = {
           created_at?: string
           feeling?: string | null
           id?: string
+          obstacles?: string | null
           progress?: number
           status?: string
           target_date?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           created_at?: string
           feeling?: string | null
           id?: string
+          obstacles?: string | null
           progress?: number
           status?: string
           target_date?: string | null

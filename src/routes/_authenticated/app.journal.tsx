@@ -1,7 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 
-import { AppPage, EmptyState } from "@/components/app/app-page";
+import { AppPage } from "@/components/app/app-page";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  JOURNAL_PROMPTS,
+  MOODS,
+  promptForToday,
+  useCreateEntry,
+  useDeleteEntry,
+  useJournalEntries,
+  useJournalStats,
+  useUpdateEntry,
+  type JournalEntry,
+} from "@/features/journal/use-journal";
+import { formatLongDate, monthKey } from "@/lib/dates";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/journal")({
   head: () => ({ meta: [{ title: "Journal — ManifestAI" }] }),
@@ -9,16 +26,242 @@ export const Route = createFileRoute("/_authenticated/app/journal")({
 });
 
 function Journal() {
+  const { data: entries, isPending, error } = useJournalEntries();
+  const stats = useJournalStats();
+  const createEntry = useCreateEntry();
+  const updateEntry = useUpdateEntry();
+  const deleteEntry = useDeleteEntry();
+
+  const [promptIndex, setPromptIndex] = useState(() =>
+    JOURNAL_PROMPTS.indexOf(promptForToday() as (typeof JOURNAL_PROMPTS)[number]),
+  );
+  const [draft, setDraft] = useState("");
+  const [mood, setMood] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+
+  const prompt = JOURNAL_PROMPTS[promptIndex] ?? JOURNAL_PROMPTS[0];
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, JournalEntry[]>();
+    for (const entry of entries ?? []) {
+      const key = monthKey(entry.entry_date);
+      map.set(key, [...(map.get(key) ?? []), entry]);
+    }
+    return [...map.entries()];
+  }, [entries]);
+
+  function save() {
+    const content = draft.trim();
+    if (!content) return;
+    createEntry.mutate(
+      { content, prompt, mood },
+      {
+        onSuccess: () => {
+          setDraft("");
+          setMood(null);
+        },
+      },
+    );
+  }
+
   return (
     <AppPage
       title="Journal"
       description="Guided prompts for reflection, gratitude and mood — three minutes is enough."
     >
-      <EmptyState
-        icon={BookOpen}
-        title="Your journal is empty"
-        body="Entries you write will be collected here with their prompt and mood, so you can look back at how your thinking changed."
-      />
+      <section className="rounded-3xl glass-panel p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Today's prompt
+            </p>
+            <h2 className="mt-1.5 font-display text-lg font-semibold leading-snug">{prompt}</h2>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Show a different prompt"
+            onClick={() => setPromptIndex((i) => (i + 1) % JOURNAL_PROMPTS.length)}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={6}
+          placeholder="Write freely — nobody's grading this."
+          className="mt-4 resize-none"
+        />
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5">
+            {MOODS.map((m) => (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() => setMood(mood === m.value ? null : m.value)}
+                title={m.label}
+                aria-label={`Mood: ${m.label}`}
+                aria-pressed={mood === m.value}
+                className={cn(
+                  "h-10 w-10 rounded-2xl text-lg transition-all duration-200",
+                  mood === m.value
+                    ? "scale-110 surface-gradient shadow-glow"
+                    : "opacity-50 hover:opacity-100",
+                )}
+              >
+                {m.emoji}
+              </button>
+            ))}
+          </div>
+
+          <Button variant="hero" onClick={save} disabled={!draft.trim() || createEntry.isPending}>
+            {createEntry.isPending && <Loader2 className="animate-spin" />}
+            Save entry
+          </Button>
+        </div>
+      </section>
+
+      {stats.count > 0 && (
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          {stats.count} {stats.count === 1 ? "entry" : "entries"}
+          <span className="mx-1.5 text-muted-foreground/40">·</span>
+          {stats.streak} day streak
+        </p>
+      )}
+
+      <div className="mt-8">
+        {isPending && (
+          <div className="space-y-3">
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-3xl glass-panel p-6 text-sm text-destructive">
+            Couldn't load your entries. {error.message}
+          </div>
+        )}
+
+        {entries && entries.length === 0 && (
+          <div className="flex flex-col items-center rounded-3xl border border-dashed border-border px-8 py-12 text-center">
+            <BookOpen className="h-6 w-6 text-muted-foreground/60" />
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              Entries you write will be collected here with their prompt and mood, so you can look
+              back at how your thinking changed.
+            </p>
+          </div>
+        )}
+
+        {grouped.map(([month, monthEntries]) => (
+          <section key={month} className="mb-8">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {month}
+            </h3>
+            <ul className="space-y-2.5">
+              {monthEntries.map((entry) => {
+                const moodMeta = MOODS.find((m) => m.value === entry.mood);
+                const expanded = expandedId === entry.id;
+                const editing = editingId === entry.id;
+
+                return (
+                  <li key={entry.id} className="group rounded-2xl glass-panel p-4">
+                    <button
+                      type="button"
+                      className="flex w-full items-start gap-3 text-left"
+                      onClick={() => setExpandedId(expanded ? null : entry.id)}
+                      aria-expanded={expanded}
+                    >
+                      <span className="text-lg leading-none" aria-hidden>
+                        {moodMeta?.emoji ?? "📝"}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {formatLongDate(entry.entry_date)}
+                          </span>
+                          {entry.prompt && (
+                            <span className="truncate text-xs text-muted-foreground/60">
+                              {entry.prompt}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-1.5 block whitespace-pre-wrap text-sm leading-relaxed",
+                            !expanded && "line-clamp-2",
+                          )}
+                        >
+                          {entry.content}
+                        </span>
+                      </span>
+                    </button>
+
+                    {expanded && (
+                      <div className="mt-3 border-t border-border pt-3">
+                        {editing ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              autoFocus
+                              rows={5}
+                              value={editDraft}
+                              onChange={(e) => setEditDraft(e.target.value)}
+                              className="resize-none"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                disabled={updateEntry.isPending}
+                                onClick={() =>
+                                  updateEntry.mutate(
+                                    { id: entry.id, content: editDraft },
+                                    { onSuccess: () => setEditingId(null) },
+                                  )
+                                }
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingId(entry.id);
+                                setEditDraft(entry.content);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" /> Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => deleteEntry.mutate(entry.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
     </AppPage>
   );
 }

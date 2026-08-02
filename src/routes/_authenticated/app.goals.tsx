@@ -1,24 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Target } from "lucide-react";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-import { AppPage, EmptyState } from "@/components/app/app-page";
-
+/** Layout route — the list lives in app.goals.index.tsx, detail in app.goals.$goalId.tsx */
 export const Route = createFileRoute("/_authenticated/app/goals")({
-  head: () => ({ meta: [{ title: "Goals — ManifestAI" }] }),
-  component: Goals,
+  component: () => <Outlet />,
 });
-
-function Goals() {
-  return (
-    <AppPage
-      title="Goals"
-      description="Define what you're working toward, why it matters, and the steps that get you there."
-    >
-      <EmptyState
-        icon={Target}
-        title="No goals yet"
-        body="Start with one goal you'd be proud to make progress on this quarter. You'll break it into steps and connect supporting habits."
-      />
-    </AppPage>
-  );
-}

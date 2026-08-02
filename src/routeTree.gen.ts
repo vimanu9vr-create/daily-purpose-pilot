@@ -22,6 +22,8 @@ import { Route as AuthenticatedAppHabitsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppJournalRouteImport } from './routes/_authenticated/app.journal'
 import { Route as AuthenticatedAppProgressRouteImport } from './routes/_authenticated/app.progress'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as AuthenticatedAppGoalsIndexRouteImport } from './routes/_authenticated/app.goals.index'
+import { Route as AuthenticatedAppGoalsGoalIdRouteImport } from './routes/_authenticated/app.goals.$goalId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -89,6 +91,18 @@ const AuthenticatedAppSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppGoalsIndexRoute =
+  AuthenticatedAppGoalsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAppGoalsRoute,
+  } as any)
+const AuthenticatedAppGoalsGoalIdRoute =
+  AuthenticatedAppGoalsGoalIdRouteImport.update({
+    id: '/$goalId',
+    path: '/$goalId',
+    getParentRoute: () => AuthenticatedAppGoalsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -97,12 +111,14 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/app/coach': typeof AuthenticatedAppCoachRoute
-  '/app/goals': typeof AuthenticatedAppGoalsRoute
+  '/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/': typeof AuthenticatedAppIndexRoute
+  '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,12 +126,13 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/coach': typeof AuthenticatedAppCoachRoute
-  '/app/goals': typeof AuthenticatedAppGoalsRoute
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app': typeof AuthenticatedAppIndexRoute
+  '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/app/goals': typeof AuthenticatedAppGoalsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -126,12 +143,14 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/app/coach': typeof AuthenticatedAppCoachRoute
-  '/_authenticated/app/goals': typeof AuthenticatedAppGoalsRoute
+  '/_authenticated/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
   '/_authenticated/app/habits': typeof AuthenticatedAppHabitsRoute
   '/_authenticated/app/journal': typeof AuthenticatedAppJournalRoute
   '/_authenticated/app/progress': typeof AuthenticatedAppProgressRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/_authenticated/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/_authenticated/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -148,6 +167,8 @@ export interface FileRouteTypes {
     | '/app/progress'
     | '/app/settings'
     | '/app/'
+    | '/app/goals/$goalId'
+    | '/app/goals/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,12 +176,13 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/app/coach'
-    | '/app/goals'
     | '/app/habits'
     | '/app/journal'
     | '/app/progress'
     | '/app/settings'
     | '/app'
+    | '/app/goals/$goalId'
+    | '/app/goals'
   id:
     | '__root__'
     | '/'
@@ -176,6 +198,8 @@ export interface FileRouteTypes {
     | '/_authenticated/app/progress'
     | '/_authenticated/app/settings'
     | '/_authenticated/app/'
+    | '/_authenticated/app/goals/$goalId'
+    | '/_authenticated/app/goals/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -279,12 +303,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/goals/': {
+      id: '/_authenticated/app/goals/'
+      path: '/'
+      fullPath: '/app/goals/'
+      preLoaderRoute: typeof AuthenticatedAppGoalsIndexRouteImport
+      parentRoute: typeof AuthenticatedAppGoalsRoute
+    }
+    '/_authenticated/app/goals/$goalId': {
+      id: '/_authenticated/app/goals/$goalId'
+      path: '/$goalId'
+      fullPath: '/app/goals/$goalId'
+      preLoaderRoute: typeof AuthenticatedAppGoalsGoalIdRouteImport
+      parentRoute: typeof AuthenticatedAppGoalsRoute
+    }
   }
 }
 
+interface AuthenticatedAppGoalsRouteChildren {
+  AuthenticatedAppGoalsGoalIdRoute: typeof AuthenticatedAppGoalsGoalIdRoute
+  AuthenticatedAppGoalsIndexRoute: typeof AuthenticatedAppGoalsIndexRoute
+}
+
+const AuthenticatedAppGoalsRouteChildren: AuthenticatedAppGoalsRouteChildren = {
+  AuthenticatedAppGoalsGoalIdRoute: AuthenticatedAppGoalsGoalIdRoute,
+  AuthenticatedAppGoalsIndexRoute: AuthenticatedAppGoalsIndexRoute,
+}
+
+const AuthenticatedAppGoalsRouteWithChildren =
+  AuthenticatedAppGoalsRoute._addFileChildren(
+    AuthenticatedAppGoalsRouteChildren,
+  )
+
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppCoachRoute: typeof AuthenticatedAppCoachRoute
-  AuthenticatedAppGoalsRoute: typeof AuthenticatedAppGoalsRoute
+  AuthenticatedAppGoalsRoute: typeof AuthenticatedAppGoalsRouteWithChildren
   AuthenticatedAppHabitsRoute: typeof AuthenticatedAppHabitsRoute
   AuthenticatedAppJournalRoute: typeof AuthenticatedAppJournalRoute
   AuthenticatedAppProgressRoute: typeof AuthenticatedAppProgressRoute
@@ -294,7 +347,7 @@ interface AuthenticatedAppRouteChildren {
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppCoachRoute: AuthenticatedAppCoachRoute,
-  AuthenticatedAppGoalsRoute: AuthenticatedAppGoalsRoute,
+  AuthenticatedAppGoalsRoute: AuthenticatedAppGoalsRouteWithChildren,
   AuthenticatedAppHabitsRoute: AuthenticatedAppHabitsRoute,
   AuthenticatedAppJournalRoute: AuthenticatedAppJournalRoute,
   AuthenticatedAppProgressRoute: AuthenticatedAppProgressRoute,
@@ -326,3 +379,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
