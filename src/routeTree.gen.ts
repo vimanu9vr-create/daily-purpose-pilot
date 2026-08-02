@@ -16,10 +16,12 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppAffirmationsRouteImport } from './routes/_authenticated/app.affirmations'
 import { Route as AuthenticatedAppCoachRouteImport } from './routes/_authenticated/app.coach'
 import { Route as AuthenticatedAppGoalsRouteImport } from './routes/_authenticated/app.goals'
 import { Route as AuthenticatedAppHabitsRouteImport } from './routes/_authenticated/app.habits'
 import { Route as AuthenticatedAppJournalRouteImport } from './routes/_authenticated/app.journal'
+import { Route as AuthenticatedAppMomentsRouteImport } from './routes/_authenticated/app.moments'
 import { Route as AuthenticatedAppProgressRouteImport } from './routes/_authenticated/app.progress'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppGoalsIndexRouteImport } from './routes/_authenticated/app.goals.index'
@@ -59,6 +61,12 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppAffirmationsRoute =
+  AuthenticatedAppAffirmationsRouteImport.update({
+    id: '/affirmations',
+    path: '/affirmations',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppCoachRoute = AuthenticatedAppCoachRouteImport.update({
   id: '/coach',
   path: '/coach',
@@ -77,6 +85,11 @@ const AuthenticatedAppHabitsRoute = AuthenticatedAppHabitsRouteImport.update({
 const AuthenticatedAppJournalRoute = AuthenticatedAppJournalRouteImport.update({
   id: '/journal',
   path: '/journal',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppMomentsRoute = AuthenticatedAppMomentsRouteImport.update({
+  id: '/moments',
+  path: '/moments',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppProgressRoute =
@@ -110,10 +123,12 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
+  '/app/affirmations': typeof AuthenticatedAppAffirmationsRoute
   '/app/coach': typeof AuthenticatedAppCoachRoute
   '/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
+  '/app/moments': typeof AuthenticatedAppMomentsRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -125,9 +140,11 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/affirmations': typeof AuthenticatedAppAffirmationsRoute
   '/app/coach': typeof AuthenticatedAppCoachRoute
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
+  '/app/moments': typeof AuthenticatedAppMomentsRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -142,10 +159,12 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
+  '/_authenticated/app/affirmations': typeof AuthenticatedAppAffirmationsRoute
   '/_authenticated/app/coach': typeof AuthenticatedAppCoachRoute
   '/_authenticated/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
   '/_authenticated/app/habits': typeof AuthenticatedAppHabitsRoute
   '/_authenticated/app/journal': typeof AuthenticatedAppJournalRoute
+  '/_authenticated/app/moments': typeof AuthenticatedAppMomentsRoute
   '/_authenticated/app/progress': typeof AuthenticatedAppProgressRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -160,10 +179,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/app'
+    | '/app/affirmations'
     | '/app/coach'
     | '/app/goals'
     | '/app/habits'
     | '/app/journal'
+    | '/app/moments'
     | '/app/progress'
     | '/app/settings'
     | '/app/'
@@ -175,9 +196,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/forgot-password'
     | '/reset-password'
+    | '/app/affirmations'
     | '/app/coach'
     | '/app/habits'
     | '/app/journal'
+    | '/app/moments'
     | '/app/progress'
     | '/app/settings'
     | '/app'
@@ -191,10 +214,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/_authenticated/app'
+    | '/_authenticated/app/affirmations'
     | '/_authenticated/app/coach'
     | '/_authenticated/app/goals'
     | '/_authenticated/app/habits'
     | '/_authenticated/app/journal'
+    | '/_authenticated/app/moments'
     | '/_authenticated/app/progress'
     | '/_authenticated/app/settings'
     | '/_authenticated/app/'
@@ -261,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/affirmations': {
+      id: '/_authenticated/app/affirmations'
+      path: '/affirmations'
+      fullPath: '/app/affirmations'
+      preLoaderRoute: typeof AuthenticatedAppAffirmationsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/coach': {
       id: '/_authenticated/app/coach'
       path: '/coach'
@@ -287,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/journal'
       fullPath: '/app/journal'
       preLoaderRoute: typeof AuthenticatedAppJournalRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/moments': {
+      id: '/_authenticated/app/moments'
+      path: '/moments'
+      fullPath: '/app/moments'
+      preLoaderRoute: typeof AuthenticatedAppMomentsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/progress': {
@@ -336,20 +375,24 @@ const AuthenticatedAppGoalsRouteWithChildren =
   )
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppAffirmationsRoute: typeof AuthenticatedAppAffirmationsRoute
   AuthenticatedAppCoachRoute: typeof AuthenticatedAppCoachRoute
   AuthenticatedAppGoalsRoute: typeof AuthenticatedAppGoalsRouteWithChildren
   AuthenticatedAppHabitsRoute: typeof AuthenticatedAppHabitsRoute
   AuthenticatedAppJournalRoute: typeof AuthenticatedAppJournalRoute
+  AuthenticatedAppMomentsRoute: typeof AuthenticatedAppMomentsRoute
   AuthenticatedAppProgressRoute: typeof AuthenticatedAppProgressRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppAffirmationsRoute: AuthenticatedAppAffirmationsRoute,
   AuthenticatedAppCoachRoute: AuthenticatedAppCoachRoute,
   AuthenticatedAppGoalsRoute: AuthenticatedAppGoalsRouteWithChildren,
   AuthenticatedAppHabitsRoute: AuthenticatedAppHabitsRoute,
   AuthenticatedAppJournalRoute: AuthenticatedAppJournalRoute,
+  AuthenticatedAppMomentsRoute: AuthenticatedAppMomentsRoute,
   AuthenticatedAppProgressRoute: AuthenticatedAppProgressRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,

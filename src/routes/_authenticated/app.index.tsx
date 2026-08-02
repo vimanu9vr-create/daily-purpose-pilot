@@ -1,14 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BookOpen, Check, Flame, Sparkles, Target } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  Flame,
+  Loader2,
+  Pause,
+  Quote,
+  Sparkles,
+  Target,
+  Volume2,
+} from "lucide-react";
 
 import { AppPage } from "@/components/app/app-page";
 import { ProgressRing } from "@/components/app/progress-ring";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDailyAffirmation } from "@/features/affirmations/use-affirmations";
 import { useGoals } from "@/features/goals/use-goals";
 import { useHabitStats, useToggleHabitToday } from "@/features/habits/use-habits";
 import { promptForToday, useJournalEntries, useJournalStats } from "@/features/journal/use-journal";
+import { useCreateTodaysMoment, useTodaysMoment } from "@/features/moments/use-moments";
 import { useSessionUser } from "@/hooks/use-session-user";
+import { useSpeech } from "@/hooks/use-speech";
 import { toISODate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +45,10 @@ function Dashboard() {
   const toggleHabit = useToggleHabitToday();
   const { data: entries } = useJournalEntries();
   const journalStats = useJournalStats();
+  const affirmation = useDailyAffirmation();
+  const { data: moment } = useTodaysMoment();
+  const createMoment = useCreateTodaysMoment();
+  const speech = useSpeech();
 
   const firstName =
     (user?.user_metadata?.["display_name"] as string | undefined)?.split(" ")[0] ??
@@ -47,6 +65,75 @@ function Dashboard() {
       title={`${greeting()}, ${firstName}`}
       description="Your daily overview: the goal you're moving, the habits you're keeping, and the reflection that closes the loop."
     >
+      {affirmation && (
+        <section className="mb-6 overflow-hidden rounded-4xl surface-gradient p-[1.5px] shadow-lift">
+          <div className="relative rounded-4xl bg-card/90 px-7 py-9 text-center backdrop-blur-xl md:px-12 md:py-12">
+            <div className="aurora-mesh pointer-events-none absolute inset-0 opacity-45" />
+            <div className="relative">
+              <span className="inline-flex items-center gap-2 rounded-full bg-ember/15 px-3 py-1 text-xs font-medium text-ember">
+                <Quote className="h-3.5 w-3.5" /> Today's affirmation
+              </span>
+              <p className="mx-auto mt-5 max-w-2xl font-display text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
+                {affirmation.text}
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                {speech.isSupported && (
+                  <Button variant="glass" onClick={() => speech.toggle(affirmation.text)}>
+                    {speech.isSpeaking ? <Pause /> : <Volume2 />}
+                    {speech.isSpeaking ? "Stop" : "Listen"}
+                  </Button>
+                )}
+                <Button variant="ghost" className="text-muted-foreground" asChild>
+                  <Link to="/app/affirmations">
+                    More affirmations <ArrowRight />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="mb-6 rounded-3xl glass-panel p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-lg font-semibold">
+              {moment ? moment.title : "Today's moment"}
+            </h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              {moment
+                ? `${moment.body.slice(0, 180).trim()}…`
+                : focusGoal
+                  ? "A short scene written from your goal, in present tense. About a minute to read."
+                  : "Name a goal first — your moment is written from your own words."}
+            </p>
+          </div>
+          <Sparkles className="hidden h-5 w-5 shrink-0 text-ember sm:block" />
+        </div>
+
+        {moment ? (
+          <Button variant="hero" className="mt-5" asChild>
+            <Link to="/app/moments">
+              Read today's moment <ArrowRight />
+            </Link>
+          </Button>
+        ) : focusGoal ? (
+          <Button
+            variant="hero"
+            className="mt-5"
+            onClick={() => createMoment.mutate({})}
+            disabled={createMoment.isPending}
+          >
+            {createMoment.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
+            Create today's moment
+          </Button>
+        ) : (
+          <Button variant="glass" className="mt-5" asChild>
+            <Link to="/app/goals">Create a goal</Link>
+          </Button>
+        )}
+      </section>
+
       <div className="grid gap-4 md:grid-cols-3">
         <StatTile
           icon={Target}

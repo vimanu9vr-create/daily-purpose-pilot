@@ -21,6 +21,8 @@ export type Database = {
           goal_id: string | null
           id: string
           is_favorite: boolean
+          last_shown_at: string | null
+          source: string
           text: string
           user_id: string
         }
@@ -30,6 +32,8 @@ export type Database = {
           goal_id?: string | null
           id?: string
           is_favorite?: boolean
+          last_shown_at?: string | null
+          source?: string
           text: string
           user_id: string
         }
@@ -39,6 +43,8 @@ export type Database = {
           goal_id?: string | null
           id?: string
           is_favorite?: boolean
+          last_shown_at?: string | null
+          source?: string
           text?: string
           user_id?: string
         }
@@ -321,6 +327,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      moments: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          goal_id: string | null
+          id: string
+          is_favorite: boolean
+          listened_at: string | null
+          moment_date: string
+          source: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          goal_id?: string | null
+          id?: string
+          is_favorite?: boolean
+          listened_at?: string | null
+          moment_date?: string
+          source?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          goal_id?: string | null
+          id?: string
+          is_favorite?: boolean
+          listened_at?: string | null
+          moment_date?: string
+          source?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moments_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
