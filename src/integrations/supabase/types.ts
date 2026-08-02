@@ -14,7 +14,341 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      affirmations: {
+        Row: {
+          category: string | null
+          created_at: string
+          goal_id: string | null
+          id: string
+          is_favorite: boolean
+          text: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          goal_id?: string | null
+          id?: string
+          is_favorite?: boolean
+          text: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          goal_id?: string | null
+          id?: string
+          is_favorite?: boolean
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affirmations_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_chats: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          chat_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "ai_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_checkins: {
+        Row: {
+          created_at: string
+          date: string
+          energy: number | null
+          gratitude: string | null
+          id: string
+          tomorrow_focus: string | null
+          user_id: string
+          visualization_minutes: number
+          wins: string | null
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          energy?: number | null
+          gratitude?: string | null
+          id?: string
+          tomorrow_focus?: string | null
+          user_id: string
+          visualization_minutes?: number
+          wins?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          energy?: number | null
+          gratitude?: string | null
+          id?: string
+          tomorrow_focus?: string | null
+          user_id?: string
+          visualization_minutes?: number
+          wins?: string | null
+        }
+        Relationships: []
+      }
+      goal_steps: {
+        Row: {
+          completed: boolean
+          created_at: string
+          due_date: string | null
+          goal_id: string
+          id: string
+          order_index: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          due_date?: string | null
+          goal_id: string
+          id?: string
+          order_index?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          due_date?: string | null
+          goal_id?: string
+          id?: string
+          order_index?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_steps_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          category: string | null
+          created_at: string
+          feeling: string | null
+          id: string
+          progress: number
+          status: string
+          target_date: string | null
+          title: string
+          user_id: string
+          why: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          feeling?: string | null
+          id?: string
+          progress?: number
+          status?: string
+          target_date?: string | null
+          title: string
+          user_id: string
+          why?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          feeling?: string | null
+          id?: string
+          progress?: number
+          status?: string
+          target_date?: string | null
+          title?: string
+          user_id?: string
+          why?: string | null
+        }
+        Relationships: []
+      }
+      habit_logs: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          habit_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          habit_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          habit_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          target_per_week: number
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          target_per_week?: number
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          target_per_week?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      journals: {
+        Row: {
+          content: string
+          created_at: string
+          entry_date: string
+          id: string
+          mood: number | null
+          prompt: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: number | null
+          prompt?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: number | null
+          prompt?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          subscription_tier: string
+          timezone: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          subscription_tier?: string
+          timezone?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          subscription_tier?: string
+          timezone?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
