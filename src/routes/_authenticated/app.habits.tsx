@@ -5,7 +5,7 @@ import { AppPage, EmptyState } from "@/components/app/app-page";
 
 export const Route = createFileRoute("/_authenticated/app/habits")({
   head: () => ({ meta: [{ title: "Habits — ManifestAI" }] }),
-  component: Habits;
+  component: Habits,
 });
 
 function Habits() {
