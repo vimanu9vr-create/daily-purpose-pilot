@@ -91,8 +91,8 @@ function Habits() {
               </span>
               <h2 className="mt-6 font-display text-xl font-semibold">No habits tracked yet</h2>
               <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-                Choose two or three habits that directly support your goal. Weekly targets leave room
-                for the days life gets in the way.
+                Choose two or three habits that directly support your goal. Weekly targets leave
+                room for the days life gets in the way.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {HABIT_SUGGESTIONS.map((s) => (

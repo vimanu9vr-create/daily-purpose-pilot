@@ -161,10 +161,7 @@ export function useToggleStep(goalId: string) {
 
   return useMutation({
     mutationFn: async ({ stepId, completed }: { stepId: string; completed: boolean }) => {
-      const { error } = await supabase
-        .from("goal_steps")
-        .update({ completed })
-        .eq("id", stepId);
+      const { error } = await supabase.from("goal_steps").update({ completed }).eq("id", stepId);
       if (error) throw error;
       await syncGoalProgress(goalId);
     },

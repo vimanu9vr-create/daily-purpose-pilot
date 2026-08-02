@@ -18,7 +18,20 @@ export const HABIT_SUGGESTIONS = [
 ] as const;
 
 export const HABIT_ICONS = [
-  "✨", "🧘", "🏃", "📚", "🙏", "💧", "😴", "🥗", "✍️", "🎯", "💪", "🎧", "🌱", "☀️",
+  "✨",
+  "🧘",
+  "🏃",
+  "📚",
+  "🙏",
+  "💧",
+  "😴",
+  "🥗",
+  "✍️",
+  "🎯",
+  "💪",
+  "🎧",
+  "🌱",
+  "☀️",
 ] as const;
 
 export const habitKeys = {

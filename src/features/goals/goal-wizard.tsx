@@ -104,7 +104,13 @@ export function GoalWizard({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-2 flex gap-1.5" role="progressbar" aria-valuenow={stepIndex + 1} aria-valuemin={1} aria-valuemax={STEPS.length}>
+        <div
+          className="mt-2 flex gap-1.5"
+          role="progressbar"
+          aria-valuenow={stepIndex + 1}
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+        >
           {STEPS.map((s, i) => (
             <span
               key={s.key}
@@ -160,9 +166,7 @@ export function GoalWizard({
                     autoFocus
                     type="date"
                     value={draft.target_date ?? ""}
-                    onChange={(e) =>
-                      setDraft({ ...draft, target_date: e.target.value || null })
-                    }
+                    onChange={(e) => setDraft({ ...draft, target_date: e.target.value || null })}
                   />
                   <div>
                     <p className="mb-2 text-xs font-medium text-muted-foreground">Category</p>
@@ -209,7 +213,11 @@ export function GoalWizard({
               Create goal
             </Button>
           ) : (
-            <Button variant="hero" onClick={() => setStepIndex((i) => i + 1)} disabled={!canAdvance}>
+            <Button
+              variant="hero"
+              onClick={() => setStepIndex((i) => i + 1)}
+              disabled={!canAdvance}
+            >
               Continue <ArrowRight />
             </Button>
           )}

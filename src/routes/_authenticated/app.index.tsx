@@ -149,9 +149,7 @@ function Dashboard() {
                     >
                       {habit.name}
                     </span>
-                    {streak > 0 && (
-                      <span className="shrink-0 text-xs text-ember">🔥 {streak}</span>
-                    )}
+                    {streak > 0 && <span className="shrink-0 text-xs text-ember">🔥 {streak}</span>}
                   </button>
                 </li>
               ))}
@@ -179,8 +177,8 @@ function Dashboard() {
         <section className="mt-6 rounded-3xl border border-dashed border-border p-8 text-center">
           <h2 className="font-display text-xl font-semibold">Your practice is ready to set up</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Name one goal, choose two or three habits that support it, and check in each evening. The
-            coach, journal and progress views fill in from there.
+            Name one goal, choose two or three habits that support it, and check in each evening.
+            The coach, journal and progress views fill in from there.
           </p>
           <Button variant="hero" className="mt-6" asChild>
             <Link to="/app/goals">
