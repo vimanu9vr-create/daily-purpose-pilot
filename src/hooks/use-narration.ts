@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { isSpeechSupported, speakSentences, type SpeechHandle } from "@/lib/speech-engine";
+import {
+  PACE_SETTINGS,
+  isSpeechSupported,
+  speakSentences,
+  storedPace,
+  type SpeechHandle,
+} from "@/lib/speech-engine";
 
 import { storedVoiceName } from "./use-speech";
 
@@ -13,7 +19,8 @@ import { storedVoiceName } from "./use-speech";
  * dodges Chrome's ~15-second cutoff on long utterances.
  */
 
-const WORDS_PER_MINUTE = 145;
+/** At rate 1.0. Scaled by the chosen pace below. */
+const BASE_WORDS_PER_MINUTE = 165;
 
 export function splitSentences(body: string): string[] {
   return body
@@ -23,15 +30,39 @@ export function splitSentences(body: string): string[] {
     .filter(Boolean);
 }
 
-function sentenceSeconds(sentence: string): number {
-  const words = sentence.split(/\s+/).filter(Boolean).length;
-  return (words / WORDS_PER_MINUTE) * 60;
+/** Which sentence indices open a new paragraph — those get a longer pause. */
+function paragraphStartIndices(body: string): Set<number> {
+  const starts = new Set<number>();
+  let index = 0;
+  for (const paragraph of body.split(/\n\n+/)) {
+    const count = paragraph.split(/(?<=[.!?])\s+/).filter((s) => s.trim()).length;
+    if (count === 0) continue;
+    starts.add(index);
+    index += count;
+  }
+  return starts;
 }
 
 export function useNarration(body: string) {
   const sentences = useMemo(() => splitSentences(body), [body]);
+  const paragraphStarts = useMemo(() => paragraphStartIndices(body), [body]);
 
-  const durations = useMemo(() => sentences.map(sentenceSeconds), [sentences]);
+  // Read the pace once per mount so the clock and the voice agree.
+  const pace = useMemo(() => storedPace(), []);
+  const paceSettings = PACE_SETTINGS[pace];
+
+  const durations = useMemo(
+    () =>
+      sentences.map((sentence, i) => {
+        const words = sentence.split(/\s+/).filter(Boolean).length;
+        const speaking = (words / (BASE_WORDS_PER_MINUTE * paceSettings.rate)) * 60;
+        // The silence between lines is real time — count it, or the scrubber lies.
+        const gap =
+          (paragraphStarts.has(i + 1) ? paceSettings.paragraphGapMs : paceSettings.gapMs) / 1000;
+        return speaking + gap;
+      }),
+    [sentences, paceSettings, paragraphStarts],
+  );
   const starts = useMemo(() => {
     const result: number[] = [];
     let acc = 0;
@@ -106,6 +137,8 @@ export function useNarration(body: string) {
 
       void speakSentences({
         sentences,
+        paragraphStarts,
+        pace,
         startAt: from,
         voiceName: storedVoiceName(),
         onSentenceStart: (index) => {
@@ -131,7 +164,7 @@ export function useNarration(body: string) {
         handleRef.current = handle;
       });
     },
-    [clearTick, durations, sentences, starts, totalSeconds],
+    [clearTick, durations, pace, paragraphStarts, sentences, starts, totalSeconds],
   );
 
   const toggle = useCallback(() => {

@@ -2,10 +2,22 @@ import { Check, Loader2, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { storeVoiceName, storedVoiceName } from "@/hooks/use-speech";
-import { selectableVoices, speakSentences } from "@/lib/speech-engine";
+import {
+  selectableVoices,
+  speakSentences,
+  storePace,
+  storedPace,
+  type Pace,
+} from "@/lib/speech-engine";
 import { cn } from "@/lib/utils";
 
-const SAMPLE = "I am exactly where I need to be, and I am moving.";
+const SAMPLE_SENTENCES = ["I am exactly where I need to be.", "There is no rush in this."];
+
+const PACES: { id: Pace; label: string; hint: string }[] = [
+  { id: "calm", label: "Calm", hint: "Slow, with space between lines" },
+  { id: "gentle", label: "Gentle", hint: "A little quicker" },
+  { id: "natural", label: "Natural", hint: "Closer to speaking pace" },
+];
 
 /**
  * Lets the user pick which voice reads their stories and affirmations.
@@ -18,9 +30,11 @@ export function VoicePicker() {
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewing, setPreviewing] = useState<string | null>(null);
+  const [pace, setPace] = useState<Pace>("calm");
 
   useEffect(() => {
     let cancelled = false;
+    setPace(storedPace());
     void selectableVoices().then((list) => {
       if (cancelled) return;
       setVoices(list);
@@ -32,16 +46,27 @@ export function VoicePicker() {
     };
   }, []);
 
-  function choose(name: string) {
-    setSelected(name);
-    storeVoiceName(name);
-    setPreviewing(name);
+  function preview(voiceName: string | null, nextPace: Pace) {
+    setPreviewing(voiceName ?? "");
     void speakSentences({
-      sentences: [SAMPLE],
-      voiceName: name,
+      sentences: SAMPLE_SENTENCES,
+      voiceName,
+      pace: nextPace,
       onDone: () => setPreviewing(null),
       onError: () => setPreviewing(null),
     });
+  }
+
+  function choose(name: string) {
+    setSelected(name);
+    storeVoiceName(name);
+    preview(name, pace);
+  }
+
+  function choosePace(next: Pace) {
+    setPace(next);
+    storePace(next);
+    preview(selected, next);
   }
 
   if (loading) {
@@ -63,6 +88,33 @@ export function VoicePicker() {
 
   return (
     <div className="space-y-1.5">
+      <p className="eyebrow pb-1 text-muted-foreground">Pace</p>
+      <div className="flex gap-2 pb-4">
+        {PACES.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => choosePace(option.id)}
+            aria-pressed={pace === option.id}
+            className={cn(
+              "flex-1 rounded-2xl px-3 py-2.5 text-left transition",
+              pace === option.id ? "bg-primary text-primary-foreground" : "bg-accent/40",
+            )}
+          >
+            <span className="block text-xs font-medium">{option.label}</span>
+            <span
+              className={cn(
+                "mt-0.5 block text-[10px] leading-tight",
+                pace === option.id ? "text-primary-foreground/70" : "text-muted-foreground",
+              )}
+            >
+              {option.hint}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <p className="eyebrow pb-1 text-muted-foreground">Voice</p>
       {voices.map((voice) => (
         <button
           key={voice.name}

@@ -60,6 +60,9 @@ function scoreVoice(voice: SpeechSynthesisVoice): number {
 
   if (!voice.lang.toLowerCase().startsWith("en")) return -1;
 
+  // If a Sara/Sarah voice exists on this device, it wins.
+  if (/\bsara(h)?\b/.test(name)) score += 100;
+
   if (/neural|natural|premium|enhanced|siri/.test(name)) score += 60;
   if (/google/.test(name)) score += 30;
   if (/microsoft/.test(name)) score += 20;
@@ -69,6 +72,30 @@ function scoreVoice(voice: SpeechSynthesisVoice): number {
   if (voice.default) score += 5;
 
   return score;
+}
+
+/** How slowly and how much space between lines. Calm is the default. */
+export type Pace = "calm" | "gentle" | "natural";
+
+export const PACE_SETTINGS: Record<Pace, { rate: number; gapMs: number; paragraphGapMs: number }> =
+  {
+    // Meditation-app slow, with room to breathe between lines.
+    calm: { rate: 0.72, gapMs: 900, paragraphGapMs: 1600 },
+    gentle: { rate: 0.82, gapMs: 550, paragraphGapMs: 1000 },
+    natural: { rate: 0.95, gapMs: 260, paragraphGapMs: 500 },
+  };
+
+const PACE_STORAGE_KEY = "manifestai:pace";
+
+export function storedPace(): Pace {
+  if (typeof window === "undefined") return "calm";
+  const value = window.localStorage.getItem(PACE_STORAGE_KEY);
+  return value === "gentle" || value === "natural" ? value : "calm";
+}
+
+export function storePace(pace: Pace) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(PACE_STORAGE_KEY, pace);
 }
 
 export async function bestVoice(
@@ -110,6 +137,9 @@ export async function selectableVoices(): Promise<SpeechSynthesisVoice[]> {
 export type SpeakOptions = {
   /** Spoken one at a time, which is what dodges Chrome's 15-second cutoff. */
   sentences: string[];
+  /** Marks which sentences begin a new paragraph, so those get a longer pause. */
+  paragraphStarts?: Set<number>;
+  pace?: Pace;
   rate?: number;
   pitch?: number;
   voiceName?: string | null;
@@ -128,7 +158,16 @@ export async function speakSentences(options: SpeakOptions): Promise<SpeechHandl
     return { cancel: () => {} };
   }
 
-  const { sentences, rate = 0.92, pitch = 1.02, voiceName, startAt = 0 } = options;
+  const paceSettings = PACE_SETTINGS[options.pace ?? storedPace()];
+  const {
+    sentences,
+    rate = paceSettings.rate,
+    // Slightly under 1 reads as settled rather than bright.
+    pitch = 0.96,
+    voiceName,
+    startAt = 0,
+    paragraphStarts,
+  } = options;
 
   window.speechSynthesis.cancel();
 
@@ -170,8 +209,10 @@ export async function speakSentences(options: SpeakOptions): Promise<SpeechHandl
     utterance.onend = () => {
       if (cancelled) return;
       index += 1;
-      // A beat between sentences — reads as narration rather than a list.
-      setTimeout(speakNext, 140);
+      // Silence between lines is what makes this feel like guided narration
+      // instead of a screen reader working through a paragraph.
+      const gap = paragraphStarts?.has(index) ? paceSettings.paragraphGapMs : paceSettings.gapMs;
+      setTimeout(speakNext, gap);
     };
 
     utterance.onerror = (event) => {
@@ -183,7 +224,7 @@ export async function speakSentences(options: SpeakOptions): Promise<SpeechHandl
       }
       // Skip a bad sentence rather than stalling the whole story.
       index += 1;
-      setTimeout(speakNext, 140);
+      setTimeout(speakNext, paceSettings.gapMs);
     };
 
     window.speechSynthesis.speak(utterance);

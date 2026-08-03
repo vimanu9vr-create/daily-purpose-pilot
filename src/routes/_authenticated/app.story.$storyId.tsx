@@ -14,12 +14,13 @@ import {
   Share2,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { useStory, useToggleStoryFavorite } from "@/features/stories/use-stories";
 import { formatClock, useNarration } from "@/hooks/use-narration";
+import { ambientPad } from "@/lib/ambient-audio";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/story/$storyId")({
@@ -37,6 +38,25 @@ function StoryPlayer() {
   const [music, setMusic] = useState(false);
 
   const narration = useNarration(story?.body ?? "");
+
+  // Always fade the pad out when leaving the player.
+  useEffect(() => {
+    return () => {
+      void ambientPad().stop();
+    };
+  }, []);
+
+  async function toggleMusic() {
+    const pad = ambientPad();
+    if (music) {
+      await pad.stop();
+      setMusic(false);
+    } else {
+      // Browsers only allow audio to start from a user gesture — this is one.
+      await pad.start(0.14);
+      setMusic(true);
+    }
+  }
 
   if (isPending) {
     return (
@@ -79,6 +99,7 @@ function StoryPlayer() {
             type="button"
             onClick={() => {
               narration.stop();
+              void ambientPad().stop();
               navigate({ to: "/app" });
             }}
             aria-label="Back"
@@ -89,7 +110,7 @@ function StoryPlayer() {
           <span className="font-display text-lg italic text-white/90">ManifestAI</span>
           <button
             type="button"
-            onClick={() => setMusic((m) => !m)}
+            onClick={() => void toggleMusic()}
             aria-label={music ? "Turn background music off" : "Turn background music on"}
             aria-pressed={music}
             className={cn(
