@@ -362,6 +362,9 @@ export type Database = {
         Row: {
           body: string
           category: string | null
+          audio_marks: Json | null
+          audio_url: string | null
+          audio_voice: string | null
           created_at: string
           desire_id: string | null
           duration_seconds: number
@@ -381,6 +384,9 @@ export type Database = {
         Insert: {
           body: string
           category?: string | null
+          audio_marks?: Json | null
+          audio_url?: string | null
+          audio_voice?: string | null
           created_at?: string
           desire_id?: string | null
           duration_seconds?: number
@@ -400,6 +406,9 @@ export type Database = {
         Update: {
           body?: string
           category?: string | null
+          audio_marks?: Json | null
+          audio_url?: string | null
+          audio_voice?: string | null
           created_at?: string
           desire_id?: string | null
           duration_seconds?: number

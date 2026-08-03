@@ -12,6 +12,7 @@ import {
   RotateCcw,
   RotateCw,
   Share2,
+  Sparkles,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -20,6 +21,7 @@ import { toast } from "sonner";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { useStory, useToggleStoryFavorite } from "@/features/stories/use-stories";
 import { formatClock, useNarration } from "@/hooks/use-narration";
+import { useStudioNarration } from "@/hooks/use-studio-narration";
 import { ambientPad } from "@/lib/ambient-audio";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +39,24 @@ function StoryPlayer() {
   const [showFullStory, setShowFullStory] = useState(false);
   const [music, setMusic] = useState(false);
 
-  const narration = useNarration(story?.body ?? "");
+  const browser = useNarration(story?.body ?? "");
+  const studio = useStudioNarration(
+    story?.id,
+    story?.body ?? "",
+    story?.audio_url ?? null,
+    (story?.audio_marks as number[] | null) ?? null,
+    browser.sentences,
+  );
+
+  // Real narration when it exists, browser speech otherwise. Same surface,
+  // so nothing below needs to know which one is running.
+  const narration = studio.available ? studio : browser;
+
+  // Stop whichever engine isn't in use, so they can't overlap.
+  useEffect(() => {
+    if (studio.available) browser.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studio.available]);
 
   // Always fade the pad out when leaving the player.
   useEffect(() => {
@@ -139,13 +158,36 @@ function StoryPlayer() {
         </div>
 
         <div className="space-y-5">
-          <button
-            type="button"
-            onClick={() => setShowFullStory(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-[13px] text-white backdrop-blur-sm transition hover:bg-white/25"
-          >
-            <BookOpen className="h-3.5 w-3.5" /> Read the full story
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowFullStory(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-[13px] text-white backdrop-blur-sm transition hover:bg-white/25"
+            >
+              <BookOpen className="h-3.5 w-3.5" /> Read the full story
+            </button>
+
+            {!studio.available && (
+              <button
+                type="button"
+                onClick={() => {
+                  browser.stop();
+                  void studio.generate("sarah");
+                }}
+                disabled={studio.isGenerating}
+                className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-[13px] text-white backdrop-blur-sm transition hover:bg-white/25 disabled:opacity-60"
+              >
+                {studio.isGenerating ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                {studio.isGenerating ? "Recording…" : "Studio voice"}
+              </button>
+            )}
+          </div>
+
+          {studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>}
 
           <div className="flex items-center justify-between gap-4">
             <p className="min-w-0 flex-1 truncate text-sm text-white/60">{story.title}</p>
@@ -171,7 +213,7 @@ function StoryPlayer() {
               tabIndex={0}
               aria-label="Seek"
               aria-valuemin={0}
-              aria-valuemax={narration.sentences.length - 1}
+              aria-valuemax={browser.sentences.length - 1}
               aria-valuenow={narration.currentIndex}
               onKeyDown={(e) => {
                 if (e.key === "ArrowRight") narration.skip(10);
@@ -180,7 +222,9 @@ function StoryPlayer() {
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const ratio = (e.clientX - rect.left) / rect.width;
-                narration.seekToSentence(Math.round(ratio * (narration.sentences.length - 1)));
+                // Real audio can seek anywhere; speech synthesis only per sentence.
+                if (studio.available) studio.seekToRatio(ratio);
+                else browser.seekToSentence(Math.round(ratio * (browser.sentences.length - 1)));
               }}
             >
               <div
@@ -223,7 +267,7 @@ function StoryPlayer() {
             <button
               type="button"
               onClick={narration.toggle}
-              disabled={!narration.isSupported}
+              disabled={!studio.available && !browser.isSupported}
               aria-label={narration.isPlaying ? "Pause" : "Play"}
               className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white text-primary shadow-xl transition hover:scale-105 disabled:opacity-50"
             >
@@ -265,7 +309,7 @@ function StoryPlayer() {
             </button>
           </div>
 
-          {!narration.isSupported && (
+          {!studio.available && !browser.isSupported && (
             <p className="text-center text-[11px] text-white/50">
               This browser can't read aloud. Tap "Read the full story" instead.
             </p>
@@ -300,7 +344,7 @@ function StoryPlayer() {
               </div>
 
               <div className="mt-7 space-y-5">
-                {narration.sentences.map((sentence, i) => (
+                {browser.sentences.map((sentence: string, i: number) => (
                   <button
                     key={i}
                     type="button"
