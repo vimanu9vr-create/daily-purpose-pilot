@@ -261,6 +261,27 @@
     radial-gradient(55% 45% at 72% 88%, oklch(0.76 0.13 25 / 18%) 0%, transparent 66%);
 }
 
+/* Legal pages: readable long-form without pulling in a prose plugin. */
+.legal-body h2 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 500;
+  margin-top: 2.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+}
+
+.legal-body a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-body strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 /* Horizontal carousels: snap, and hide the scrollbar. */
 @utility carousel {
   display: flex;

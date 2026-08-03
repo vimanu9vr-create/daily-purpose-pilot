@@ -4,6 +4,7 @@ import {
   BellOff,
   BookOpen,
   ChevronRight,
+  FileText,
   Flame,
   LineChart,
   Loader2,
@@ -11,14 +12,17 @@ import {
   MessageCircleHeart,
   Moon,
   Share,
+  Shield,
   Smartphone,
   Sun,
   Target,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
 import { useSignOut } from "@/components/app/app-shell";
+import { DeleteAccountDialog } from "@/features/account/delete-account-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -60,6 +64,7 @@ function ProfilePage() {
   const [name, setName] = useState("");
   const [time, setTime] = useState("07:00");
   const [isDark, setIsDark] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -244,6 +249,31 @@ function ProfilePage() {
         </button>
       </Card>
 
+      <Card label="Legal">
+        <ul className="-my-1">
+          <li>
+            <Link
+              to="/privacy"
+              className="flex items-center gap-3 rounded-xl px-1 py-3 text-sm transition-colors hover:text-primary"
+            >
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1">Privacy Policy</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/terms"
+              className="flex items-center gap-3 rounded-xl px-1 py-3 text-sm transition-colors hover:text-primary"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1">Terms of Use</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </Link>
+          </li>
+        </ul>
+      </Card>
+
       <Button
         variant="ghost"
         className="mt-6 w-full rounded-full text-muted-foreground"
@@ -251,6 +281,17 @@ function ProfilePage() {
       >
         <LogOut className="h-4 w-4" /> Sign out
       </Button>
+
+      {/* Required by App Store Guideline 5.1.1(v), and reachable rather than buried. */}
+      <Button
+        variant="ghost"
+        className="mt-1 w-full rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => setDeleteOpen(true)}
+      >
+        <Trash2 className="h-4 w-4" /> Delete account
+      </Button>
+
+      <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} />
 
       <p className="mt-8 text-center text-[11px] leading-relaxed text-muted-foreground">
         ManifestAI supports your effort with focus and follow-through. It doesn't promise outcomes.
