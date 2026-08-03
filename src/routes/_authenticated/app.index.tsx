@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DesireSheet } from "@/features/stories/desire-sheet";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { CarouselSection, DraggableRow, StoryCard } from "@/features/stories/story-card";
+import { TrendingMarquee } from "@/features/stories/trending-marquee";
 import {
   TRENDING_DESIRES,
   nextRefreshAt,
@@ -45,8 +46,15 @@ function HomeFeed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasDesires, isPending, storyList.length]);
 
-  const forYou = storyList.slice(0, 8);
-  const trending = storyList.slice(8, 16);
+  // Only personalised stories belong on Home; the catalogue lives in Library.
+  const storiesOnly = storyList.filter((s) => s.kind === "story");
+  const forYou = storiesOnly.slice(0, 8);
+  const trending = storiesOnly.slice(8, 16);
+
+  // Suggestions the user hasn't already added.
+  const trendingItems = TRENDING_DESIRES.filter(
+    (title) => !desires?.some((d) => d.title === title),
+  );
 
   function submitDesire(title: string) {
     const trimmed = title.trim();
@@ -82,6 +90,14 @@ function HomeFeed() {
         </button>
       </div>
 
+      {/* Trending strip — drifts on its own so it reads as tappable */}
+      <p className="eyebrow mt-6 text-center">🔥 Trending manifestations</p>
+      <TrendingMarquee
+        className="mt-3"
+        items={trendingItems}
+        onSelect={(title) => submitDesire(title)}
+      />
+
       <div className="mt-6 flex items-center justify-between gap-3">
         <h1 className="font-display text-[28px] font-medium leading-none">
           {profile?.display_name ? `For ${profile.display_name.split(" ")[0]}` : "For you"}
@@ -96,27 +112,18 @@ function HomeFeed() {
         </Button>
       </div>
 
-      {/* Desire chips */}
-      <DraggableRow className="mt-4 pb-1">
-        {(hasDesires ? desires! : []).map((desire) => (
-          <span
-            key={desire.id}
-            className="carousel-item rounded-full bg-white/70 px-4 py-2 text-xs font-medium text-secondary-foreground shadow-sm"
-          >
-            {desire.title}
-          </span>
-        ))}
-        {TRENDING_DESIRES.filter((t) => !desires?.some((d) => d.title === t)).map((title) => (
-          <button
-            key={title}
-            type="button"
-            onClick={() => submitDesire(title)}
-            className="carousel-item rounded-full border border-border/70 px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-white/60"
-          >
-            {title}
-          </button>
-        ))}
-      </DraggableRow>
+      {hasDesires && (
+        <DraggableRow className="mt-3 pb-1">
+          {desires!.map((desire) => (
+            <span
+              key={desire.id}
+              className="carousel-item whitespace-nowrap rounded-full bg-primary/10 px-4 py-2 text-xs font-medium text-primary"
+            >
+              {desire.title}
+            </span>
+          ))}
+        </DraggableRow>
+      )}
 
       {!hasDesires && (
         <section className="mt-10 rounded-3xl glass-panel px-7 py-12 text-center">

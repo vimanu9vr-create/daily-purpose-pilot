@@ -94,7 +94,7 @@ export function CarouselSection({
   children,
 }: {
   label: string;
-  onSeeAll?: () => void;
+  onSeeAll?: (() => void) | undefined;
   children: React.ReactNode;
 }) {
   return (
