@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/page-transition";
 import { Button } from "@/components/ui/button";
 import { DesireSheet } from "@/features/stories/desire-sheet";
 import { coverImage, themeFor } from "@/features/stories/imagery";
-import { CarouselSection, StoryCard } from "@/features/stories/story-card";
+import { CarouselSection, DraggableRow, StoryCard } from "@/features/stories/story-card";
 import {
   TRENDING_DESIRES,
   nextRefreshAt,
@@ -97,7 +97,7 @@ function HomeFeed() {
       </div>
 
       {/* Desire chips */}
-      <div className="carousel -mx-5 mt-4 px-5 pb-1">
+      <DraggableRow className="mt-4 pb-1">
         {(hasDesires ? desires! : []).map((desire) => (
           <span
             key={desire.id}
@@ -116,7 +116,7 @@ function HomeFeed() {
             {title}
           </button>
         ))}
-      </div>
+      </DraggableRow>
 
       {!hasDesires && (
         <section className="mt-10 rounded-3xl glass-panel px-7 py-12 text-center">

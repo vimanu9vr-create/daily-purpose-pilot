@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { PageTransition } from "@/components/page-transition";
 import { Button } from "@/components/ui/button";
 import { AFFIRMATION_CATEGORIES } from "@/features/affirmations/affirmation-library";
+import { DraggableRow } from "@/features/stories/story-card";
 import {
   useAffirmationDeck,
   useGenerateAffirmations,
@@ -89,7 +90,7 @@ function Affirmations() {
         </button>
       </header>
 
-      <div className="carousel -mx-5 mt-5 px-5 pb-1">
+      <DraggableRow className="mt-5 pb-1">
         <button
           type="button"
           onClick={() => setCategoryId(null)}
@@ -117,7 +118,7 @@ function Affirmations() {
             {category.emoji} {category.label}
           </button>
         ))}
-      </div>
+      </DraggableRow>
 
       {/* Card stack */}
       <div className="relative mt-8 h-[420px]">

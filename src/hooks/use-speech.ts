@@ -1,61 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { isSpeechSupported, speakSentences, type SpeechHandle } from "@/lib/speech-engine";
+
+const VOICE_STORAGE_KEY = "manifestai:voice";
+
+export function storedVoiceName(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(VOICE_STORAGE_KEY);
+}
+
+export function storeVoiceName(name: string | null) {
+  if (typeof window === "undefined") return;
+  if (name) window.localStorage.setItem(VOICE_STORAGE_KEY, name);
+  else window.localStorage.removeItem(VOICE_STORAGE_KEY);
+}
+
 /**
- * Read text aloud using the browser's built-in speech synthesis.
+ * Reads short text aloud — affirmations, single lines.
  *
- * Deliberately not a paid text-to-speech API: this costs nothing, works
- * offline, and needs no key. The voice is less warm than a hosted neural
- * voice — that's the trade, and it's the right one until people are paying.
+ * Goes through the shared engine so it picks up a real voice (rather than the
+ * default robotic one) and survives Chrome's mid-utterance cutoff.
  */
 export function useSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const handleRef = useRef<SpeechHandle | null>(null);
 
   useEffect(() => {
-    setIsSupported(typeof window !== "undefined" && "speechSynthesis" in window);
-    return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
+    setIsSupported(isSpeechSupported());
   }, []);
 
   const stop = useCallback(() => {
-    if (!isSupported) return;
-    window.speechSynthesis.cancel();
+    handleRef.current?.cancel();
+    handleRef.current = null;
     setIsSpeaking(false);
-  }, [isSupported]);
+  }, []);
 
-  const speak = useCallback(
-    (text: string) => {
-      if (!isSupported) return;
+  useEffect(() => stop, [stop]);
 
-      // Speaking while already speaking queues rather than replaces, so clear first.
-      window.speechSynthesis.cancel();
+  const speak = useCallback((text: string) => {
+    if (!isSpeechSupported()) return;
+    handleRef.current?.cancel();
+    setIsSpeaking(true);
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.88; // slower than default — this is meant to be sat with
-      utterance.pitch = 1;
-      utterance.volume = 1;
+    // Split so even a long affirmation doesn't hit the cutoff.
+    const sentences = text
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-      // Prefer a natural-sounding local voice when one exists.
-      const voices = window.speechSynthesis.getVoices();
-      const preferred =
-        voices.find((v) => /samantha|serena|allison|ava|jenny|aria/i.test(v.name)) ??
-        voices.find((v) => v.lang.startsWith("en") && v.localService) ??
-        voices.find((v) => v.lang.startsWith("en"));
-      if (preferred) utterance.voice = preferred;
-
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-
-      utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
-      setIsSpeaking(true);
-    },
-    [isSupported],
-  );
+    void speakSentences({
+      sentences: sentences.length > 0 ? sentences : [text],
+      voiceName: storedVoiceName(),
+      onDone: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    }).then((handle) => {
+      handleRef.current = handle;
+    });
+  }, []);
 
   const toggle = useCallback(
     (text: string) => {

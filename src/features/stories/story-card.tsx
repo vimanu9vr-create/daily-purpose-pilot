@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, Play } from "lucide-react";
 
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { cn } from "@/lib/utils";
 
 export type StoryCardData = {
@@ -110,7 +111,57 @@ export function CarouselSection({
           </button>
         )}
       </div>
-      <div className="carousel -mx-5 px-5 pb-2">{children}</div>
+      <DraggableRow>{children}</DraggableRow>
     </section>
+  );
+}
+
+/**
+ * Horizontal row that actually scrolls with a mouse. Without this, desktop
+ * users see a row that appears frozen because plain overflow-x needs
+ * shift+wheel.
+ */
+export function DraggableRow({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { ref, canScrollLeft, canScrollRight, scrollBy, handlers } =
+    useDragScroll<HTMLDivElement>();
+
+  return (
+    <div className="group/row relative">
+      <div
+        ref={ref}
+        {...handlers}
+        className={cn("carousel -mx-5 cursor-grab px-5 pb-2 active:cursor-grabbing", className)}
+      >
+        {children}
+      </div>
+
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => scrollBy(-280)}
+          aria-label="Scroll left"
+          className="absolute -left-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-md backdrop-blur transition hover:bg-white md:flex"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => scrollBy(280)}
+          aria-label="Scroll right"
+          className="absolute -right-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-md backdrop-blur transition hover:bg-white md:flex"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </div>
   );
 }

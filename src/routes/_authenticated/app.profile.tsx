@@ -28,6 +28,7 @@ import {
   usePushState,
   useSendTestNotification,
 } from "@/features/notifications/use-push";
+import { VoicePicker } from "@/features/notifications/voice-picker";
 import { useProfile, useUpdateProfile } from "@/features/onboarding/use-profile";
 import { cn } from "@/lib/utils";
 
@@ -188,6 +189,10 @@ function ProfilePage() {
             )}
           </div>
         )}
+      </Card>
+
+      <Card label="Voice">
+        <VoicePicker />
       </Card>
 
       <Card label="More">
