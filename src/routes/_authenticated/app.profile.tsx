@@ -4,6 +4,7 @@ import {
   BellOff,
   BookOpen,
   ChevronRight,
+  CreditCard,
   FileText,
   Flame,
   LineChart,
@@ -14,6 +15,7 @@ import {
   Share,
   Shield,
   Smartphone,
+  Sparkles,
   Sun,
   Target,
   Trash2,
@@ -23,6 +25,9 @@ import { useEffect, useState } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useSignOut } from "@/components/app/app-shell";
 import { DeleteAccountDialog } from "@/features/account/delete-account-dialog";
+import { planById } from "@/features/billing/plans";
+import { purchaseStore } from "@/features/billing/store";
+import { useSubscription } from "@/features/billing/use-subscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,6 +39,7 @@ import {
 } from "@/features/notifications/use-push";
 import { VoicePicker } from "@/features/notifications/voice-picker";
 import { useProfile, useUpdateProfile } from "@/features/onboarding/use-profile";
+import { formatLongDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/profile")({
@@ -54,6 +60,7 @@ function ProfilePage() {
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
   const signOut = useSignOut();
+  const { isPremium, plan, subscription } = useSubscription();
 
   const push = usePushState();
   const { data: isSubscribed } = useIsSubscribed();
@@ -193,6 +200,59 @@ function ProfilePage() {
               </Button>
             )}
           </div>
+        )}
+      </Card>
+
+      <Card label="Subscription">
+        {isPremium ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Status</span>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Active
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-sm">Plan</span>
+              <span className="text-sm text-muted-foreground">
+                {planById(plan)?.name ?? "Premium"}
+                {subscription?.price_display ? ` · ${subscription.price_display}` : ""}
+              </span>
+            </div>
+            {subscription?.current_period_end && (
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm">
+                  {subscription.cancel_at_period_end ? "Ends" : "Renews"}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {formatLongDate(subscription.current_period_end.slice(0, 10))}
+                </span>
+              </div>
+            )}
+
+            <a
+              href={purchaseStore().manageUrl() ?? "https://apps.apple.com/account/subscriptions"}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 flex items-center gap-3 rounded-xl px-1 py-3 text-sm transition-colors hover:text-primary"
+            >
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1">Manage subscription</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </a>
+          </>
+        ) : (
+          <>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              You're on the free plan. Premium removes the limits on stories, narration and
+              coaching.
+            </p>
+            <Button className="mt-4 w-full rounded-full" asChild>
+              <Link to="/app/upgrade">
+                <Sparkles className="h-4 w-4" /> See Premium
+              </Link>
+            </Button>
+          </>
         )}
       </Card>
 

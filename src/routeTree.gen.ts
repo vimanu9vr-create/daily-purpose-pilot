@@ -29,6 +29,7 @@ import { Route as AuthenticatedAppMomentsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app.profile'
 import { Route as AuthenticatedAppProgressRouteImport } from './routes/_authenticated/app.progress'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as AuthenticatedAppUpgradeRouteImport } from './routes/_authenticated/app.upgrade'
 import { Route as AuthenticatedAppGoalsIndexRouteImport } from './routes/_authenticated/app.goals.index'
 import { Route as AuthenticatedAppGoalsGoalIdRouteImport } from './routes/_authenticated/app.goals.$goalId'
 import { Route as AuthenticatedAppStoryStoryIdRouteImport } from './routes/_authenticated/app.story.$storyId'
@@ -135,6 +136,11 @@ const AuthenticatedAppSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const AuthenticatedAppUpgradeRoute = AuthenticatedAppUpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppGoalsIndexRoute =
   AuthenticatedAppGoalsIndexRouteImport.update({
     id: '/',
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
   '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
   '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/progress': typeof AuthenticatedAppProgressRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/_authenticated/app/upgrade': typeof AuthenticatedAppUpgradeRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
   '/_authenticated/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/progress'
     | '/app/settings'
+    | '/app/upgrade'
     | '/app/'
     | '/app/goals/$goalId'
     | '/app/story/$storyId'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/progress'
     | '/app/settings'
+    | '/app/upgrade'
     | '/app'
     | '/app/goals/$goalId'
     | '/app/story/$storyId'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/profile'
     | '/_authenticated/app/progress'
     | '/_authenticated/app/settings'
+    | '/_authenticated/app/upgrade'
     | '/_authenticated/app/'
     | '/_authenticated/app/goals/$goalId'
     | '/_authenticated/app/story/$storyId'
@@ -452,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/upgrade': {
+      id: '/_authenticated/app/upgrade'
+      path: '/upgrade'
+      fullPath: '/app/upgrade'
+      preLoaderRoute: typeof AuthenticatedAppUpgradeRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/goals/': {
       id: '/_authenticated/app/goals/'
       path: '/'
@@ -502,6 +521,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppProgressRoute: typeof AuthenticatedAppProgressRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
+  AuthenticatedAppUpgradeRoute: typeof AuthenticatedAppUpgradeRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppStoryStoryIdRoute: typeof AuthenticatedAppStoryStoryIdRoute
 }
@@ -517,6 +537,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppProgressRoute: AuthenticatedAppProgressRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
+  AuthenticatedAppUpgradeRoute: AuthenticatedAppUpgradeRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppStoryStoryIdRoute: AuthenticatedAppStoryStoryIdRoute,
 }
