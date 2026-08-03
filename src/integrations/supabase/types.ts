@@ -150,6 +150,36 @@ export type Database = {
         }
         Relationships: []
       }
+      desires: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       goal_steps: {
         Row: {
           completed: boolean
@@ -333,9 +363,15 @@ export type Database = {
           body: string
           category: string | null
           created_at: string
+          desire_id: string | null
+          duration_seconds: number
+          expires_at: string | null
           goal_id: string | null
+          hook: string | null
           id: string
+          image_url: string | null
           is_favorite: boolean
+          kind: string
           listened_at: string | null
           moment_date: string
           source: string
@@ -346,9 +382,15 @@ export type Database = {
           body: string
           category?: string | null
           created_at?: string
+          desire_id?: string | null
+          duration_seconds?: number
+          expires_at?: string | null
           goal_id?: string | null
+          hook?: string | null
           id?: string
+          image_url?: string | null
           is_favorite?: boolean
+          kind?: string
           listened_at?: string | null
           moment_date?: string
           source?: string
@@ -359,9 +401,15 @@ export type Database = {
           body?: string
           category?: string | null
           created_at?: string
+          desire_id?: string | null
+          duration_seconds?: number
+          expires_at?: string | null
           goal_id?: string | null
+          hook?: string | null
           id?: string
+          image_url?: string | null
           is_favorite?: boolean
+          kind?: string
           listened_at?: string | null
           moment_date?: string
           source?: string

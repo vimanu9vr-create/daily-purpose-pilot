@@ -73,9 +73,18 @@ export function useCompleteOnboarding() {
         .eq("id", userId);
       if (profileError) throw profileError;
 
-      // The stated desire becomes a real goal, so Moments and the coach have
-      // something to work from without asking the user to type it twice.
+      // What they typed becomes a desire (which the home feed writes stories
+      // from) and a goal (which the coach and habits work from), so they only
+      // ever type it once.
       if (answers.desires.trim()) {
+        const { error: desireError } = await supabase.from("desires").insert({
+          user_id: userId,
+          title: answers.desires.trim(),
+          description: answers.desiredFeeling.trim() || null,
+          category: answers.focusAreas[0] ?? null,
+        });
+        if (desireError) throw desireError;
+
         const { error: goalError } = await supabase.from("goals").insert({
           user_id: userId,
           title: answers.desires.trim(),
@@ -122,6 +131,7 @@ export function useCompleteOnboarding() {
       void queryClient.invalidateQueries({ queryKey: profileKeys.me });
       void queryClient.invalidateQueries({ queryKey: affirmationKeys.saved });
       void queryClient.invalidateQueries({ queryKey: ["goals"] });
+      void queryClient.invalidateQueries({ queryKey: ["desires"] });
     },
     onError: (error: Error) => toast.error(error.message || "Couldn't finish setting up"),
   });

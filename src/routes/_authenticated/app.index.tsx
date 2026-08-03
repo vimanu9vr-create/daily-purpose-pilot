@@ -1,302 +1,237 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  BookOpen,
-  Check,
-  Flame,
-  Loader2,
-  Pause,
-  Quote,
-  Sparkles,
-  Target,
-  Volume2,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { ArrowUp, Loader2, Pencil, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import { AppPage } from "@/components/app/app-page";
-import { ProgressRing } from "@/components/app/progress-ring";
+import { PageTransition } from "@/components/page-transition";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useDailyAffirmation } from "@/features/affirmations/use-affirmations";
-import { useGoals } from "@/features/goals/use-goals";
-import { useHabitStats, useToggleHabitToday } from "@/features/habits/use-habits";
-import { promptForToday, useJournalEntries, useJournalStats } from "@/features/journal/use-journal";
-import { useCreateTodaysMoment, useTodaysMoment } from "@/features/moments/use-moments";
-import { useSessionUser } from "@/hooks/use-session-user";
-import { useSpeech } from "@/hooks/use-speech";
-import { toISODate } from "@/lib/dates";
-import { cn } from "@/lib/utils";
+import { DesireSheet } from "@/features/stories/desire-sheet";
+import { coverImage, themeFor } from "@/features/stories/imagery";
+import { CarouselSection, StoryCard } from "@/features/stories/story-card";
+import {
+  TRENDING_DESIRES,
+  nextRefreshAt,
+  useCreateDesire,
+  useDesires,
+  useGenerateStories,
+  useStories,
+  useToggleStoryFavorite,
+} from "@/features/stories/use-stories";
+import { useProfile } from "@/features/onboarding/use-profile";
 
 export const Route = createFileRoute("/_authenticated/app/")({
-  head: () => ({ meta: [{ title: "Dashboard — ManifestAI" }] }),
-  component: Dashboard,
+  head: () => ({ meta: [{ title: "ManifestAI" }] }),
+  component: HomeFeed,
 });
 
-function greeting(date = new Date()): string {
-  const hour = date.getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
+function HomeFeed() {
+  const { data: profile } = useProfile();
+  const { data: desires } = useDesires();
+  const { data: stories, isPending } = useStories();
+  const createDesire = useCreateDesire();
+  const generate = useGenerateStories();
+  const toggleFavorite = useToggleStoryFavorite();
 
-function Dashboard() {
-  const { data: user } = useSessionUser();
-  const { data: goals, isPending: goalsPending } = useGoals();
-  const habits = useHabitStats();
-  const toggleHabit = useToggleHabitToday();
-  const { data: entries } = useJournalEntries();
-  const journalStats = useJournalStats();
-  const affirmation = useDailyAffirmation();
-  const { data: moment } = useTodaysMoment();
-  const createMoment = useCreateTodaysMoment();
-  const speech = useSpeech();
+  const [input, setInput] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
 
-  const firstName =
-    (user?.user_metadata?.["display_name"] as string | undefined)?.split(" ")[0] ??
-    user?.email?.split("@")[0] ??
-    "there";
+  const hasDesires = (desires?.length ?? 0) > 0;
+  const storyList = stories ?? [];
 
-  const activeGoals = goals?.filter((g) => g.status !== "achieved") ?? [];
-  const focusGoal = activeGoals[0];
-  const bestStreak = habits.rows.reduce((max, r) => Math.max(max, r.streak), 0);
-  const journaledToday = entries?.some((e) => e.entry_date === toISODate()) ?? false;
+  // First run: as soon as there's a desire and no stories, fill the feed.
+  useEffect(() => {
+    if (hasDesires && !isPending && storyList.length === 0 && !generate.isPending) {
+      generate.mutate({ perDesire: 3 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasDesires, isPending, storyList.length]);
+
+  const forYou = storyList.slice(0, 8);
+  const trending = storyList.slice(8, 16);
+
+  function submitDesire(title: string) {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    setInput("");
+    createDesire.mutate({ title: trimmed }, { onSuccess: () => generate.mutate({ perDesire: 3 }) });
+  }
 
   return (
-    <AppPage
-      title={`${greeting()}, ${firstName}`}
-      description="Your daily overview: the goal you're moving, the habits you're keeping, and the reflection that closes the loop."
-    >
-      {affirmation && (
-        <section className="mb-6 overflow-hidden rounded-4xl surface-gradient p-[1.5px] shadow-lift">
-          <div className="relative rounded-4xl bg-card/90 px-7 py-9 text-center backdrop-blur-xl md:px-12 md:py-12">
-            <div className="aurora-mesh pointer-events-none absolute inset-0 opacity-45" />
-            <div className="relative">
-              <span className="inline-flex items-center gap-2 rounded-full bg-ember/15 px-3 py-1 text-xs font-medium text-ember">
-                <Quote className="h-3.5 w-3.5" /> Today's affirmation
-              </span>
-              <p className="mx-auto mt-5 max-w-2xl font-display text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
-                {affirmation.text}
-              </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-                {speech.isSupported && (
-                  <Button variant="glass" onClick={() => speech.toggle(affirmation.text)}>
-                    {speech.isSpeaking ? <Pause /> : <Volume2 />}
-                    {speech.isSpeaking ? "Stop" : "Listen"}
-                  </Button>
-                )}
-                <Button variant="ghost" className="text-muted-foreground" asChild>
-                  <Link to="/app/affirmations">
-                    More affirmations <ArrowRight />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+    <PageTransition>
+      {/* Desire input — the way you tell the app what you want */}
+      <div className="glass-panel flex items-center gap-2 rounded-full py-1.5 pl-5 pr-1.5">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submitDesire(input)}
+          placeholder="him obsessed with me."
+          aria-label="What do you want?"
+          className="min-w-0 flex-1 bg-transparent py-2 font-display text-[15px] italic text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => submitDesire(input)}
+          disabled={!input.trim() || createDesire.isPending}
+          aria-label="Add this desire"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition disabled:opacity-40"
+        >
+          {createDesire.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowUp className="h-4 w-4" />
+          )}
+        </button>
+      </div>
 
-      <section className="mb-6 rounded-3xl glass-panel p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="font-display text-lg font-semibold">
-              {moment ? moment.title : "Today's moment"}
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              {moment
-                ? `${moment.body.slice(0, 180).trim()}…`
-                : focusGoal
-                  ? "A short scene written from your goal, in present tense. About a minute to read."
-                  : "Name a goal first — your moment is written from your own words."}
-            </p>
-          </div>
-          <Sparkles className="hidden h-5 w-5 shrink-0 text-ember sm:block" />
-        </div>
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <h1 className="font-display text-[28px] font-medium leading-none">
+          {profile?.display_name ? `For ${profile.display_name.split(" ")[0]}` : "For you"}
+        </h1>
+        <Button
+          variant="glass"
+          size="sm"
+          className="rounded-full"
+          onClick={() => setEditOpen(true)}
+        >
+          <Pencil className="h-3.5 w-3.5" /> Edit desires
+        </Button>
+      </div>
 
-        {moment ? (
-          <Button variant="hero" className="mt-5" asChild>
-            <Link to="/app/moments">
-              Read today's moment <ArrowRight />
-            </Link>
-          </Button>
-        ) : focusGoal ? (
-          <Button
-            variant="hero"
-            className="mt-5"
-            onClick={() => createMoment.mutate({})}
-            disabled={createMoment.isPending}
+      {/* Desire chips */}
+      <div className="carousel -mx-5 mt-4 px-5 pb-1">
+        {(hasDesires ? desires! : []).map((desire) => (
+          <span
+            key={desire.id}
+            className="carousel-item rounded-full bg-white/70 px-4 py-2 text-xs font-medium text-secondary-foreground shadow-sm"
           >
-            {createMoment.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            Create today's moment
-          </Button>
-        ) : (
-          <Button variant="glass" className="mt-5" asChild>
-            <Link to="/app/goals">Create a goal</Link>
-          </Button>
-        )}
-      </section>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatTile
-          icon={Target}
-          label="Active goals"
-          value={goalsPending ? "—" : String(activeGoals.length)}
-          hint={focusGoal ? focusGoal.title : "Add your first goal to begin"}
-        />
-        <StatTile
-          icon={Flame}
-          label="Best habit streak"
-          value={habits.isPending ? "—" : `${bestStreak}d`}
-          hint={
-            habits.total === 0
-              ? "Streaks start on day one"
-              : `${habits.completedToday} of ${habits.total} done today`
-          }
-        />
-        <StatTile
-          icon={BookOpen}
-          label="Journal streak"
-          value={`${journalStats.streak}d`}
-          hint={journaledToday ? "Today's entry is written" : "Not written yet today"}
-        />
+            {desire.title}
+          </span>
+        ))}
+        {TRENDING_DESIRES.filter((t) => !desires?.some((d) => d.title === t)).map((title) => (
+          <button
+            key={title}
+            type="button"
+            onClick={() => submitDesire(title)}
+            className="carousel-item rounded-full border border-border/70 px-4 py-2 text-xs font-medium text-muted-foreground transition hover:bg-white/60"
+          >
+            {title}
+          </button>
+        ))}
       </div>
 
-      {focusGoal && (
-        <section className="mt-6 rounded-3xl surface-gradient p-[1.5px]">
-          <div className="rounded-3xl bg-card/85 p-6 backdrop-blur-xl md:p-8">
-            <span className="inline-flex items-center gap-2 rounded-full bg-ember/15 px-3 py-1 text-xs font-medium text-ember">
-              <Sparkles className="h-3.5 w-3.5" /> Today's focus
-            </span>
-            <div className="mt-4 flex items-start justify-between gap-5">
-              <div className="min-w-0">
-                <h2 className="font-display text-2xl font-semibold leading-tight">
-                  {focusGoal.title}
-                </h2>
-                {focusGoal.why && (
-                  <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                    {focusGoal.why}
-                  </p>
-                )}
-              </div>
-              <ProgressRing value={focusGoal.progress} size={72} stroke={6} />
-            </div>
-            <Button variant="glass" className="mt-6" asChild>
-              <Link to="/app/goals/$goalId" params={{ goalId: focusGoal.id }}>
-                Open goal <ArrowRight />
-              </Link>
-            </Button>
-          </div>
+      {!hasDesires && (
+        <section className="mt-10 rounded-3xl glass-panel px-7 py-12 text-center">
+          <Sparkles className="mx-auto h-6 w-6 text-primary" />
+          <h2 className="mt-4 font-display text-2xl">What do you want?</h2>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            Write it above, or tap one of the suggestions. Your stories are written from your own
+            words and refresh through the day.
+          </p>
         </section>
       )}
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <section className="rounded-3xl glass-panel p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Today's habits</h2>
-            {habits.total > 0 && <ProgressRing value={habits.consistency} size={44} stroke={4} />}
-          </div>
-
-          {habits.isPending && <Skeleton className="mt-4 h-32 rounded-2xl" />}
-
-          {!habits.isPending && habits.total === 0 && (
-            <>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Choose two or three habits that support your goal. This is where the daily loop
-                lives.
-              </p>
-              <Button variant="glass" className="mt-4" asChild>
-                <Link to="/app/habits">Set up habits</Link>
-              </Button>
-            </>
-          )}
-
-          {habits.total > 0 && (
-            <ul className="mt-4 space-y-1.5">
-              {habits.rows.map(({ habit, doneToday, streak }) => (
-                <li key={habit.id}>
-                  <button
-                    type="button"
-                    onClick={() => toggleHabit.mutate({ habitId: habit.id, done: !doneToday })}
-                    aria-pressed={doneToday}
-                    className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-accent/40"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm transition-all",
-                        doneToday
-                          ? "surface-gradient text-primary-foreground"
-                          : "border border-border",
-                      )}
-                    >
-                      {doneToday ? <Check className="h-4 w-4" /> : (habit.icon ?? "✨")}
-                    </span>
-                    <span
-                      className={cn(
-                        "min-w-0 flex-1 truncate text-sm",
-                        doneToday && "text-muted-foreground line-through",
-                      )}
-                    >
-                      {habit.name}
-                    </span>
-                    {streak > 0 && <span className="shrink-0 text-xs text-ember">🔥 {streak}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="rounded-3xl glass-panel p-6">
-          <h2 className="font-display text-lg font-semibold">Tonight's reflection</h2>
-          <p className="mt-3 text-sm font-medium leading-relaxed">{promptForToday()}</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {journaledToday
-              ? "You've already written today. Add another entry any time."
-              : "Three minutes of writing is enough to close the loop on the day."}
-          </p>
-          <Button variant={journaledToday ? "glass" : "hero"} className="mt-5" asChild>
-            <Link to="/app/journal">
-              {journaledToday ? "Open journal" : "Write today's entry"} <ArrowRight />
-            </Link>
-          </Button>
-        </section>
-      </div>
-
-      {!goalsPending && activeGoals.length === 0 && (
-        <section className="mt-6 rounded-3xl border border-dashed border-border p-8 text-center">
-          <h2 className="font-display text-xl font-semibold">Your practice is ready to set up</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Name one goal, choose two or three habits that support it, and check in each evening.
-            The coach, journal and progress views fill in from there.
-          </p>
-          <Button variant="hero" className="mt-6" asChild>
-            <Link to="/app/goals">
-              Create your first goal <ArrowRight />
-            </Link>
-          </Button>
-        </section>
+      {hasDesires && (isPending || generate.isPending) && storyList.length === 0 && (
+        <div className="mt-10 flex flex-col items-center py-16 text-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="mt-4 text-sm text-muted-foreground">Writing your stories…</p>
+        </div>
       )}
-    </AppPage>
+
+      {forYou.length > 0 && (
+        <CarouselSection label="Trending for you">
+          {forYou.map((story) => (
+            <StoryCard
+              key={story.id}
+              story={{
+                id: story.id,
+                hook: story.hook ?? story.title,
+                imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
+                durationSeconds: story.duration_seconds,
+                isFavorite: story.is_favorite,
+              }}
+              onToggleFavorite={(id, next) => toggleFavorite.mutate({ id, isFavorite: next })}
+            />
+          ))}
+        </CarouselSection>
+      )}
+
+      {trending.length > 0 && (
+        <CarouselSection label="More for you">
+          {trending.map((story) => (
+            <StoryCard
+              key={story.id}
+              size="sm"
+              story={{
+                id: story.id,
+                hook: story.hook ?? story.title,
+                imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
+                durationSeconds: story.duration_seconds,
+                isFavorite: story.is_favorite,
+              }}
+            />
+          ))}
+        </CarouselSection>
+      )}
+
+      {storyList.length > 0 && (
+        <RefreshCountdown
+          onRefresh={() => generate.mutate({ perDesire: 3 })}
+          busy={generate.isPending}
+        />
+      )}
+
+      <DesireSheet open={editOpen} onOpenChange={setEditOpen} />
+    </PageTransition>
   );
 }
 
-function StatTile({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof Target;
-  label: string;
-  value: string;
-  hint: string;
-}) {
+function RefreshCountdown({ onRefresh, busy }: { onRefresh: () => void; busy: boolean }) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const { label, progress, due } = useMemo(() => {
+    const target = nextRefreshAt(now);
+    const remaining = Math.max(0, target.getTime() - now.getTime());
+    const h = Math.floor(remaining / 3_600_000);
+    const m = Math.floor((remaining % 3_600_000) / 60_000);
+    const s = Math.floor((remaining % 60_000) / 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return {
+      label: `${pad(h)}:${pad(m)}:${pad(s)}`,
+      progress: 1 - remaining / (4 * 3_600_000),
+      due: remaining <= 0,
+    };
+  }, [now]);
+
   return (
-    <div className="rounded-3xl glass-panel p-6">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/60">
-        <Icon className="h-4 w-4 text-primary" />
-      </span>
-      <p className="mt-4 text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="mt-1 font-display text-2xl font-semibold">{value}</p>
-      <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">{hint}</p>
-    </div>
+    <section className="mt-12 text-center">
+      <p className="eyebrow text-muted-foreground">All stories refresh in</p>
+      <p className="mt-2 font-display text-[34px] tabular-nums tracking-[0.08em]">{label}</p>
+      <div className="mx-auto mt-4 h-[3px] w-56 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear"
+          style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
+        />
+      </div>
+      {due && (
+        <Button
+          variant="glass"
+          size="sm"
+          className="mt-5 rounded-full"
+          onClick={onRefresh}
+          disabled={busy}
+        >
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          Refresh now
+        </Button>
+      )}
+    </section>
   );
 }

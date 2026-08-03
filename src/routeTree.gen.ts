@@ -22,11 +22,14 @@ import { Route as AuthenticatedAppCoachRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppGoalsRouteImport } from './routes/_authenticated/app.goals'
 import { Route as AuthenticatedAppHabitsRouteImport } from './routes/_authenticated/app.habits'
 import { Route as AuthenticatedAppJournalRouteImport } from './routes/_authenticated/app.journal'
+import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authenticated/app.library'
 import { Route as AuthenticatedAppMomentsRouteImport } from './routes/_authenticated/app.moments'
+import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app.profile'
 import { Route as AuthenticatedAppProgressRouteImport } from './routes/_authenticated/app.progress'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppGoalsIndexRouteImport } from './routes/_authenticated/app.goals.index'
 import { Route as AuthenticatedAppGoalsGoalIdRouteImport } from './routes/_authenticated/app.goals.$goalId'
+import { Route as AuthenticatedAppStoryStoryIdRouteImport } from './routes/_authenticated/app.story.$storyId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -93,9 +96,19 @@ const AuthenticatedAppJournalRoute = AuthenticatedAppJournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppLibraryRoute = AuthenticatedAppLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppMomentsRoute = AuthenticatedAppMomentsRouteImport.update({
   id: '/moments',
   path: '/moments',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
 const AuthenticatedAppProgressRoute =
@@ -122,6 +135,12 @@ const AuthenticatedAppGoalsGoalIdRoute =
     path: '/$goalId',
     getParentRoute: () => AuthenticatedAppGoalsRoute,
   } as any)
+const AuthenticatedAppStoryStoryIdRoute =
+  AuthenticatedAppStoryStoryIdRouteImport.update({
+    id: '/story/$storyId',
+    path: '/story/$storyId',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,11 +154,14 @@ export interface FileRoutesByFullPath {
   '/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
+  '/app/library': typeof AuthenticatedAppLibraryRoute
   '/app/moments': typeof AuthenticatedAppMomentsRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -152,11 +174,14 @@ export interface FileRoutesByTo {
   '/app/coach': typeof AuthenticatedAppCoachRoute
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
+  '/app/library': typeof AuthenticatedAppLibraryRoute
   '/app/moments': typeof AuthenticatedAppMomentsRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/app/goals': typeof AuthenticatedAppGoalsIndexRoute
 }
 export interface FileRoutesById {
@@ -173,11 +198,14 @@ export interface FileRoutesById {
   '/_authenticated/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
   '/_authenticated/app/habits': typeof AuthenticatedAppHabitsRoute
   '/_authenticated/app/journal': typeof AuthenticatedAppJournalRoute
+  '/_authenticated/app/library': typeof AuthenticatedAppLibraryRoute
   '/_authenticated/app/moments': typeof AuthenticatedAppMomentsRoute
+  '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/progress': typeof AuthenticatedAppProgressRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/_authenticated/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/_authenticated/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
 export interface FileRouteTypes {
@@ -194,11 +222,14 @@ export interface FileRouteTypes {
     | '/app/goals'
     | '/app/habits'
     | '/app/journal'
+    | '/app/library'
     | '/app/moments'
+    | '/app/profile'
     | '/app/progress'
     | '/app/settings'
     | '/app/'
     | '/app/goals/$goalId'
+    | '/app/story/$storyId'
     | '/app/goals/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -211,11 +242,14 @@ export interface FileRouteTypes {
     | '/app/coach'
     | '/app/habits'
     | '/app/journal'
+    | '/app/library'
     | '/app/moments'
+    | '/app/profile'
     | '/app/progress'
     | '/app/settings'
     | '/app'
     | '/app/goals/$goalId'
+    | '/app/story/$storyId'
     | '/app/goals'
   id:
     | '__root__'
@@ -231,11 +265,14 @@ export interface FileRouteTypes {
     | '/_authenticated/app/goals'
     | '/_authenticated/app/habits'
     | '/_authenticated/app/journal'
+    | '/_authenticated/app/library'
     | '/_authenticated/app/moments'
+    | '/_authenticated/app/profile'
     | '/_authenticated/app/progress'
     | '/_authenticated/app/settings'
     | '/_authenticated/app/'
     | '/_authenticated/app/goals/$goalId'
+    | '/_authenticated/app/story/$storyId'
     | '/_authenticated/app/goals/'
   fileRoutesById: FileRoutesById
 }
@@ -340,11 +377,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppJournalRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/library': {
+      id: '/_authenticated/app/library'
+      path: '/library'
+      fullPath: '/app/library'
+      preLoaderRoute: typeof AuthenticatedAppLibraryRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/moments': {
       id: '/_authenticated/app/moments'
       path: '/moments'
       fullPath: '/app/moments'
       preLoaderRoute: typeof AuthenticatedAppMomentsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/profile': {
+      id: '/_authenticated/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/progress': {
@@ -375,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppGoalsGoalIdRouteImport
       parentRoute: typeof AuthenticatedAppGoalsRoute
     }
+    '/_authenticated/app/story/$storyId': {
+      id: '/_authenticated/app/story/$storyId'
+      path: '/story/$storyId'
+      fullPath: '/app/story/$storyId'
+      preLoaderRoute: typeof AuthenticatedAppStoryStoryIdRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
   }
 }
 
@@ -399,10 +457,13 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppGoalsRoute: typeof AuthenticatedAppGoalsRouteWithChildren
   AuthenticatedAppHabitsRoute: typeof AuthenticatedAppHabitsRoute
   AuthenticatedAppJournalRoute: typeof AuthenticatedAppJournalRoute
+  AuthenticatedAppLibraryRoute: typeof AuthenticatedAppLibraryRoute
   AuthenticatedAppMomentsRoute: typeof AuthenticatedAppMomentsRoute
+  AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppProgressRoute: typeof AuthenticatedAppProgressRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppStoryStoryIdRoute: typeof AuthenticatedAppStoryStoryIdRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
@@ -411,10 +472,13 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppGoalsRoute: AuthenticatedAppGoalsRouteWithChildren,
   AuthenticatedAppHabitsRoute: AuthenticatedAppHabitsRoute,
   AuthenticatedAppJournalRoute: AuthenticatedAppJournalRoute,
+  AuthenticatedAppLibraryRoute: AuthenticatedAppLibraryRoute,
   AuthenticatedAppMomentsRoute: AuthenticatedAppMomentsRoute,
+  AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppProgressRoute: AuthenticatedAppProgressRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppStoryStoryIdRoute: AuthenticatedAppStoryStoryIdRoute,
 }
 
 const AuthenticatedAppRouteWithChildren =
