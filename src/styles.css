@@ -302,6 +302,31 @@
   flex: 0 0 auto;
 }
 
+/* Trending strip. A transform on a non-scrolling track, so it can't fight the
+   browser's own momentum scrolling the way an animated scrollLeft did. */
+@keyframes marquee-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    /* Exactly half, because the list is rendered twice — no visible seam. */
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.marquee-track {
+  animation-name: marquee-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
 @keyframes float-slow {
   0%,
   100% {

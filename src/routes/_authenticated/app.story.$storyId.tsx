@@ -22,7 +22,12 @@ import { coverImage, themeFor } from "@/features/stories/imagery";
 import { useStory, useToggleStoryFavorite } from "@/features/stories/use-stories";
 import { formatClock, useNarration } from "@/hooks/use-narration";
 import { useStudioNarration } from "@/hooks/use-studio-narration";
-import { ambientPad } from "@/lib/ambient-audio";
+import {
+  ambientPad,
+  frequencyFromTitle,
+  toneGenerator,
+  unlockAudioSession,
+} from "@/lib/ambient-audio";
 import { haptic, share as nativeShare } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +44,7 @@ function StoryPlayer() {
 
   const [showFullStory, setShowFullStory] = useState(false);
   const [music, setMusic] = useState(false);
+  const [tonePlaying, setTonePlaying] = useState(false);
 
   const browser = useNarration(story?.body ?? "");
   const studio = useStudioNarration(
@@ -62,18 +68,20 @@ function StoryPlayer() {
   // Always fade the pad out when leaving the player.
   useEffect(() => {
     return () => {
-      void ambientPad().stop();
+      ambientPad().stop();
+      toneGenerator().stop();
     };
   }, []);
 
-  async function toggleMusic() {
+  // Synchronous on purpose. Awaiting anything before creating the AudioContext
+  // moves it off the gesture tick, and iOS then produces silence.
+  function toggleMusic() {
     const pad = ambientPad();
     if (music) {
-      await pad.stop();
+      pad.stop();
       setMusic(false);
     } else {
-      // Browsers only allow audio to start from a user gesture — this is one.
-      await pad.start(0.14);
+      pad.start(0.14);
       setMusic(true);
     }
   }
@@ -102,6 +110,9 @@ function StoryPlayer() {
   }
 
   const image = story.image_url ?? coverImage(story.id, themeFor(story.category));
+
+  // A "528 Hz" track with no 528 Hz tone is just text. Play the real thing.
+  const toneHz = story.kind === "frequency" ? frequencyFromTitle(story.title) : null;
   const remaining = narration.totalSeconds - narration.elapsedSeconds;
   const progress = narration.totalSeconds
     ? (narration.elapsedSeconds / narration.totalSeconds) * 100
@@ -119,7 +130,8 @@ function StoryPlayer() {
             type="button"
             onClick={() => {
               narration.stop();
-              void ambientPad().stop();
+              ambientPad().stop();
+              toneGenerator().stop();
               navigate({ to: "/app" });
             }}
             aria-label="Back"
@@ -130,7 +142,7 @@ function StoryPlayer() {
           <span className="font-display text-lg italic text-white/90">ManifestAI</span>
           <button
             type="button"
-            onClick={() => void toggleMusic()}
+            onClick={toggleMusic}
             aria-label={music ? "Turn background music off" : "Turn background music on"}
             aria-pressed={music}
             className={cn(
@@ -189,6 +201,21 @@ function StoryPlayer() {
           </div>
 
           {studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>}
+
+          {/* Device voices vary enormously and the default is often the worst
+              one installed, so make the picker reachable from here. */}
+          {!studio.available && !toneHz && browser.isSupported && (
+            <button
+              type="button"
+              onClick={() => {
+                narration.stop();
+                navigate({ to: "/app/profile" });
+              }}
+              className="text-[11px] text-white/50 underline underline-offset-2"
+            >
+              Voice sound wrong? Change it in You → Voice
+            </button>
+          )}
 
           <div className="flex items-center justify-between gap-4">
             <p className="min-w-0 flex-1 truncate text-sm text-white/60">{story.title}</p>
@@ -269,13 +296,25 @@ function StoryPlayer() {
               type="button"
               onClick={() => {
                 void haptic("medium");
+                if (toneHz) {
+                  // Frequency sessions are the tone itself, not narration.
+                  unlockAudioSession();
+                  if (tonePlaying) {
+                    toneGenerator().stop();
+                    setTonePlaying(false);
+                  } else {
+                    toneGenerator().start(toneHz);
+                    setTonePlaying(true);
+                  }
+                  return;
+                }
                 narration.toggle();
               }}
-              disabled={!studio.available && !browser.isSupported}
+              disabled={!toneHz && !studio.available && !browser.isSupported}
               aria-label={narration.isPlaying ? "Pause" : "Play"}
               className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white text-primary shadow-xl transition hover:scale-105 disabled:opacity-50"
             >
-              {narration.isPlaying ? (
+              {(toneHz ? tonePlaying : narration.isPlaying) ? (
                 <Pause className="h-7 w-7 fill-current" />
               ) : (
                 <Play className="ml-1 h-7 w-7 fill-current" />

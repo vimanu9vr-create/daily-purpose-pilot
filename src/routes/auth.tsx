@@ -104,7 +104,10 @@ function AuthPage() {
     });
     if (result.error) {
       setAppleLoading(false);
-      toast.error("Apple sign-in failed. Please try again.");
+      // Apple sign-in needs a paid Apple Developer account and the provider
+      // enabled in Supabase. Until then it can't work, and saying "try again"
+      // just sends people round in circles.
+      toast.error("Apple sign-in isn't available yet — please use Google or email.");
       return;
     }
     if (result.redirected) return;

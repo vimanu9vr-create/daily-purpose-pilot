@@ -1,13 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * The trending-manifestations strip that drifts sideways on its own.
+ * The trending strip that drifts sideways on its own.
  *
- * The motion is the point — it advertises that these are tappable and that
- * there are more than fit on screen. Pauses on hover or touch so nothing
- * slides away mid-tap, and respects prefers-reduced-motion.
+ * Deliberately NOT a scroll container. The first version animated
+ * `scrollLeft` on an element that also had CSS scroll-snap, so on a phone the
+ * animation and the browser's own momentum scrolling fought each other — the
+ * row appeared frozen, and a swipe snapped straight back. This is a plain CSS
+ * transform on a non-scrollable track, which the browser can't argue with.
+ *
+ * The list is rendered twice and the animation travels exactly -50%, so the
+ * loop point is invisible.
  */
 export function TrendingMarquee({
   items,
@@ -18,7 +23,6 @@ export function TrendingMarquee({
   onSelect: (item: string) => void;
   className?: string;
 }) {
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [paused, setPaused] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -31,56 +35,42 @@ export function TrendingMarquee({
     return () => query.removeEventListener("change", onChange);
   }, []);
 
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el || paused || reduceMotion || items.length === 0) return;
-
-    let frame = 0;
-    let last = performance.now();
-    const PIXELS_PER_SECOND = 18;
-
-    const step = (now: number) => {
-      const delta = (now - last) / 1000;
-      last = now;
-
-      // The list is rendered twice; wrapping at the halfway point makes the
-      // loop seamless rather than snapping back to zero.
-      const half = el.scrollWidth / 2;
-      el.scrollLeft += PIXELS_PER_SECOND * delta;
-      if (el.scrollLeft >= half) el.scrollLeft -= half;
-
-      frame = requestAnimationFrame(step);
-    };
-
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [items.length, paused, reduceMotion]);
-
   if (items.length === 0) return null;
 
-  // Duplicated so the seam is never visible.
-  const doubled = [...items, ...items];
+  // Slower with more chips, so the speed reads the same regardless of count.
+  const durationSeconds = Math.max(18, items.length * 4);
 
   return (
-    <div
-      ref={scrollerRef}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onTouchStart={() => setPaused(true)}
-      onTouchEnd={() => setPaused(false)}
-      className={cn("carousel -mx-5 px-5", className)}
-      style={{ scrollSnapType: "none" }}
-    >
-      {doubled.map((item, index) => (
-        <button
-          key={`${item}-${index}`}
-          type="button"
-          onClick={() => onSelect(item)}
-          className="carousel-item whitespace-nowrap rounded-full bg-white/70 px-4 py-2.5 text-xs font-medium text-secondary-foreground shadow-sm transition hover:bg-white"
-        >
-          {item}
-        </button>
-      ))}
+    <div className={cn("relative -mx-5 overflow-hidden", className)}>
+      <div
+        className="marquee-track flex w-max gap-2 px-5"
+        style={{
+          animationDuration: `${durationSeconds}s`,
+          animationPlayState: paused || reduceMotion ? "paused" : "running",
+        }}
+        onPointerDown={() => setPaused(true)}
+        onPointerUp={() => setPaused(false)}
+        onPointerCancel={() => setPaused(false)}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {/* Rendered twice; the second copy is hidden from screen readers. */}
+        {[0, 1].map((copy) => (
+          <div key={copy} className="flex gap-2" aria-hidden={copy === 1}>
+            {items.map((item) => (
+              <button
+                key={`${copy}-${item}`}
+                type="button"
+                onClick={() => onSelect(item)}
+                tabIndex={copy === 1 ? -1 : 0}
+                className="whitespace-nowrap rounded-full bg-white/70 px-4 py-2.5 text-xs font-medium text-secondary-foreground shadow-sm transition active:scale-95"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
