@@ -360,11 +360,11 @@ export type Database = {
       }
       moments: {
         Row: {
-          body: string
-          category: string | null
           audio_marks: Json | null
           audio_url: string | null
           audio_voice: string | null
+          body: string
+          category: string | null
           created_at: string
           desire_id: string | null
           duration_seconds: number
@@ -382,11 +382,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          body: string
-          category?: string | null
           audio_marks?: Json | null
           audio_url?: string | null
           audio_voice?: string | null
+          body: string
+          category?: string | null
           created_at?: string
           desire_id?: string | null
           duration_seconds?: number
@@ -404,11 +404,11 @@ export type Database = {
           user_id: string
         }
         Update: {
-          body?: string
-          category?: string | null
           audio_marks?: Json | null
           audio_url?: string | null
           audio_voice?: string | null
+          body?: string
+          category?: string | null
           created_at?: string
           desire_id?: string | null
           duration_seconds?: number
@@ -427,6 +427,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "moments_desire_id_fkey"
+            columns: ["desire_id"]
+            isOneToOne: false
+            referencedRelation: "desires"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "moments_goal_id_fkey"
             columns: ["goal_id"]
             isOneToOne: false
@@ -436,7 +443,6 @@ export type Database = {
         ]
       }
       profiles: {
-
         Row: {
           avatar_url: string | null
           created_at: string
