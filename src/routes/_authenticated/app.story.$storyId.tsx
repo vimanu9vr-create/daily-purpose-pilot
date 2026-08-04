@@ -23,6 +23,7 @@ import { useStory, useToggleStoryFavorite } from "@/features/stories/use-stories
 import { formatClock, useNarration } from "@/hooks/use-narration";
 import { useStudioNarration } from "@/hooks/use-studio-narration";
 import { ambientPad } from "@/lib/ambient-audio";
+import { haptic, share as nativeShare } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/story/$storyId")({
@@ -266,7 +267,10 @@ function StoryPlayer() {
 
             <button
               type="button"
-              onClick={narration.toggle}
+              onClick={() => {
+                void haptic("medium");
+                narration.toggle();
+              }}
               disabled={!studio.available && !browser.isSupported}
               aria-label={narration.isPlaying ? "Pause" : "Play"}
               className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white text-primary shadow-xl transition hover:scale-105 disabled:opacity-50"
@@ -290,17 +294,10 @@ function StoryPlayer() {
             <button
               type="button"
               onClick={async () => {
+                await haptic("light");
                 const text = `${story.hook ?? story.title}\n\n${story.body}`;
-                try {
-                  if (navigator.share) {
-                    await navigator.share({ title: story.title, text });
-                  } else {
-                    await navigator.clipboard.writeText(text);
-                    toast.success("Copied to clipboard");
-                  }
-                } catch {
-                  // User dismissed the share sheet — nothing to report.
-                }
+                const shared = await nativeShare({ title: story.title, text });
+                if (!shared) toast.error("Couldn't share that.");
               }}
               aria-label="Share"
               className="flex h-11 w-11 items-center justify-center text-white/85 transition hover:text-white"

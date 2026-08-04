@@ -504,35 +504,41 @@ export type Database = {
       }
       push_subscriptions: {
         Row: {
-          auth: string
+          auth: string | null
           created_at: string
+          device_token: string | null
           endpoint: string
           failure_count: number
           id: string
           last_success_at: string | null
-          p256dh: string
+          p256dh: string | null
+          platform: string
           user_agent: string | null
           user_id: string
         }
         Insert: {
-          auth: string
+          auth?: string | null
           created_at?: string
+          device_token?: string | null
           endpoint: string
           failure_count?: number
           id?: string
           last_success_at?: string | null
-          p256dh: string
+          p256dh?: string | null
+          platform?: string
           user_agent?: string | null
           user_id: string
         }
         Update: {
-          auth?: string
+          auth?: string | null
           created_at?: string
+          device_token?: string | null
           endpoint?: string
           failure_count?: number
           id?: string
           last_success_at?: string | null
-          p256dh?: string
+          p256dh?: string | null
+          platform?: string
           user_agent?: string | null
           user_id?: string
         }

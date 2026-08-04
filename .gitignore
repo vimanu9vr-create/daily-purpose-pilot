@@ -30,3 +30,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Native build output
+dist-native
+ios/App/App/public
+ios/App/Pods
+ios/.build

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { profileKeys } from "@/features/onboarding/use-profile";
 import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
+import { isNative, nativePlatform, registerNativePush } from "@/lib/native";
 
 /**
  * Web push, via the service worker.
@@ -36,6 +37,19 @@ export function usePushState(): PushState {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // In the native app, APNs handles this — none of the web-push caveats
+    // apply, including the Home Screen requirement.
+    if (isNative()) {
+      setState({
+        supported: true,
+        permission: "default",
+        isStandalone: true,
+        isIOS: nativePlatform() === "ios",
+        needsInstallFirst: false,
+      });
+      return;
+    }
 
     const supported =
       "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -98,6 +112,35 @@ export function useEnableNotifications() {
   return useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("Not signed in");
+
+      // Native takes the APNs path — a device token rather than a VAPID
+      // subscription, and no service worker involved.
+      if (isNative()) {
+        const registration = await registerNativePush();
+        if (!registration) {
+          throw new Error("Notifications were declined. You can change that in iOS Settings.");
+        }
+
+        const { error: nativeError } = await supabase.from("push_subscriptions").upsert(
+          {
+            user_id: userId,
+            endpoint: `native:${registration.token}`,
+            device_token: registration.token,
+            platform: registration.platform,
+            user_agent: navigator.userAgent.slice(0, 300),
+            failure_count: 0,
+          },
+          { onConflict: "endpoint" },
+        );
+        if (nativeError) throw nativeError;
+
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ notifications_enabled: true })
+          .eq("id", userId);
+        if (profileError) throw profileError;
+        return;
+      }
 
       const vapidKey = import.meta.env["VITE_VAPID_PUBLIC_KEY"] as string | undefined;
       if (!vapidKey) {
@@ -163,6 +206,17 @@ export function useDisableNotifications() {
   return useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error("Not signed in");
+
+      if (isNative()) {
+        // No service worker on native — just drop the stored device token.
+        await supabase.from("push_subscriptions").delete().eq("user_id", userId);
+        const { error: nativeError } = await supabase
+          .from("profiles")
+          .update({ notifications_enabled: false })
+          .eq("id", userId);
+        if (nativeError) throw nativeError;
+        return;
+      }
 
       const registration = await navigator.serviceWorker.getRegistration();
       const subscription = await registration?.pushManager.getSubscription();

@@ -40,6 +40,7 @@ import {
 import { VoicePicker } from "@/features/notifications/voice-picker";
 import { useProfile, useUpdateProfile } from "@/features/onboarding/use-profile";
 import { formatLongDate } from "@/lib/dates";
+import { openExternal } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/profile")({
@@ -230,16 +231,19 @@ function ProfilePage() {
               </div>
             )}
 
-            <a
-              href={purchaseStore().manageUrl() ?? "https://apps.apple.com/account/subscriptions"}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 flex items-center gap-3 rounded-xl px-1 py-3 text-sm transition-colors hover:text-primary"
+            <button
+              type="button"
+              onClick={() =>
+                void openExternal(
+                  purchaseStore().manageUrl() ?? "https://apps.apple.com/account/subscriptions",
+                )
+              }
+              className="mt-4 flex w-full items-center gap-3 rounded-xl px-1 py-3 text-sm transition-colors hover:text-primary"
             >
               <CreditCard className="h-4 w-4 text-muted-foreground" />
               <span className="flex-1">Manage subscription</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </a>
+            </button>
           </>
         ) : (
           <>

@@ -15,6 +15,7 @@ import {
   useSavedAffirmations,
 } from "@/features/affirmations/use-affirmations";
 import { useSpeech } from "@/hooks/use-speech";
+import { haptic, hapticSuccess, share as nativeShare } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/affirmations")({
@@ -146,10 +147,11 @@ function Affirmations() {
               <>
                 <button
                   type="button"
-                  onClick={() =>
-                    !isSaved &&
-                    saveAffirmation.mutate({ text: current.text, category: current.category })
-                  }
+                  onClick={() => {
+                    if (isSaved) return;
+                    void hapticSuccess();
+                    saveAffirmation.mutate({ text: current.text, category: current.category });
+                  }}
                   aria-label={isSaved ? "Saved" : "Save this affirmation"}
                   className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-accent/60 text-primary transition hover:bg-accent"
                 >
@@ -159,15 +161,9 @@ function Affirmations() {
                 <button
                   type="button"
                   onClick={async () => {
-                    try {
-                      if (navigator.share) await navigator.share({ text: current.text });
-                      else {
-                        await navigator.clipboard.writeText(current.text);
-                        toast.success("Copied");
-                      }
-                    } catch {
-                      // Share sheet dismissed.
-                    }
+                    await haptic("light");
+                    const shared = await nativeShare({ text: current.text });
+                    if (!shared) toast.error("Couldn't share that.");
                   }}
                   aria-label="Share"
                   className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-accent/60 text-primary transition hover:bg-accent"
