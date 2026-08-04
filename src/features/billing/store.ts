@@ -70,27 +70,114 @@ class WebStore implements PurchaseStore {
   }
 }
 
+/** RevenueCat entitlement name, configured in their dashboard. */
+export const PREMIUM_ENTITLEMENT = "premium";
+
 /**
- * StoreKit, via Capacitor. Left as the single place to fill in once the
- * native shell exists — the rest of the app already calls through here.
+ * StoreKit via RevenueCat.
  *
- * The important rule for whoever implements it: a successful purchase must be
- * sent to an edge function that verifies the receipt with Apple and writes the
- * subscriptions row. Never let the client grant its own entitlement.
+ * RevenueCat sits between the app and Apple: it validates receipts, tracks
+ * renewals, cancellations, refunds and billing-grace periods, and posts each
+ * change to our webhook. That webhook is what writes the `subscriptions` row.
+ *
+ * The rule that matters: the client never grants its own entitlement. Even
+ * here, after a successful purchase, we refresh from our own database rather
+ * than trusting what the SDK just told us — a jailbroken device can lie to the
+ * SDK, but it can't forge a server-to-server webhook.
  */
 class AppleStore implements PurchaseStore {
   readonly isNative = true;
+  private configured = false;
 
-  async listProducts(): Promise<StoreProduct[]> {
-    throw new Error("StoreKit not wired yet");
+  /** RevenueCat is configured once, with our user id as its app user id. */
+  private async ensureConfigured(userId?: string): Promise<void> {
+    if (this.configured) return;
+
+    const apiKey = import.meta.env["VITE_REVENUECAT_IOS_KEY"] as string | undefined;
+    if (!apiKey) throw new Error("not_configured");
+
+    const { Purchases, LOG_LEVEL } = await import("@revenuecat/purchases-capacitor");
+    await Purchases.setLogLevel({ level: LOG_LEVEL.WARN });
+    await Purchases.configure({
+      apiKey,
+      // Tying RevenueCat's identity to our own means a purchase follows the
+      // account, not the device — so restoring on a new phone works.
+      ...(userId ? { appUserID: userId } : {}),
+    });
+    this.configured = true;
   }
 
-  async purchase(): Promise<PurchaseResult> {
-    return { status: "unavailable", message: "In-app purchase isn't set up yet." };
+  async listProducts(): Promise<StoreProduct[]> {
+    await this.ensureConfigured();
+    const { Purchases } = await import("@revenuecat/purchases-capacitor");
+    const offerings = await Purchases.getOfferings();
+    const packages = offerings.current?.availablePackages ?? [];
+
+    return packages.flatMap((pkg) => {
+      const plan = PLANS.find((p) => p.productId === pkg.product.identifier);
+      if (!plan) return [];
+      return [
+        {
+          planId: plan.id,
+          productId: pkg.product.identifier,
+          // Apple's localised price for this storefront — never our hardcoded one.
+          priceDisplay: pkg.product.priceString,
+        },
+      ];
+    });
+  }
+
+  async purchase(planId: PlanId): Promise<PurchaseResult> {
+    try {
+      await this.ensureConfigured();
+      const { Purchases } = await import("@revenuecat/purchases-capacitor");
+
+      const plan = PLANS.find((p) => p.id === planId);
+      if (!plan?.productId) return { status: "error", message: "That plan isn't available." };
+
+      const offerings = await Purchases.getOfferings();
+      const target = offerings.current?.availablePackages.find(
+        (pkg) => pkg.product.identifier === plan.productId,
+      );
+      if (!target) {
+        return { status: "unavailable", message: "That plan isn't available on this device yet." };
+      }
+
+      const { customerInfo } = await Purchases.purchasePackage({ aPackage: target });
+      const active = Boolean(customerInfo.entitlements.active[PREMIUM_ENTITLEMENT]);
+      if (!active) {
+        return { status: "error", message: "The purchase didn't complete. You weren't charged." };
+      }
+      return { status: "purchased" };
+    } catch (error) {
+      const err = error as { code?: string; message?: string; userCancelled?: boolean };
+      if (err.userCancelled || err.code === "1") return { status: "cancelled" };
+      if (err.message === "not_configured") {
+        return { status: "unavailable", message: "Purchases aren't switched on yet." };
+      }
+      return {
+        status: "error",
+        message: err.message ?? "Something went wrong. You weren't charged.",
+      };
+    }
   }
 
   async restore(): Promise<PurchaseResult> {
-    return { status: "unavailable", message: "In-app purchase isn't set up yet." };
+    try {
+      await this.ensureConfigured();
+      const { Purchases } = await import("@revenuecat/purchases-capacitor");
+      const { customerInfo } = await Purchases.restorePurchases();
+      const active = Boolean(customerInfo.entitlements.active[PREMIUM_ENTITLEMENT]);
+      return active
+        ? { status: "purchased" }
+        : { status: "unavailable", message: "No previous purchase found on this Apple ID." };
+    } catch (error) {
+      const err = error as { message?: string };
+      if (err.message === "not_configured") {
+        return { status: "unavailable", message: "Purchases aren't switched on yet." };
+      }
+      return { status: "error", message: err.message ?? "Couldn't restore that." };
+    }
   }
 
   manageUrl(): string {
