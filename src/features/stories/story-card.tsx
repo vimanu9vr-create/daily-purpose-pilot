@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Heart, Play } from "lucide-react";
 
+import { useCenterFocus } from "@/hooks/use-center-focus";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { cn } from "@/lib/utils";
 
@@ -33,11 +34,24 @@ export function StoryCard({
     size === "lg" ? "w-[248px] h-[330px] md:w-[268px] md:h-[356px]" : "w-[168px] h-[224px]";
 
   return (
-    <div className={cn("carousel-item relative", dimensions)}>
+    <div
+      data-focus-item
+      className={cn("carousel-item relative", dimensions)}
+      style={{
+        transform: "scale(var(--focus-scale, 1))",
+        opacity: "var(--focus-opacity, 1)",
+        willChange: "transform",
+      }}
+    >
       <Link
         to="/app/story/$storyId"
         params={{ storyId: story.id }}
-        className="group block h-full w-full overflow-hidden rounded-3xl shadow-card transition-transform duration-300 hover:-translate-y-1"
+        // `relative` is load-bearing. The image and scrim inside are absolutely
+        // positioned; without a positioned ancestor here their containing block
+        // was the outer div, which put them *outside* this element's overflow
+        // clip. The rounded corners were being drawn and then covered by a
+        // square photo — which is why the cards looked like boxes.
+        className="group relative block h-full w-full overflow-hidden rounded-[32px] shadow-card transition-transform duration-300 hover:-translate-y-1"
       >
         <img
           src={story.imageUrl}
@@ -57,7 +71,7 @@ export function StoryCard({
             {story.hook}
           </p>
           <div className="mt-3 flex items-center justify-between">
-            <span className="rounded-lg bg-black/45 px-2 py-1 text-[10px] font-semibold tracking-[0.12em] text-white/90 backdrop-blur-sm">
+            <span className="rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-white/90 backdrop-blur-sm">
               {minutesLabel(story.durationSeconds)}
             </span>
             <span
@@ -111,7 +125,7 @@ export function CarouselSection({
           </button>
         )}
       </div>
-      <DraggableRow>{children}</DraggableRow>
+      <DraggableRow focusCenter>{children}</DraggableRow>
     </section>
   );
 }
@@ -124,12 +138,17 @@ export function CarouselSection({
 export function DraggableRow({
   children,
   className,
+  focusCenter = false,
 }: {
   children: React.ReactNode;
   className?: string;
+  /** Scale the card nearest the middle up and its neighbours back. */
+  focusCenter?: boolean;
 }) {
   const { ref, canScrollLeft, canScrollRight, scrollBy, handlers } =
     useDragScroll<HTMLDivElement>();
+
+  useCenterFocus(ref, focusCenter);
 
   return (
     <div className="group/row relative">
