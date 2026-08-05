@@ -27,16 +27,43 @@ export function nextRefreshAt(from = new Date()): Date {
   return next;
 }
 
-/** Suggestions shown as chips before the user has written their own. */
+/**
+ * The trending strip. These are the front door — most people tap one rather
+ * than type, so they have to be specific and a bit bold. Vague suggestions
+ * ("be happier") produce vague stories.
+ *
+ * Deliberately worded as things you're working toward rather than things that
+ * arrive on their own, which is the line the whole app holds.
+ */
 export const TRENDING_DESIRES = [
-  "Euro summer vacation",
-  "Going viral",
-  "Dream job offer",
+  // Money and work
+  "₹10 lakh months",
   "Financial freedom",
-  "Unshakeable confidence",
-  "A calmer mind",
-  "My own apartment",
+  "My business taking off",
+  "Dream job offer",
+  "Quitting the job I hate",
+  "Being paid what I'm worth",
+  "Going viral",
+  "First ₹1 crore",
+
+  // Love and self
   "Being deeply loved",
+  "Unshakeable confidence",
+  "Walking into any room",
+  "Loving my own company",
+  "Being chosen clearly",
+  "Getting over him",
+  "Attracting my person",
+
+  // Body, mind, life
+  "A calmer mind",
+  "Sleeping through the night",
+  "The strongest I've been",
+  "Euro summer",
+  "My own apartment",
+  "Moving abroad",
+  "Being the person my family relies on",
+  "Finishing what I start",
 ] as const;
 
 export function useDesires() {
