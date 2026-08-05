@@ -1,6 +1,6 @@
-# ManifestAI — what's left before the App Store
+# ManifestAI — what's left before the app stores
 
-Last updated 4 August 2026.
+Last updated 5 August 2026.
 
 Nothing here is guesswork about the code — it's checked against the live
 database and the repo. Items are ordered by what unblocks the most.
@@ -102,7 +102,46 @@ Still to build after that:
 
 ---
 
-## 5. App Store listing (free, needs nothing from anyone)
+## 5. The Android build
+
+The Android project is now committed alongside iOS — same codebase, same
+purchase code. Android is roughly 95% of the Indian phone market, so this is
+probably the version real people will actually install first.
+
+```
+npm install
+npm run android:sync
+npm run android:open
+```
+
+That opens Android Studio. It'll download Gradle the first time, which takes a
+while. Then press Run with a phone plugged in or an emulator started.
+
+**Google Play Console** — $25, one-time, at play.google.com/console. Cheaper
+than Apple and no annual renewal. The catch: a *personal* developer account
+created after November 2023 must have **12 testers opted in for 14 continuous
+days** before you can publish publicly. The 14 days only start once 12 people
+have joined, and if someone drops out the clock can reset. So start recruiting
+testers early — that's the long pole on Android, not the code.
+
+Still to do:
+- [ ] **Firebase project + `google-services.json`.** Android push cannot work
+      without it. Create a Firebase project, add an Android app with package
+      name `com.manifestai.app`, download `google-services.json` and drop it in
+      `android/app/`. This is the Android equivalent of Apple's push
+      certificate.
+- [ ] **`FCM_SERVICE_ACCOUNT` secret** in Supabase — the whole service-account
+      JSON as one string, from Firebase → Project settings → Service accounts.
+      The sender already speaks FCM; it just has no credentials yet. Until then
+      it skips phone devices rather than marking them failed.
+- [ ] **Play Billing** — the RevenueCat code already covers it, but products
+      need creating in the Play Console.
+- [ ] **Store listing** — separate from Apple's: feature graphic (1024×500),
+      phone screenshots, short and full description, data safety form.
+
+---
+
+## 6. App Store listing (free, needs nothing from anyone)
 
 - [ ] Screenshots — 6.7" and 6.5" iPhone, at least 3 each
 - [ ] Description, subtitle, keywords, support URL
@@ -114,7 +153,7 @@ I can draft all the text whenever you want it.
 
 ---
 
-## 6. The one nobody can do for you
+## 7. The one nobody can do for you
 
 **Use it for a week.** Twenty-two stories exist and not one has been played to
 the end. Nobody has lived a morning with this app.
@@ -128,12 +167,18 @@ cheaper than after.
 
 ## Suggested order
 
-1. Apply for the Apple Developer Program — today, it's just waiting
-2. Test the six deployed functions — 30 minutes, free
-3. Add the ElevenLabs and VAPID secrets — the voice is the product
-4. Use the app daily for a week
-5. Build in Xcode once the developer account clears
-6. StoreKit and receipt verification
-7. Listing assets, then submit
+1. Open the Google Play Console ($25) and start recruiting 12 testers — the
+   14-day clock is the longest wait on the whole project, and it costs nothing
+   to start it running in the background
+2. Apply for the Apple Developer Program ($99) — also just waiting
+3. Test the six deployed functions — 30 minutes, free
+4. Add the ElevenLabs and VAPID secrets — the voice is the product
+5. Use the app daily for a week
+6. Build for Android first — you have a phone for it and no $99 gate
+7. Firebase project, then the `FCM_SERVICE_ACCOUNT` secret
+8. Play Billing products, then Xcode/StoreKit once Apple clears
+9. Listing assets for both stores, then submit
 
 Realistically two to four weeks, and most of it is waiting rather than working.
+Both waits — Apple's verification and Play's 14 tester-days — run in parallel
+with everything else, which is why they're first.

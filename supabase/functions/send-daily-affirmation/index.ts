@@ -6,6 +6,16 @@
 // Requires these secrets:
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (a mailto: URL)
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (provided automatically)
+//
+// Optional, for the native apps:
+//   FCM_SERVICE_ACCOUNT — the whole Firebase service-account JSON, as one
+//   string. Delivers to both Android and iOS native builds, because iOS goes
+//   through Firebase too rather than us talking to APNs directly.
+//
+// Web and native are different transports. A native row is stored with
+// endpoint "native:<token>" and has no p256dh/auth keys, so pushing it through
+// web-push throws. Routing by platform is what makes phone notifications
+// actually arrive rather than failing once and being counted as a failure.
 
 import webpush from "https://esm.sh/web-push@3.6.7";
 
@@ -31,6 +41,8 @@ type Subscription = {
   endpoint: string;
   p256dh: string;
   auth: string;
+  device_token: string | null;
+  platform: string | null;
   failure_count: number;
 };
 
@@ -42,11 +54,28 @@ Deno.serve(async (req: Request) => {
     const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
     const subject = Deno.env.get("VAPID_SUBJECT") ?? "mailto:hello@manifestai.app";
 
-    if (!publicKey || !privateKey) {
-      return json({ error: "not_configured", message: "VAPID keys are not set." }, 503);
+    const fcmAccount = Deno.env.get("FCM_SERVICE_ACCOUNT");
+    const webPushReady = Boolean(publicKey && privateKey);
+
+    // Only a hard failure if neither transport is configured. Once FCM is set
+    // up the phones work even if web push never gets keys.
+    if (!webPushReady && !fcmAccount) {
+      return json(
+        {
+          error: "not_configured",
+          message: "Set VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY for web, or FCM_SERVICE_ACCOUNT for the phone apps.",
+        },
+        503,
+      );
     }
 
-    webpush.setVapidDetails(subject, publicKey, privateKey);
+    if (webPushReady) {
+      webpush.setVapidDetails(subject, publicKey!, privateKey!);
+    }
+
+    // One OAuth token for the whole run, not one per device.
+    const fcmToken = fcmAccount ? await fcmAccessToken(fcmAccount) : null;
+    const fcmProjectId = fcmAccount ? (JSON.parse(fcmAccount).project_id as string) : null;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -93,22 +122,37 @@ Deno.serve(async (req: Request) => {
       if (subs.length === 0) continue;
 
       const firstName = profile.display_name?.trim().split(" ")[0];
+      const title = firstName ? `Morning, ${firstName}` : "Your affirmation for today";
       const payload = JSON.stringify({
-        title: firstName ? `Morning, ${firstName}` : "Your affirmation for today",
+        title,
         body: affirmation.text,
         url: "/app/affirmations",
         tag: "daily-affirmation",
       });
 
       for (const sub of subs) {
+        const isNativeSub =
+          sub.endpoint.startsWith("native:") || sub.platform === "ios" || sub.platform === "android";
+
         try {
-          await webpush.sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: { p256dh: sub.p256dh, auth: sub.auth },
-            },
-            payload,
-          );
+          if (isNativeSub) {
+            const token = sub.device_token ?? sub.endpoint.replace(/^native:/, "");
+            if (!fcmToken || !fcmProjectId) {
+              // Not an error against this device — we simply can't reach it
+              // yet. Leave failure_count alone so the row survives setup.
+              continue;
+            }
+            await sendFcm(fcmProjectId, fcmToken, token, title, affirmation.text);
+          } else {
+            if (!webPushReady) continue;
+            await webpush.sendNotification(
+              {
+                endpoint: sub.endpoint,
+                keys: { p256dh: sub.p256dh, auth: sub.auth },
+              },
+              payload,
+            );
+          }
           sent += 1;
           await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${sub.id}`, {
             method: "PATCH",
@@ -200,6 +244,122 @@ function isDue(profile: Profile, now: Date): boolean {
   const targetMinutes = profile.notify_hour * 60 + profile.notify_minute;
   const delta = nowMinutes - targetMinutes;
   return delta >= 0 && delta < 20;
+}
+
+/**
+ * Exchanges a Firebase service account for an OAuth access token.
+ *
+ * Google only accepts a signed JWT here, so we sign one with WebCrypto rather
+ * than pulling in a JWT library.
+ */
+async function fcmAccessToken(serviceAccountJson: string): Promise<string | null> {
+  try {
+    const account = JSON.parse(serviceAccountJson) as {
+      client_email: string;
+      private_key: string;
+    };
+
+    const now = Math.floor(Date.now() / 1000);
+    const claim = {
+      iss: account.client_email,
+      scope: "https://www.googleapis.com/auth/firebase.messaging",
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600,
+      iat: now,
+    };
+
+    const encode = (obj: unknown) => base64Url(new TextEncoder().encode(JSON.stringify(obj)));
+    const unsigned = `${encode({ alg: "RS256", typ: "JWT" })}.${encode(claim)}`;
+
+    const key = await crypto.subtle.importKey(
+      "pkcs8",
+      pemToBytes(account.private_key),
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const signature = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      new TextEncoder().encode(unsigned),
+    );
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: `${unsigned}.${base64Url(new Uint8Array(signature))}`,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("FCM token exchange failed", await response.text());
+      return null;
+    }
+    return ((await response.json()) as { access_token: string }).access_token;
+  } catch (error) {
+    console.error("FCM service account is not usable", error);
+    return null;
+  }
+}
+
+async function sendFcm(
+  projectId: string,
+  accessToken: string,
+  deviceToken: string,
+  title: string,
+  body: string,
+): Promise<void> {
+  const response = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: {
+          token: deviceToken,
+          notification: { title, body },
+          data: { url: "/app/affirmations" },
+          android: {
+            priority: "high",
+            notification: { channel_id: "daily-affirmation", sound: "default" },
+          },
+          apns: {
+            payload: { aps: { sound: "default", "content-available": 1 } },
+          },
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    // Mirror web push's gone-codes so a dead token gets cleaned up the same way.
+    const gone = /UNREGISTERED|INVALID_ARGUMENT/.test(text);
+    const error = new Error(text) as Error & { statusCode?: number };
+    error.statusCode = gone ? 410 : response.status;
+    throw error;
+  }
+}
+
+function base64Url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function pemToBytes(pem: string): Uint8Array {
+  const body = pem
+    .replace(/-----BEGIN [^-]+-----/, "")
+    .replace(/-----END [^-]+-----/, "")
+    .replace(/\s/g, "");
+  const binary = atob(body);
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 
 function json(body: unknown, status: number) {

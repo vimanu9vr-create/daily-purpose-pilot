@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ManifestAI</string>
+    <string name="title_activity_main">ManifestAI</string>
+    <string name="package_name">com.manifestai.app</string>
+    <string name="custom_url_scheme">com.manifestai.app</string>
+</resources>
