@@ -15,7 +15,7 @@ const SYSTEM_PROMPT = `You write a short daily visualization for a personal-grow
 
 Form:
 - Second person, present tense. 4 to 6 short paragraphs, roughly 150-220 words total.
-- Build it entirely from the user's own goal, reason, desired feeling and stated obstacle. Reuse their vocabulary.
+- Build it entirely from what they said they want, plus any reason, desired feeling or obstacle given. Reuse their exact vocabulary — if they wrote "my own apartment", the scene is about an apartment, not about money in general.
 - Quiet and specific rather than grand. Ordinary sensory detail beats triumphant imagery. No stock phrases like "close your eyes and imagine".
 - End with one small concrete action they could take today.
 
@@ -44,20 +44,58 @@ Deno.serve(async (req: Request) => {
     });
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
 
-    const { goalId, variant } = (await req.json().catch(() => ({}))) as {
+    const { goalId, desireId, variant } = (await req.json().catch(() => ({}))) as {
       goalId?: string;
+      desireId?: string;
       variant?: number;
     };
 
-    const filter = goalId ? `id=eq.${encodeURIComponent(goalId)}` : "status=eq.active";
-    const goalsRes = await fetch(
-      `${supabaseUrl}/rest/v1/goals?select=title,why,feeling,obstacles,category,progress&${filter}&order=created_at.desc&limit=1`,
-      { headers: { Authorization: authHeader, apikey: anonKey } },
-    );
-    const goals = goalsRes.ok ? await goalsRes.json() : [];
-    const goal = Array.isArray(goals) ? goals[0] : null;
+    // Two callers, two different tables.
+    //
+    // Home sends `desireId` — the thing the user typed into the box. That was
+    // being ignored entirely: the function only read `goalId`, so an unmatched
+    // request fell through to "the newest active goal" and wrote *that* story
+    // against whatever desire the loop happened to be on. Every card came out
+    // about the same old goal. Two stories in the database titled "Feeling
+    // Super Rich" are filed under "Being deeply loved" and "My own apartment".
+    // Nothing about it was custom.
+    let subject: {
+      title: string;
+      why?: string | null;
+      feeling?: string | null;
+      obstacles?: string | null;
+      progress?: number | null;
+    } | null = null;
 
-    if (!goal) return json({ error: "no_goal", message: "Add a goal first." }, 400);
+    if (desireId) {
+      const desiresRes = await fetch(
+        `${supabaseUrl}/rest/v1/desires?select=title,description&id=eq.${encodeURIComponent(desireId)}&limit=1`,
+        { headers: { Authorization: authHeader, apikey: anonKey } },
+      );
+      const desires = desiresRes.ok ? await desiresRes.json() : [];
+      const desire = Array.isArray(desires) ? desires[0] : null;
+      if (desire) subject = { title: desire.title, why: desire.description };
+    }
+
+    if (!subject) {
+      const filter = goalId ? `id=eq.${encodeURIComponent(goalId)}` : "status=eq.active";
+      const goalsRes = await fetch(
+        `${supabaseUrl}/rest/v1/goals?select=title,why,feeling,obstacles,category,progress&${filter}&order=created_at.desc&limit=1`,
+        { headers: { Authorization: authHeader, apikey: anonKey } },
+      );
+      const goals = goalsRes.ok ? await goalsRes.json() : [];
+      const goal = Array.isArray(goals) ? goals[0] : null;
+      if (goal) subject = goal;
+    }
+
+    // If a specific desire was asked for and doesn't exist, don't quietly
+    // substitute something else — that's the bug this replaces.
+    if (!subject) {
+      return json(
+        { error: "no_subject", message: "Nothing to write about yet." },
+        400,
+      );
+    }
 
     // Recent titles, so a "different one" is actually different.
     const recentRes = await fetch(
@@ -70,11 +108,11 @@ Deno.serve(async (req: Request) => {
       : "";
 
     const context = [
-      `GOAL: ${goal.title}`,
-      goal.why ? `WHY IT MATTERS: ${goal.why}` : "",
-      goal.feeling ? `HOW THEY WANT IT TO FEEL: ${goal.feeling}` : "",
-      goal.obstacles ? `WHAT'S IN THE WAY: ${goal.obstacles}` : "",
-      `MILESTONE PROGRESS: ${goal.progress ?? 0}%`,
+      `WHAT THEY WANT: ${subject.title}`,
+      subject.why ? `WHY IT MATTERS: ${subject.why}` : "",
+      subject.feeling ? `HOW THEY WANT IT TO FEEL: ${subject.feeling}` : "",
+      subject.obstacles ? `WHAT'S IN THE WAY: ${subject.obstacles}` : "",
+      subject.progress != null ? `MILESTONE PROGRESS: ${subject.progress}%` : "",
       recentTitles ? `AVOID REPEATING THESE RECENT ANGLES: ${recentTitles}` : "",
       variant !== undefined ? `The user asked for a different angle than the last one.` : "",
     ]
