@@ -1,0 +1,147 @@
+import type { Session } from "@supabase/supabase-js";
+
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * A single, shared view of "am I signed in?".
+ *
+ * This exists because of a bug that made the app ask people to sign in two or
+ * three times in a row. Two things were going wrong in the route guard:
+ *
+ * 1. It called `supabase.auth.getUser()`, which is a network request to
+ *    /auth/v1/user on *every* navigation into an authenticated route. On a
+ *    phone — patchy signal, a cold launch, a backgrounded tab waking up —
+ *    that request fails. The guard couldn't tell "the network dropped" apart
+ *    from "you are not signed in", so it bounced people to the sign-in screen
+ *    while they were, in fact, still signed in.
+ *
+ * 2. It raced the client's own start-up. Supabase reads the stored session
+ *    from localStorage asynchronously, and our client is built lazily on first
+ *    use — so the guard's first call could be the very thing constructing the
+ *    client, and it would read `null` before storage had been consulted. Right
+ *    after signing in, the redirect to /app fired before the session was
+ *    written, so the guard threw the user straight back to /auth.
+ *
+ * The fix is to subscribe to `onAuthStateChange` once, treat the first event
+ * as "storage has been read", and hold the session in memory. Reads become
+ * synchronous and free, and a dropped connection can no longer be mistaken for
+ * a sign-out.
+ *
+ * A genuine sign-out still works: an expired or revoked refresh token makes
+ * Supabase emit SIGNED_OUT, which clears the cache here and lets the guard
+ * redirect for the right reason.
+ */
+
+let session: Session | null = null;
+let ready: Promise<void> | null = null;
+
+/** Belt and braces: if the auth listener never fires, don't hang the app. */
+const READY_TIMEOUT_MS = 4000;
+
+function begin(): Promise<void> {
+  if (ready) return ready;
+
+  if (typeof window === "undefined") {
+    ready = Promise.resolve();
+    return ready;
+  }
+
+  // Coming back from Google or Apple, the URL carries a code that Supabase
+  // still has to exchange for a session. INITIAL_SESSION fires *before* that
+  // exchange finishes and reports null — so releasing the gate on it would
+  // redirect a user who is halfway through signing in back to the sign-in
+  // screen. When a code is present, hold out for a real session instead.
+  const url = window.location.href;
+  const awaitingOAuth = /[?&]code=/.test(url) || /[#&]access_token=/.test(url);
+
+  ready = new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+
+    // Fires INITIAL_SESSION once storage has been read, then on every change.
+    supabase.auth.onAuthStateChange((_event, next) => {
+      session = next;
+      if (awaitingOAuth && !next) return;
+      done();
+    });
+
+    // If the listener somehow never fires, fall back to a direct read rather
+    // than leaving the guard waiting forever on a blank screen.
+    window.setTimeout(() => {
+      if (settled) return;
+      void supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          session = data.session;
+        })
+        .catch(() => {
+          // Leave `session` as-is; the guard treats unknown as "let them in".
+        })
+        .finally(done);
+    }, READY_TIMEOUT_MS);
+  });
+
+  return ready;
+}
+
+/** Start listening as early as possible, so the gate is usually already open. */
+export function primeAuthSession(): void {
+  void begin();
+}
+
+/**
+ * The current session, waiting for start-up to finish the first time only.
+ * After that it resolves instantly from memory.
+ */
+export async function getAuthSession(): Promise<Session | null> {
+  await begin();
+  return session;
+}
+
+/** Synchronous peek, for code that already knows start-up has happened. */
+export function peekAuthSession(): Session | null {
+  return session;
+}
+
+/**
+ * Writes a session we already hold into the cache.
+ *
+ * Sign-in returns the session directly, but the SIGNED_IN event that would
+ * normally populate this cache arrives a tick later. Navigating to /app in
+ * between meant the route guard read `null` and sent the user straight back to
+ * the sign-in screen — the first of the repeated prompts. Calling this before
+ * navigating closes that gap.
+ */
+export function setAuthSession(next: Session | null): void {
+  session = next;
+  if (!ready) ready = Promise.resolve();
+}
+
+/**
+ * The access token for calling edge functions.
+ *
+ * Goes to Supabase only when the cached token is close to expiring, so the
+ * common case costs nothing.
+ */
+export async function getAccessToken(): Promise<string | undefined> {
+  await begin();
+
+  const expiresAt = session?.expires_at;
+  const expiringSoon = expiresAt ? expiresAt * 1000 - Date.now() < 60_000 : true;
+
+  if (session && !expiringSoon) return session.access_token;
+
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) session = data.session;
+    return data.session?.access_token;
+  } catch {
+    // Offline. The cached token may still be valid — better to try it than to
+    // send nothing at all.
+    return session?.access_token;
+  }
+}

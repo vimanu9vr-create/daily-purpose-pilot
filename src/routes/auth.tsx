@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { getAuthSession, setAuthSession } from "@/lib/auth-session";
 import { lovable } from "@/integrations/lovable/index";
 
 const searchSchema = z.object({
@@ -34,8 +35,8 @@ export const Route = createFileRoute("/auth")({
   }),
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
-    const { data } = await supabase.auth.getSession();
-    if (data.session) throw redirect({ to: "/app" });
+    const session = await getAuthSession();
+    if (session) throw redirect({ to: "/app" });
   },
   component: AuthPage,
 });
@@ -56,7 +57,7 @@ function AuthPage() {
     setLoading(true);
     try {
       if (isSignup) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -65,11 +66,15 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // Seed the cache before navigating, so the route guard doesn't read a
+        // stale null and bounce straight back here.
+        if (data.session) setAuthSession(data.session);
         toast.success("Account created. Welcome to ManifestAI.");
         navigate({ to: "/app" });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        setAuthSession(data.session);
         navigate({ to: "/app" });
       }
     } catch (error) {
@@ -90,6 +95,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
+    await getAuthSession();
     navigate({ to: "/app" });
   }
 
@@ -111,6 +117,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
+    await getAuthSession();
     navigate({ to: "/app" });
   }
 
