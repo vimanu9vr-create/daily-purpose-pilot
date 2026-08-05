@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Headphones, Heart, Home, User } from "lucide-react";
+import { Clock, Headphones, Heart, Home, User } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +23,36 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="blush-field relative min-h-screen">
-      <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-6">{children}</main>
+      {/* The wordmark. Stella puts its name top-left on every screen, and it
+          turns out to matter: without it the app never says what it is, and
+          there's nothing to anchor the top of the page. */}
+      <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pt-4">
+        <Link
+          to="/app"
+          className="font-display text-[26px] font-medium leading-none tracking-[-0.01em] text-foreground"
+        >
+          ManifestAI
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <Link
+            to="/app/library"
+            aria-label="Saved"
+            className="glass-panel flex h-10 w-10 items-center justify-center rounded-full text-primary transition active:scale-95"
+          >
+            <Heart className="h-[18px] w-[18px]" strokeWidth={1.9} />
+          </Link>
+          <Link
+            to="/app/moments"
+            aria-label="Recent"
+            className="glass-panel flex h-10 w-10 items-center justify-center rounded-full text-primary transition active:scale-95"
+          >
+            <Clock className="h-[18px] w-[18px]" strokeWidth={1.9} />
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-5">{children}</main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-5">
         <ul className="glass-panel flex w-full max-w-sm items-center justify-around rounded-full px-2 py-2.5">

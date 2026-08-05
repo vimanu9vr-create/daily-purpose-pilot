@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { Button } from "@/components/ui/button";
 import { DesireSheet } from "@/features/stories/desire-sheet";
+import { useDesirePlaceholder } from "@/features/stories/desire-placeholder";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { CarouselSection, DraggableRow, StoryCard } from "@/features/stories/story-card";
 import { TrendingMarquee } from "@/features/stories/trending-marquee";
@@ -34,6 +35,11 @@ function HomeFeed() {
 
   const [input, setInput] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+
+  // Stops typing itself once the user starts typing — two cursors racing in
+  // one box is horrible.
+  const placeholder = useDesirePlaceholder(input.length === 0);
+  const firstName = profile?.display_name?.trim().split(" ")[0];
 
   const hasDesires = (desires?.length ?? 0) > 0;
   const storyList = stories ?? [];
@@ -65,13 +71,21 @@ function HomeFeed() {
 
   return (
     <PageTransition>
+      {/* The question, by name. This is the line that makes the app feel like
+          it's addressing you rather than presenting a form. */}
+      <h1 className="mb-5 text-center font-display text-[26px] font-medium leading-[1.25]">
+        {firstName ? `${firstName}, what do you` : "What do you"}
+        <br />
+        want to <em className="italic">manifest?</em>
+      </h1>
+
       {/* Desire input — the way you tell the app what you want */}
       <div className="glass-panel flex items-center gap-2 rounded-full py-1.5 pl-5 pr-1.5">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submitDesire(input)}
-          placeholder="him obsessed with me."
+          placeholder={placeholder}
           aria-label="What do you want?"
           className="min-w-0 flex-1 bg-transparent py-2 font-display text-[15px] italic text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
@@ -117,7 +131,7 @@ function HomeFeed() {
           {desires!.map((desire) => (
             <span
               key={desire.id}
-              className="carousel-item whitespace-nowrap rounded-full bg-primary/10 px-4 py-2 text-xs font-medium text-primary"
+              className="carousel-item whitespace-nowrap rounded-full bg-primary/10 px-5 py-2.5 text-[13px] font-medium text-primary"
             >
               {desire.title}
             </span>

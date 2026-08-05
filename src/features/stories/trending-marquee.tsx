@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,13 @@ import { cn } from "@/lib/utils";
  *
  * The list is rendered twice and the animation travels exactly -50%, so the
  * loop point is invisible.
+ *
+ * Speed is a real pixels-per-second rate, measured off the rendered track,
+ * rather than a duration guessed from the number of chips. Guessing meant the
+ * strip crawled whenever the list was long — which is exactly when there's most
+ * to look at.
  */
+const SPEED_PX_PER_SECOND = 62;
 export function TrendingMarquee({
   items,
   onSelect,
@@ -23,8 +29,10 @@ export function TrendingMarquee({
   onSelect: (item: string) => void;
   className?: string;
 }) {
+  const trackRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState(30);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -35,14 +43,34 @@ export function TrendingMarquee({
     return () => query.removeEventListener("change", onChange);
   }, []);
 
-  if (items.length === 0) return null;
+  // Measure once the chips have laid out, and again if the width changes
+  // (rotation, font loading, a different chip count).
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || typeof window === "undefined") return;
 
-  // Slower with more chips, so the speed reads the same regardless of count.
-  const durationSeconds = Math.max(18, items.length * 4);
+    const measure = () => {
+      // The track holds two identical copies; one copy is the loop distance.
+      const distance = track.scrollWidth / 2;
+      if (distance > 0) {
+        setDurationSeconds(distance / SPEED_PX_PER_SECOND);
+      }
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [items]);
+
+  if (items.length === 0) return null;
 
   return (
     <div className={cn("relative -mx-5 overflow-hidden", className)}>
       <div
+        ref={trackRef}
         className="marquee-track flex w-max gap-2 px-5"
         style={{
           animationDuration: `${durationSeconds}s`,
@@ -63,7 +91,7 @@ export function TrendingMarquee({
                 type="button"
                 onClick={() => onSelect(item)}
                 tabIndex={copy === 1 ? -1 : 0}
-                className="whitespace-nowrap rounded-full bg-white/70 px-4 py-2.5 text-xs font-medium text-secondary-foreground shadow-sm transition active:scale-95"
+                className="whitespace-nowrap rounded-full bg-white/85 px-5 py-3 text-[13px] font-medium text-secondary-foreground shadow-[0_4px_14px_-8px_var(--shadow-color-soft)] transition active:scale-95"
               >
                 {item}
               </button>
