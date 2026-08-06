@@ -101,6 +101,9 @@ Deno.serve(async (req: Request) => {
 
     let sent = 0;
     let failed = 0;
+    // Returned in the response. A bare "failed: 3" tells you nothing about
+    // why, and the reason is the only thing that matters here.
+    const diagnostics: { sub: string; status: number | string; detail: string }[] = [];
 
     for (const profile of due) {
       // Pick an affirmation the user hasn't seen most recently.
@@ -170,6 +173,11 @@ Deno.serve(async (req: Request) => {
           console.error(
             `push failed sub=${sub.id} platform=${sub.platform ?? "web"} status=${status ?? "none"} detail=${String(detail).slice(0, 300)}`,
           );
+          diagnostics.push({
+            sub: sub.id.slice(0, 8),
+            status: status ?? "none",
+            detail: String(detail).slice(0, 200),
+          });
 
           // 404/410: the browser threw the subscription away.
           // 403/400: the push service rejected our signature — almost always
@@ -206,7 +214,7 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log(`daily affirmation: sent=${sent} failed=${failed} due=${due.length}`);
-    return json({ sent, failed, due: due.length }, 200);
+    return json({ sent, failed, due: due.length, diagnostics }, 200);
   } catch (error) {
     console.error("send-daily-affirmation failed", error);
     return json({ error: "internal_error", message: String(error) }, 500);
