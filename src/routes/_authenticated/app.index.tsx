@@ -3,6 +3,7 @@ import { ArrowUp, Loader2, Pencil, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DesireSheet } from "@/features/stories/desire-sheet";
 import { useDesirePlaceholder } from "@/features/stories/desire-placeholder";
@@ -35,6 +36,7 @@ function HomeFeed() {
 
   const [input, setInput] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [selectedDesireId, setSelectedDesireId] = useState<string | null>(null);
 
   // Stops typing itself once the user starts typing — two cursors racing in
   // one box is horrible.
@@ -54,8 +56,12 @@ function HomeFeed() {
 
   // Only personalised stories belong on Home; the catalogue lives in Library.
   const storiesOnly = storyList.filter((s) => s.kind === "story");
-  const forYou = storiesOnly.slice(0, 8);
-  const trending = storiesOnly.slice(8, 16);
+  const selectedDesire = desires?.find((d) => d.id === selectedDesireId) ?? null;
+  const filteredStories = selectedDesireId
+    ? storiesOnly.filter((s) => s.desire_id === selectedDesireId)
+    : storiesOnly;
+  const forYou = filteredStories.slice(0, 8);
+  const trending = filteredStories.slice(8, 16);
 
   // Suggestions the user hasn't already added.
   const trendingItems = TRENDING_DESIRES.filter(
@@ -128,15 +134,47 @@ function HomeFeed() {
 
       {hasDesires && (
         <DraggableRow className="mt-3 pb-1">
-          {desires!.map((desire) => (
-            <span
-              key={desire.id}
-              className="carousel-item whitespace-nowrap rounded-full bg-primary/10 px-5 py-2.5 text-[13px] font-medium text-primary"
-            >
-              {desire.title}
-            </span>
-          ))}
+          {desires!.map((desire) => {
+            const selected = selectedDesireId === desire.id;
+            return (
+              <button
+                key={desire.id}
+                type="button"
+                // These were <span> elements — inert. Tapping your own desire
+                // did nothing at all, which is what "euro summer vacation, a
+                // calmer mind, more money is not working" was: five chips that
+                // looked like buttons and weren't wired to anything.
+                onClick={() => setSelectedDesireId(selected ? null : desire.id)}
+                aria-pressed={selected}
+                className={cn(
+                  "carousel-item whitespace-nowrap rounded-full px-5 py-2.5 text-[13px] font-medium transition active:scale-95",
+                  selected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
+                {desire.title}
+              </button>
+            );
+          })}
         </DraggableRow>
+      )}
+
+      {selectedDesire && filteredStories.length === 0 && !generate.isPending && (
+        <section className="mt-8 rounded-3xl glass-panel px-7 py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Nothing written for “{selectedDesire.title}” yet.
+          </p>
+          <Button
+            variant="glass"
+            size="sm"
+            className="mt-4 rounded-full"
+            onClick={() => generate.mutate({ perDesire: 3 })}
+            disabled={generate.isPending}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Write some now
+          </Button>
+        </section>
       )}
 
       {!hasDesires && (
