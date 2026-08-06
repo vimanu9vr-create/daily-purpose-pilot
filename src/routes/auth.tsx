@@ -87,7 +87,7 @@ function AuthPage() {
   async function handleGoogle() {
     setGoogleLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/app`,
     });
     if (result.error) {
       setGoogleLoading(false);
@@ -106,7 +106,7 @@ function AuthPage() {
   async function handleApple() {
     setAppleLoading(true);
     const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/app`,
     });
     if (result.error) {
       setAppleLoading(false);

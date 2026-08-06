@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+
+import { getAuthSession } from "@/lib/auth-session";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -17,6 +19,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    // Signing in with Google or Apple returns you to the site root, and this
+    // page had no idea you were signed in — so you landed back on "Start free /
+    // Log in" having just logged in. Anyone with a session belongs in the app.
+    if (typeof window === "undefined") return;
+    const session = await getAuthSession();
+    if (session) throw redirect({ to: "/app" });
+  },
   head: () => ({
     meta: [
       { title: "ManifestAI — Turn your intentions into daily actions" },
@@ -153,8 +163,7 @@ function Landing() {
                 transition={{ duration: 0.6, delay: 0.05 }}
                 className="mt-7 text-balance text-5xl font-semibold leading-[1.05] md:text-7xl"
               >
-                Become the person who{" "}
-                <span className="text-gradient">achieves your goals.</span>
+                Become the person who <span className="text-gradient">achieves your goals.</span>
               </motion.h1>
 
               <motion.p
