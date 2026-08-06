@@ -162,8 +162,22 @@ Deno.serve(async (req: Request) => {
         } catch (error) {
           failed += 1;
           const status = (error as { statusCode?: number }).statusCode;
-          // 404/410 mean the browser threw the subscription away — stop trying.
-          if (status === 404 || status === 410) {
+          const detail = (error as { body?: string }).body ?? String(error);
+
+          // Say WHY. The previous version incremented a counter and threw the
+          // reason away, so two devices sat at failure_count 1 with nothing to
+          // explain it — impossible to debug without guessing.
+          console.error(
+            `push failed sub=${sub.id} platform=${sub.platform ?? "web"} status=${status ?? "none"} detail=${String(detail).slice(0, 300)}`,
+          );
+
+          // 404/410: the browser threw the subscription away.
+          // 403/400: the push service rejected our signature — almost always
+          // because this subscription was created against a different VAPID
+          // key than the one we're signing with now. Retrying can never fix
+          // that; the device has to subscribe again. Dropping the row is what
+          // makes the app self-heal rather than failing quietly every morning.
+          if (status === 404 || status === 410 || status === 403 || status === 400) {
             await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${sub.id}`, {
               method: "DELETE",
               headers: { ...admin, Prefer: "return=minimal" },
