@@ -35,6 +35,11 @@ export function useStudioNarration(
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Set when play was pressed before the narration existed. Generating takes a
+  // few seconds; without this the audio element is built and then just sits
+  // there, so the tap looks like it did nothing.
+  const playWhenReadyRef = useRef(false);
+
   useEffect(() => {
     setAudioUrl(cachedUrl);
     setMarks(cachedMarks);
@@ -68,6 +73,18 @@ export function useStudioNarration(
     audio.addEventListener("ended", onEnded);
     audio.addEventListener("error", onError);
 
+    if (playWhenReadyRef.current) {
+      playWhenReadyRef.current = false;
+      void audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          // iOS can refuse if too long has passed since the tap. Leave it
+          // paused and ready rather than throwing an error at the user.
+          setIsPlaying(false);
+        });
+    }
+
     return () => {
       audio.pause();
       audio.removeEventListener("timeupdate", onTime);
@@ -90,8 +107,9 @@ export function useStudioNarration(
   }, [elapsedSeconds, marks, sentences.length]);
 
   const generate = useCallback(
-    async (voice = "sarah") => {
+    async (voice = "sarah", playWhenReady = false) => {
       if (!storyId || !body.trim()) return false;
+      playWhenReadyRef.current = playWhenReady;
       setIsGenerating(true);
       setError(null);
 
@@ -110,6 +128,7 @@ export function useStudioNarration(
         if (!response.ok) {
           const detail = (await response.json().catch(() => null)) as { message?: string } | null;
           setError(detail?.message ?? "Studio narration isn't available.");
+          playWhenReadyRef.current = false;
           return false;
         }
 
@@ -119,6 +138,7 @@ export function useStudioNarration(
         return true;
       } catch (err) {
         setError((err as Error).message);
+        playWhenReadyRef.current = false;
         return false;
       } finally {
         setIsGenerating(false);

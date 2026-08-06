@@ -308,6 +308,24 @@ function StoryPlayer() {
                   }
                   return;
                 }
+
+                // Sarah is the product; the browser voice is a fallback for
+                // when she can't be had. She used to be hidden behind a second
+                // "Studio voice" button, so pressing play gave you the robotic
+                // voice and most people would never find her. Now the first
+                // play generates her, and only for a story you actually chose
+                // to listen to — so the per-character bill still tracks real
+                // listening rather than browsing.
+                if (!studio.available && !studio.isGenerating && !studio.error) {
+                  unlockAudioSession();
+                  void studio.generate("sarah", true).then((ok) => {
+                    // If she couldn't be generated, don't leave the user in
+                    // silence — fall back rather than fail.
+                    if (!ok) browser.toggle();
+                  });
+                  return;
+                }
+
                 narration.toggle();
               }}
               disabled={!toneHz && !studio.available && !browser.isSupported}
