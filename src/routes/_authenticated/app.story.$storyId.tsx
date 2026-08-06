@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { useStory, useToggleStoryFavorite } from "@/features/stories/use-stories";
 import { formatClock, useNarration } from "@/hooks/use-narration";
+import { useSessionBed } from "@/hooks/use-session-bed";
 import { useStudioNarration } from "@/hooks/use-studio-narration";
 import {
   ambientPad,
@@ -43,8 +44,9 @@ function StoryPlayer() {
   const toggleFavorite = useToggleStoryFavorite();
 
   const [showFullStory, setShowFullStory] = useState(false);
-  const [music, setMusic] = useState(false);
-  const [tonePlaying, setTonePlaying] = useState(false);
+  // Background sound is on by default now — it is part of how this is meant
+  // to sound, not an extra.
+  const [music, setMusic] = useState(true);
 
   const browser = useNarration(story?.body ?? "");
   const studio = useStudioNarration(
@@ -58,6 +60,30 @@ function StoryPlayer() {
   // Real narration when it exists, browser speech otherwise. Same surface,
   // so nothing below needs to know which one is running.
   const narration = studio.available ? studio : browser;
+
+  // A "528 Hz" track with no 528 Hz tone is just text. Play the real thing.
+  const toneHz = story?.kind === "frequency" ? frequencyFromTitle(story.title) : null;
+
+  // Sleep, meditation and frequency sessions are timed experiences rather than
+  // a piece of speech, so their clock and their sound run for the advertised
+  // length instead of stopping when the voice does.
+  const isSession = story ? story.kind !== "story" && story.kind !== "affirmation" : false;
+  const bed = useSessionBed({
+    kind: (story?.kind as "sleep") ?? "story",
+    totalSeconds: story?.duration_seconds ?? 0,
+    toneHz,
+    speaking: narration.isPlaying,
+    enabled: isSession,
+  });
+
+  // Stories don't have a fixed length, so their pad simply follows the voice.
+  // This is why narration sounded bare: the pad existed but was behind a
+  // toggle almost nobody found, so speech played over silence.
+  useEffect(() => {
+    if (isSession || !music) return;
+    if (narration.isPlaying) ambientPad().start(0.09);
+    else ambientPad().stop();
+  }, [narration.isPlaying, isSession, music]);
 
   // Stop whichever engine isn't in use, so they can't overlap.
   useEffect(() => {
@@ -111,12 +137,11 @@ function StoryPlayer() {
 
   const image = story.image_url ?? coverImage(story.id, themeFor(story.category));
 
-  // A "528 Hz" track with no 528 Hz tone is just text. Play the real thing.
-  const toneHz = story.kind === "frequency" ? frequencyFromTitle(story.title) : null;
-  const remaining = narration.totalSeconds - narration.elapsedSeconds;
-  const progress = narration.totalSeconds
-    ? (narration.elapsedSeconds / narration.totalSeconds) * 100
-    : 0;
+  // Sessions report their own clock; stories report the voice's.
+  const elapsed = isSession ? bed.elapsedSeconds : narration.elapsedSeconds;
+  const total = isSession ? bed.totalSeconds : narration.totalSeconds;
+  const remaining = total - elapsed;
+  const progress = total ? (elapsed / total) * 100 : 0;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black">
@@ -251,7 +276,8 @@ function StoryPlayer() {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const ratio = (e.clientX - rect.left) / rect.width;
                 // Real audio can seek anywhere; speech synthesis only per sentence.
-                if (studio.available) studio.seekToRatio(ratio);
+                if (isSession) bed.seekToRatio(ratio);
+                else if (studio.available) studio.seekToRatio(ratio);
                 else browser.seekToSentence(Math.round(ratio * (browser.sentences.length - 1)));
               }}
             >
@@ -296,15 +322,23 @@ function StoryPlayer() {
               type="button"
               onClick={() => {
                 void haptic("medium");
-                if (toneHz) {
-                  // Frequency sessions are the tone itself, not narration.
-                  unlockAudioSession();
-                  if (tonePlaying) {
-                    toneGenerator().stop();
-                    setTonePlaying(false);
+
+                // A timed session: the bed runs for the advertised length and
+                // the voice sits on top of it. Previously a frequency track
+                // played a tone with no narration, and a sleep track played
+                // forty seconds of speech and then nothing — while the label
+                // promised eighteen minutes.
+                if (isSession) {
+                  if (bed.isRunning) {
+                    bed.pause();
+                    narration.stop();
                   } else {
-                    toneGenerator().start(toneHz);
-                    setTonePlaying(true);
+                    bed.start();
+                    if (!studio.available && !studio.isGenerating && !studio.error) {
+                      void studio.generate("sarah", true);
+                    } else {
+                      narration.toggle();
+                    }
                   }
                   return;
                 }
@@ -328,11 +362,11 @@ function StoryPlayer() {
 
                 narration.toggle();
               }}
-              disabled={!toneHz && !studio.available && !browser.isSupported}
-              aria-label={narration.isPlaying ? "Pause" : "Play"}
+              disabled={!isSession && !studio.available && !browser.isSupported}
+              aria-label={(isSession ? bed.isRunning : narration.isPlaying) ? "Pause" : "Play"}
               className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white text-primary shadow-xl transition hover:scale-105 disabled:opacity-50"
             >
-              {(toneHz ? tonePlaying : narration.isPlaying) ? (
+              {(isSession ? bed.isRunning : narration.isPlaying) ? (
                 <Pause className="h-7 w-7 fill-current" />
               ) : (
                 <Play className="ml-1 h-7 w-7 fill-current" />
