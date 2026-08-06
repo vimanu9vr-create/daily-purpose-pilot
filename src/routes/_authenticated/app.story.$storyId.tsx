@@ -57,8 +57,14 @@ function StoryPlayer() {
     browser.sentences,
   );
 
-  // Real narration when it exists, browser speech otherwise. Same surface,
-  // so nothing below needs to know which one is running.
+  // Sarah, always. The browser voice is no longer a fallback — it was the
+  // thing that made the app feel cheap, and it kept winning the race on first
+  // play: generating Sarah takes a few seconds, and the old code started
+  // speech synthesis in the meantime. So you got the robot the first time and
+  // Sarah the second, once the audio was cached.
+  //
+  // Now the first press waits. If Sarah genuinely can't be produced we say so
+  // rather than substituting a worse voice.
   const narration = studio.available ? studio : browser;
 
   // A "528 Hz" track with no 528 Hz tone is just text. Play the real thing.
@@ -334,10 +340,10 @@ function StoryPlayer() {
                     narration.stop();
                   } else {
                     bed.start();
-                    if (!studio.available && !studio.isGenerating && !studio.error) {
-                      void studio.generate("sarah", true);
+                    if (!studio.available) {
+                      if (!studio.isGenerating) void studio.generate("sarah", true);
                     } else {
-                      narration.toggle();
+                      studio.toggle();
                     }
                   }
                   return;
@@ -350,19 +356,17 @@ function StoryPlayer() {
                 // play generates her, and only for a story you actually chose
                 // to listen to — so the per-character bill still tracks real
                 // listening rather than browsing.
-                if (!studio.available && !studio.isGenerating && !studio.error) {
+                if (!studio.available) {
+                  if (studio.isGenerating) return;
                   unlockAudioSession();
-                  void studio.generate("sarah", true).then((ok) => {
-                    // If she couldn't be generated, don't leave the user in
-                    // silence — fall back rather than fail.
-                    if (!ok) browser.toggle();
-                  });
+                  ambientPad().start(0.09);
+                  void studio.generate("sarah", true);
                   return;
                 }
 
-                narration.toggle();
+                studio.toggle();
               }}
-              disabled={!isSession && !studio.available && !browser.isSupported}
+              disabled={studio.isGenerating}
               aria-label={(isSession ? bed.isRunning : narration.isPlaying) ? "Pause" : "Play"}
               className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white text-primary shadow-xl transition hover:scale-105 disabled:opacity-50"
             >
