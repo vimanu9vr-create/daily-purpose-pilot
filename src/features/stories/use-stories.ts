@@ -34,17 +34,22 @@ export function nextRefreshAt(from = new Date()): Date {
  *
  * Deliberately worded as things you're working toward rather than things that
  * arrive on their own, which is the line the whole app holds.
+ *
+ * Amounts are in USD because the audience is global English rather than India.
+ * Apple and Google localise the actual subscription price per storefront, but
+ * these are copy, not prices, so they have to be picked — and dollars read as
+ * neutral to more English speakers than rupees or pounds do.
  */
 export const TRENDING_DESIRES = [
   // Money and work
-  "₹10 lakh months",
+  "$10k months",
   "Financial freedom",
   "My business taking off",
   "Dream job offer",
   "Quitting the job I hate",
   "Being paid what I'm worth",
   "Going viral",
-  "First ₹1 crore",
+  "My first million",
 
   // Love and self
   "Being deeply loved",
@@ -59,7 +64,7 @@ export const TRENDING_DESIRES = [
   "A calmer mind",
   "Sleeping through the night",
   "The strongest I've been",
-  "Euro summer",
+  "A summer in Europe",
   "My own apartment",
   "Moving abroad",
   "Being the person my family relies on",

@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
  */
 const PROMPTS = [
   "him obsessed with me…",
-  "₹10 lakh months…",
+  "$10k months…",
   "my business taking off…",
   "the strongest I've ever been…",
   "moving abroad…",

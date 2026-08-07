@@ -16,8 +16,13 @@ the order.
 
 ## 1. Create the new Supabase project — **you**
 
-At supabase.com, new project, region **South Asia (Mumbai) ap-south-1**, free tier.
+At supabase.com, new project, region **East US (North Virginia) us-east-1**, free tier.
 Save the database password somewhere real; you cannot recover it later.
+
+us-east-1 because the audience is global English rather than India. It is the closest
+region to the largest share of English-speaking users and the default most services
+peer well with. A user in London sees roughly 80ms of extra latency versus a European
+region, which is invisible for this app — nothing here is chatty enough to feel it.
 
 Then collect four values from Project Settings:
 
