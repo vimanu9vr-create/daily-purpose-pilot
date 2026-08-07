@@ -81,6 +81,16 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
+/** True when this subscription was created with the given server key. */
+function usesKey(subscription: PushSubscription, key: ArrayBuffer): boolean {
+  const current = subscription.options?.applicationServerKey;
+  if (!current) return false;
+  const a = new Uint8Array(current as ArrayBuffer);
+  const b = new Uint8Array(key);
+  if (a.length !== b.length) return false;
+  return a.every((byte, i) => byte === b[i]);
+}
+
 /** VAPID public keys are base64url; the browser wants raw bytes. */
 function urlBase64ToBytes(base64: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -155,13 +165,32 @@ export function useEnableNotifications() {
       const registration = await registerServiceWorker();
       await navigator.serviceWorker.ready;
 
-      const existing = await registration.pushManager.getSubscription();
-      const subscription =
-        existing ??
-        (await registration.pushManager.subscribe({
+      const keyBytes = urlBase64ToBytes(vapidKey);
+
+      // Reuse an existing subscription ONLY if it was created with the key we
+      // currently sign with.
+      //
+      // This used to be `existing ?? subscribe(...)`, which meant that once a
+      // subscription existed it was kept forever — even after the VAPID keys
+      // were rotated. The push service binds each subscription to the exact
+      // key it was made with and rejects anything signed by a different one,
+      // so every send failed, and turning notifications off and on again
+      // couldn't fix it because the stale subscription was handed straight
+      // back. It also upserts onto the same endpoint, so no new row appears
+      // and the whole thing looks like nothing happened.
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (subscription && !usesKey(subscription, keyBytes)) {
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToBytes(vapidKey),
-        }));
+          applicationServerKey: keyBytes,
+        });
+      }
 
       const json = subscription.toJSON() as {
         endpoint?: string;
