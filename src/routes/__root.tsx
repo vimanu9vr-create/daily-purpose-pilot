@@ -13,7 +13,7 @@ import { primeAuthSession } from "@/lib/auth-session";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportLovableError, startTelemetry } from "../lib/telemetry";
 
 function NotFoundComponent() {
   return (
@@ -136,6 +136,9 @@ function RootComponent() {
   // already open by the time any protected route asks.
   useEffect(() => {
     primeAuthSession();
+    // Async failures — audio, push, network — happen outside React's error
+    // boundary and would otherwise disappear entirely.
+    void startTelemetry();
   }, []);
 
   // Register the service worker so the app is installable and can receive push.

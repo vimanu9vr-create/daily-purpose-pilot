@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { profileKeys } from "@/features/onboarding/use-profile";
 import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
+import { reportError, trail } from "@/lib/telemetry";
 import { isNative, nativePlatform, registerNativePush } from "@/lib/native";
 
 /**
@@ -181,6 +182,9 @@ export function useEnableNotifications() {
       let subscription = await registration.pushManager.getSubscription();
 
       if (subscription && !usesKey(subscription, keyBytes)) {
+        // The exact condition that broke notifications for a week and was
+        // invisible from outside. Worth knowing every time it happens.
+        trail("push", "stale-key:resubscribing");
         await subscription.unsubscribe();
         subscription = null;
       }
@@ -190,6 +194,7 @@ export function useEnableNotifications() {
           userVisibleOnly: true,
           applicationServerKey: keyBytes,
         });
+        trail("push", "subscribed");
       }
 
       const json = subscription.toJSON() as {
@@ -224,7 +229,10 @@ export function useEnableNotifications() {
       void queryClient.invalidateQueries({ queryKey: ["push-subscription"] });
       void queryClient.invalidateQueries({ queryKey: profileKeys.me });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      reportError(error, { feature: "push", phase: "enable" });
+      toast.error(error.message);
+    },
   });
 }
 

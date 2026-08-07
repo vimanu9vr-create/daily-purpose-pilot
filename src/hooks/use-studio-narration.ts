@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { reportError, trail } from "@/lib/telemetry";
 
 /**
  * Plays real narration audio (ElevenLabs, generated server-side and cached).
@@ -112,6 +113,7 @@ export function useStudioNarration(
       playWhenReadyRef.current = playWhenReady;
       setIsGenerating(true);
       setError(null);
+      trail("narration", "generate:start", { voice, playWhenReady });
 
       try {
         const { data: session } = await supabase.auth.getSession();
@@ -129,16 +131,23 @@ export function useStudioNarration(
           const detail = (await response.json().catch(() => null)) as { message?: string } | null;
           setError(detail?.message ?? "Studio narration isn't available.");
           playWhenReadyRef.current = false;
+          trail("narration", "generate:rejected", { status: response.status });
+          reportError(new Error(`narrate-story ${response.status}`), {
+            feature: "narration",
+            detail: detail?.message ?? "",
+          });
           return false;
         }
 
         const result = (await response.json()) as { audioUrl: string; marks: number[] };
         setAudioUrl(result.audioUrl);
         setMarks(result.marks);
+        trail("narration", "generate:ok");
         return true;
       } catch (err) {
         setError((err as Error).message);
         playWhenReadyRef.current = false;
+        reportError(err, { feature: "narration", phase: "generate" });
         return false;
       } finally {
         setIsGenerating(false);
