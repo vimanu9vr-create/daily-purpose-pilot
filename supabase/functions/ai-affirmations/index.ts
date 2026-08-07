@@ -24,11 +24,41 @@ Rules:
 
 Return ONLY a JSON array of 8 strings. No prose, no markdown fence.`;
 
+/**
+ * Which AI provider to call.
+ *
+ * Set OPENAI_API_KEY and this calls OpenAI directly, so generations stop
+ * drawing down Lovable credits — every story, affirmation and coach reply was
+ * billing against them. With no OpenAI key it falls back to the Lovable
+ * gateway exactly as before, so adding this breaks nothing.
+ *
+ * Both endpoints speak the same chat-completions shape; only the URL, key and
+ * model differ. Deliberately inlined per function rather than shared, because
+ * a relative import across function directories is one more thing that can
+ * fail at deploy time.
+ */
+function resolveProvider(): { url: string; apiKey: string; model: string } | null {
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+  if (openaiKey) {
+    return {
+      url: "https://api.openai.com/v1/chat/completions",
+      apiKey: openaiKey,
+      model: Deno.env.get("OPENAI_MODEL") ?? "gpt-4o-mini",
+    };
+  }
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) {
+    return { url: GATEWAY_URL, apiKey: lovableKey, model: MODEL };
+  }
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const provider = resolveProvider();
+    const apiKey = provider?.apiKey;
     if (!apiKey) {
       return json(
         {
@@ -87,11 +117,11 @@ Deno.serve(async (req: Request) => {
       )
       .join("\n\n");
 
-    const upstream = await fetch(GATEWAY_URL, {
+    const upstream = await fetch(provider!.url, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: MODEL,
+        model: provider!.model,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           {
