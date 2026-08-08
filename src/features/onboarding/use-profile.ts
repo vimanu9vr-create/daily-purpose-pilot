@@ -87,7 +87,7 @@ export function useCompleteOnboarding() {
           },
           { onConflict: "id" },
         )
-        .select("id, onboarded_at")
+        .select("*")
         .maybeSingle();
 
       if (profileError) throw profileError;
@@ -147,10 +147,27 @@ export function useCompleteOnboarding() {
         // Not deployed or offline. The seeded set already covers it.
       }
 
-      return seeded.length;
+      // The saved profile, not the seeded-affirmation count: onSuccess needs it
+      // to prime the cache before the page navigates. Nothing reads the count.
+      return savedProfile;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: profileKeys.me });
+    onSuccess: (savedProfile) => {
+      /**
+       * Write the profile straight into the cache rather than only
+       * invalidating it.
+       *
+       * This is what actually caused onboarding to loop. The page did
+       * `await mutateAsync(...)` then navigated immediately, while
+       * invalidateQueries is fire-and-forget — so /app read the *cached*
+       * profile, which still had onboarded_at null, and its guard sent the
+       * person back to question one. The answers had saved correctly every
+       * single time; the redirect was racing the refetch.
+       *
+       * setQueryData closes the race: by the time navigation happens the cache
+       * already holds the completed profile.
+       */
+      if (savedProfile) queryClient.setQueryData(profileKeys.me, savedProfile);
+
       void queryClient.invalidateQueries({ queryKey: affirmationKeys.saved });
       void queryClient.invalidateQueries({ queryKey: ["goals"] });
       void queryClient.invalidateQueries({ queryKey: ["desires"] });
