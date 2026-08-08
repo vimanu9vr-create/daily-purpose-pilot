@@ -10,9 +10,12 @@ removed from `package.json`, and `src/integrations/lovable/index.ts` now calls
 Supabase's own `signInWithOAuth`. The return shape is unchanged so the two call sites
 in `auth.tsx` didn't need touching. Types, lint and the build all pass without it.
 
-That leaves `@lovable.dev/vite-tanstack-config`, which is a build-time preset rather
-than app code. Replace it last — it's the fiddliest step and nothing else depends on
-the order.
+`@lovable.dev/vite-tanstack-config` is also gone. Both Vite configs are now written
+out explicitly, verified against a node_modules with the preset genuinely absent.
+Nothing in this repo references Lovable any more — the folder `src/integrations/lovable`
+is now `src/integrations/oauth`.
+
+So steps 1 to 8 below are all that remain, and every one of them starts with you.
 
 ## 1. Create the new Supabase project — **you**
 
@@ -128,12 +131,12 @@ directory `.output/public`. Add the same `VITE_*` variables from `.env` as envir
 variables in the Cloudflare dashboard — they're baked in at build time, so the build
 needs them.
 
-## 9. Drop the last Lovable package
+## A warning about the lockfile
 
-Replace `@lovable.dev/vite-tanstack-config` in `vite.config.ts` with the plugins written
-out explicitly. `vite.config.native.ts` is most of the template already. I'll do this
-one — it's mechanical but easy to get subtly wrong, and the failure mode is a build that
-succeeds and produces a broken bundle.
+Do not delete `package-lock.json` to force a clean install. A transitive dependency,
+`@tanstack/start-storage-context@1.167.21`, has been unpublished from npm, so a fresh
+resolve fails outright. The lockfile is the only thing pinning a version that still
+exists.
 
 ## What you lose, honestly
 
