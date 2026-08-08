@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useEnabledProviders } from "@/features/auth/use-enabled-providers";
 import { getAuthSession, setAuthSession } from "@/lib/auth-session";
 import { oauth } from "@/integrations/oauth/index";
 
@@ -51,6 +52,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const providers = useEnabledProviders();
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -91,7 +93,11 @@ function AuthPage() {
     });
     if (result.error) {
       setGoogleLoading(false);
-      toast.error("Google sign-in failed. Please try again.");
+      toast.error(
+        /not enabled|unsupported provider/i.test(result.error.message)
+          ? "Google sign-in isn't set up yet — use your email and password below."
+          : "Google sign-in failed. Please try again.",
+      );
       return;
     }
     if (result.redirected) return;
@@ -113,7 +119,7 @@ function AuthPage() {
       // Apple sign-in needs a paid Apple Developer account and the provider
       // enabled in Supabase. Until then it can't work, and saying "try again"
       // just sends people round in circles.
-      toast.error("Apple sign-in isn't available yet — please use Google or email.");
+      toast.error("Apple sign-in isn't set up yet — use your email and password below.");
       return;
     }
     if (result.redirected) return;
@@ -144,36 +150,52 @@ function AuthPage() {
                 : "Pick up your practice where you left off."}
             </p>
 
-            <div className="mt-7 space-y-2.5">
-              <Button
-                type="button"
-                size="lg"
-                className="w-full bg-black text-white hover:bg-black/90"
-                onClick={handleApple}
-                disabled={appleLoading}
-              >
-                {appleLoading ? <Loader2 className="animate-spin" /> : <AppleIcon />}
-                Continue with Apple
-              </Button>
+            {/* Only providers this backend has configured. A button that can
+                never succeed is worse than no button — the raw Supabase error
+                ("provider is not enabled") is meaningless to anyone reading it,
+                and "try again" is a lie. */}
+            {(providers.google || providers.apple) && (
+              <div className="mt-7 space-y-2.5">
+                {providers.apple && (
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="w-full bg-black text-white hover:bg-black/90"
+                    onClick={handleApple}
+                    disabled={appleLoading}
+                  >
+                    {appleLoading ? <Loader2 className="animate-spin" /> : <AppleIcon />}
+                    Continue with Apple
+                  </Button>
+                )}
 
-              <Button
-                type="button"
-                variant="glass"
-                size="lg"
-                className="w-full"
-                onClick={handleGoogle}
-                disabled={googleLoading}
-              >
-                {googleLoading ? <Loader2 className="animate-spin" /> : null}
-                Continue with Google
-              </Button>
-            </div>
+                {providers.google && (
+                  <Button
+                    type="button"
+                    variant="glass"
+                    size="lg"
+                    className="w-full"
+                    onClick={handleGoogle}
+                    disabled={googleLoading}
+                  >
+                    {googleLoading ? <Loader2 className="animate-spin" /> : null}
+                    Continue with Google
+                  </Button>
+                )}
+              </div>
+            )}
 
-            <div className="my-6 flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />
-              or with email
-              <span className="h-px flex-1 bg-border" />
-            </div>
+            {(providers.google || providers.apple) && (
+              <div className="my-6 flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                or with email
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            )}
+
+            {providers.resolved && !providers.google && !providers.apple && (
+              <div className="mt-7" />
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignup && (
