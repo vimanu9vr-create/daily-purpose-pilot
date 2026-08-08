@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getAuthSession, setAuthSession } from "@/lib/auth-session";
-import { lovable } from "@/integrations/lovable/index";
+import { oauth } from "@/integrations/oauth/index";
 
 const searchSchema = z.object({
   mode: z.enum(["login", "signup"]).optional(),
@@ -86,7 +86,7 @@ function AuthPage() {
 
   async function handleGoogle() {
     setGoogleLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
+    const result = await oauth.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/app`,
     });
     if (result.error) {
@@ -105,7 +105,7 @@ function AuthPage() {
    */
   async function handleApple() {
     setAppleLoading(true);
-    const result = await lovable.auth.signInWithOAuth("apple", {
+    const result = await oauth.auth.signInWithOAuth("apple", {
       redirect_uri: `${window.location.origin}/app`,
     });
     if (result.error) {

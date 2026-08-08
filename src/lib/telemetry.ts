@@ -125,8 +125,8 @@ export function reportError(
   }
 }
 
-/** Kept for the React error boundary, which already imports this name. */
-export function reportLovableError(error: unknown, context: Record<string, unknown> = {}): void {
+/** What the React error boundary calls. */
+export function reportBoundaryError(error: unknown, context: Record<string, unknown> = {}): void {
   reportError(error, { ...context, source: "react_error_boundary" });
 }
 

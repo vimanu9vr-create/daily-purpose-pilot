@@ -13,7 +13,7 @@ import { primeAuthSession } from "@/lib/auth-session";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
-import { reportLovableError, startTelemetry } from "../lib/telemetry";
+import { reportBoundaryError, startTelemetry } from "../lib/telemetry";
 
 function NotFoundComponent() {
   return (
@@ -41,7 +41,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportBoundaryError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (

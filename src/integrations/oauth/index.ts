@@ -3,10 +3,10 @@ import { supabase } from "../supabase/client";
 /**
  * OAuth sign-in, through Supabase directly.
  *
- * This used to wrap @lovable.dev/cloud-auth-js, which was the only piece of
- * app behaviour genuinely tied to Lovable. Supabase has always had its own
- * signInWithOAuth doing the same job, so this drops the dependency without
- * changing how sign-in behaves.
+ * This used to wrap a Lovable auth package, which was the only piece of app
+ * behaviour genuinely tied to them. Supabase has always had its own
+ * signInWithOAuth doing the same job, so dropping it changed nothing about how
+ * sign-in behaves.
  *
  * The shape of the return value is kept identical on purpose — `redirected`,
  * `error` — so the two call sites in auth.tsx didn't need touching. Worth
@@ -27,18 +27,13 @@ type SignInResult = {
   error?: Error;
 };
 
-export const lovable = {
+export const oauth = {
   auth: {
     signInWithOAuth: async (
-      provider: "google" | "apple" | "microsoft" | "lovable",
+      provider: "google" | "apple" | "microsoft",
       opts?: SignInOptions,
     ): Promise<SignInResult> => {
       // Supabase speaks 'azure' rather than 'microsoft'; the other two match.
-      // 'lovable' has no equivalent and is no longer offered anywhere in the UI.
-      if (provider === "lovable") {
-        return { error: new Error("That sign-in method is no longer available.") };
-      }
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider === "microsoft" ? "azure" : provider,
         options: {
