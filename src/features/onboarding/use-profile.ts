@@ -59,19 +59,41 @@ export function useCompleteOnboarding() {
     mutationFn: async (answers: OnboardingAnswers) => {
       if (!userId) throw new Error("Not signed in");
 
-      const { error: profileError } = await supabase
+      /**
+       * Upsert rather than update, and check that a row actually came back.
+       *
+       * `.update()` on a row that doesn't exist matches nothing and returns no
+       * error — a silent no-op. So if the profile row is missing for any
+       * reason, onboarding appeared to finish, wrote nothing, and the guard
+       * sent the person straight back to question one. Six questions, answered,
+       * then asked again, forever, with no error anywhere.
+       *
+       * The row is normally created by the on_auth_user_created trigger. This
+       * makes the app survive its absence instead of trapping someone in a
+       * loop, and `.select()` means a zero-row write is now loud.
+       */
+      const { data: savedProfile, error: profileError } = await supabase
         .from("profiles")
-        .update({
-          display_name: answers.displayName.trim() || null,
-          focus_areas: answers.focusAreas,
-          desires: answers.desires.trim() || null,
-          obstacles: answers.obstacles.trim() || null,
-          desired_feeling: answers.desiredFeeling.trim() || null,
-          tone: answers.tone,
-          onboarded_at: new Date().toISOString(),
-        })
-        .eq("id", userId);
+        .upsert(
+          {
+            id: userId,
+            display_name: answers.displayName.trim() || null,
+            focus_areas: answers.focusAreas,
+            desires: answers.desires.trim() || null,
+            obstacles: answers.obstacles.trim() || null,
+            desired_feeling: answers.desiredFeeling.trim() || null,
+            tone: answers.tone,
+            onboarded_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        )
+        .select("id, onboarded_at")
+        .maybeSingle();
+
       if (profileError) throw profileError;
+      if (!savedProfile?.onboarded_at) {
+        throw new Error("Couldn't save your answers. Please try again.");
+      }
 
       // What they typed becomes a desire (which the home feed writes stories
       // from) and a goal (which the coach and habits work from), so they only
