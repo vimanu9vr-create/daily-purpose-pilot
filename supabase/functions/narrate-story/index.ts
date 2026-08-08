@@ -62,13 +62,15 @@ Deno.serve(async (req: Request) => {
 
     // Read the story as the user, so RLS confirms they own it.
     const storyRes = await fetch(
-      `${supabaseUrl}/rest/v1/moments?select=id,body,audio_url,audio_voice,audio_marks&id=eq.${encodeURIComponent(storyId)}`,
+      `${supabaseUrl}/rest/v1/moments?select=id,body,title,source,audio_url,audio_voice,audio_marks&id=eq.${encodeURIComponent(storyId)}`,
       { headers: { Authorization: authHeader, apikey: anonKey } },
     );
     if (!storyRes.ok) return json({ error: "not_found" }, 404);
     const rows = (await storyRes.json()) as {
       id: string;
       body: string;
+      title: string;
+      source: string;
       audio_url: string | null;
       audio_voice: string | null;
       audio_marks: unknown;
@@ -83,6 +85,34 @@ Deno.serve(async (req: Request) => {
 
     const sentences = splitSentences(story.body);
     if (sentences.length === 0) return json({ error: "empty" }, 400);
+
+    /**
+     * Sleep, meditation and frequency tracks are word-for-word identical for
+     * every user, but each user gets their own `moments` row — so without this
+     * we would pay ElevenLabs to narrate the same script once per person, and
+     * every one of them would wait several seconds for audio that already
+     * exists. That is both the loading complaint and the largest cost line.
+     *
+     * Personal stories still get their own file. Only the shared catalogue is
+     * keyed by title rather than by user.
+     */
+    const isCatalogue = story.source === "catalogue";
+    const path = isCatalogue
+      ? `catalogue/${slugify(story.title)}-${voice}.mp3`
+      : `${user.id}/${storyId}-${voice}.mp3`;
+    const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
+    const marks = estimateMarks(sentences, 0.9);
+
+    if (isCatalogue) {
+      // Somebody has already paid for this one. Point this user's row at it
+      // and return without touching ElevenLabs.
+      const head = await fetch(audioUrl, { method: "HEAD" });
+      if (head.ok) {
+        await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, voice, marks);
+        console.log(`reused shared narration ${path}`);
+        return json({ audioUrl, marks, cached: true }, 200);
+      }
+    }
 
     // Pauses are baked into the audio as SSML-style breaks, so the narration
     // breathes the same way whether it's played here or in a notification.
@@ -124,7 +154,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const audio = new Uint8Array(await ttsRes.arrayBuffer());
-    const path = `${user.id}/${storyId}-${voice}.mp3`;
 
     const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/narration/${path}`, {
       method: "POST",
@@ -142,31 +171,46 @@ Deno.serve(async (req: Request) => {
       return json({ error: "storage_error", message: "Couldn't save the narration." }, 500);
     }
 
-    const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
+    await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, voice, marks);
 
-    // Estimated sentence start times. ElevenLabs can return exact character
-    // timings from its with-timestamps endpoint, but that costs a second call;
-    // proportional estimates track closely enough for line-by-line display.
-    const marks = estimateMarks(sentences, 0.9);
-
-    await fetch(`${supabaseUrl}/rest/v1/moments?id=eq.${encodeURIComponent(storyId)}`, {
-      method: "PATCH",
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({ audio_url: audioUrl, audio_voice: voice, audio_marks: marks }),
-    });
-
-    console.log(`narrated ${storyId} voice=${voice} chars=${script.length}`);
+    console.log(
+      `narrated ${storyId} voice=${voice} chars=${script.length} shared=${isCatalogue}`,
+    );
     return json({ audioUrl, marks, cached: false }, 200);
   } catch (error) {
     console.error("narrate-story failed", error);
     return json({ error: "internal_error", message: String(error) }, 500);
   }
 });
+
+/** Stable file name from a track title: "Put the day down" -> put-the-day-down. */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+async function saveToMoment(
+  supabaseUrl: string,
+  serviceKey: string,
+  storyId: string,
+  audioUrl: string,
+  voice: string,
+  marks: number[],
+): Promise<void> {
+  await fetch(`${supabaseUrl}/rest/v1/moments?id=eq.${encodeURIComponent(storyId)}`, {
+    method: "PATCH",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({ audio_url: audioUrl, audio_voice: voice, audio_marks: marks }),
+  });
+}
 
 function splitSentences(body: string): string[] {
   return body
