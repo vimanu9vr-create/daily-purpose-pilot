@@ -19,7 +19,11 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { coverImage, themeFor } from "@/features/stories/imagery";
-import { useStory, useToggleStoryFavorite } from "@/features/stories/use-stories";
+import {
+  useRecordStoryDuration,
+  useStory,
+  useToggleStoryFavorite,
+} from "@/features/stories/use-stories";
 import { formatClock, useNarration } from "@/hooks/use-narration";
 import { useSessionBed } from "@/hooks/use-session-bed";
 import { useStudioNarration } from "@/hooks/use-studio-narration";
@@ -90,6 +94,21 @@ function StoryPlayer() {
     if (narration.isPlaying) ambientPad().start(0.09);
     else ambientPad().stop();
   }, [narration.isPlaying, isSession, music]);
+
+  // Once the audio tells us its real length, stop guessing. Sessions are
+  // excluded: a sleep track is deliberately longer than its narration, so its
+  // stated duration is the truth and the audio length isn't.
+  const recordDuration = useRecordStoryDuration();
+  useEffect(() => {
+    if (isSession || !story) return;
+    const actual = studio.totalSeconds;
+    if (!actual || !Number.isFinite(actual)) return;
+    // Only write when it's meaningfully different, so playing a story twice
+    // doesn't produce a pointless update every time.
+    if (Math.abs(actual - story.duration_seconds) < 3) return;
+    recordDuration.mutate({ storyId: story.id, seconds: actual });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studio.totalSeconds, story?.id, isSession]);
 
   // Stop whichever engine isn't in use, so they can't overlap.
   useEffect(() => {

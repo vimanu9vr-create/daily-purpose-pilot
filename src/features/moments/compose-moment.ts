@@ -11,6 +11,8 @@
  * the outcome arrives on its own.
  */
 
+import { desirePhrase, GENERIC_DESIRE } from "./desire-phrase";
+
 export type MomentSeed = {
   title: string;
   why?: string | null;
@@ -38,6 +40,16 @@ function whyPhrase(seed: MomentSeed): string | null {
   return w.replace(/[.!?]+$/, "");
 }
 
+/**
+ * The desire, shaped to sit inside a sentence.
+ *
+ * Templates used `seed.title.toLowerCase()` directly, which is fine for "a
+ * calmer mind" and produces nonsense for "my aim is to earn 20000cr".
+ */
+function goal(seed: MomentSeed): string {
+  return desirePhrase(seed.title) ?? GENERIC_DESIRE;
+}
+
 const TEMPLATES: Template[] = [
   {
     key: "morning",
@@ -46,7 +58,7 @@ const TEMPLATES: Template[] = [
       const why = whyPhrase(seed);
       return [
         `It's an ordinary morning, months from now. You wake before the alarm, and for a second you can't place why the day feels different.`,
-        `Then you remember: ${seed.title.toLowerCase().replace(/[.!?]+$/, "")} isn't something you're chasing anymore. It's just where you live now.`,
+        `Then you remember: ${goal(seed)} isn't something you're chasing anymore. It's just where you live now.`,
         `You notice how normal it feels. Not dramatic. Not cinematic. Just ${feelingPhrase(seed)} — the way real things feel once you've been inside them a while.`,
         why
           ? `And underneath it, quietly, the reason you started: ${why.toLowerCase()}. That part turned out to be true.`
@@ -59,7 +71,7 @@ const TEMPLATES: Template[] = [
     key: "witness",
     title: "Someone notices",
     build: (seed) => [
-      `Picture someone who knew you before — before you started working toward ${seed.title.toLowerCase().replace(/[.!?]+$/, "")}.`,
+      `Picture someone who knew you before — before you started working toward ${goal(seed)}.`,
       `They're watching you now, in the middle of an ordinary Tuesday. Not a highlight. Just you, doing the thing you do.`,
       `What they notice isn't the result. It's the ease. The way you don't hesitate at the part that used to stop you.`,
       `They ask how you did it, and you find you don't have a dramatic answer. You just kept showing up on days that didn't feel special.`,
@@ -89,7 +101,7 @@ const TEMPLATES: Template[] = [
       const why = whyPhrase(seed);
       return [
         `It's evening, a long way from here. The room is quiet. You're not working on anything.`,
-        `You think back to right now — this week, this stretch where ${seed.title.toLowerCase().replace(/[.!?]+$/, "")} was still ahead of you and progress was hard to see.`,
+        `You think back to right now — this week, this stretch where ${goal(seed)} was still ahead of you and progress was hard to see.`,
         `From where you're sitting, you can see what you couldn't see then: it was already working. It just hadn't shown up yet.`,
         why
           ? `You remember why it mattered — ${why.toLowerCase()} — and you're glad you didn't put it down.`
@@ -102,7 +114,9 @@ const TEMPLATES: Template[] = [
     key: "identity",
     title: "Who you're being",
     build: (seed) => [
-      `Forget the outcome for a minute. Picture the person who already has ${seed.title.toLowerCase().replace(/[.!?]+$/, "")}.`,
+      // Worded so it works whether the goal is a thing ("a calmer mind") or an
+      // action ("earning 20000cr"). "who already has earning 20000cr" doesn't.
+      `Forget the outcome for a minute. Picture the person for whom ${goal(seed)} is already ordinary.`,
       `Not what they have — what they do. How they start their morning. What they say yes to. What they've stopped negotiating with themselves about.`,
       `You know more about this person than you think. You've been watching them from a distance for a while.`,
       `Here's the useful part: you don't have to become them first. You can borrow one of their habits today and be them for an hour.`,
@@ -114,7 +128,7 @@ const TEMPLATES: Template[] = [
     title: "The walk home",
     build: (seed) => [
       `You're walking home. It's cold enough to notice. Nothing important has happened today.`,
-      `But something has shifted, and you only register it now: you're no longer bracing. The thing you were afraid of — ${seed.title.toLowerCase().replace(/[.!?]+$/, "")} being out of reach — stopped being the background hum of your life.`,
+      `But something has shifted, and you only register it now: you're no longer bracing. The thing you were afraid of — ${goal(seed)} being out of reach — stopped being the background hum of your life.`,
       `It happened so gradually you missed the moment it changed.`,
       `That's what progress actually looks like from the inside. Boring, incremental, and only visible in the rear-view.`,
       `You feel ${feelingPhrase(seed)}. Keep walking. Keep going.`,

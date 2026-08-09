@@ -270,8 +270,12 @@ export function useGenerateStories() {
             body: composed.body,
             category: desire.category,
             image_url: coverImage(`${desire.id}-${variant}`, themeFor(desire.title)),
-            // ~150 words a minute at the slow narration rate we use.
-            duration_seconds: Math.max(120, Math.round((words / 150) * 60)),
+            // A guess, and labelled as one. Sarah reads at roughly 140 words a
+            // minute. There used to be a 120-second floor here, which meant a
+            // 110-word story displayed "2 MIN" and played for 51 seconds —
+            // the floor was doing nothing except making the number wrong.
+            // Replaced by the real duration as soon as anyone plays it.
+            duration_seconds: Math.max(30, Math.round((words / 140) * 60)),
             kind: "story",
             source,
             expires_at: nextRefreshAt().toISOString(),
@@ -288,6 +292,42 @@ export function useGenerateStories() {
       void queryClient.invalidateQueries({ queryKey: storyKeys.stories });
     },
     onError: (error: Error) => toast.error(error.message || "Couldn't create stories"),
+  });
+}
+
+/**
+ * Records how long a story's narration actually is.
+ *
+ * Until the audio exists, the length on a card is a guess from the word count
+ * — and the guess had a floor of two minutes, so every short story claimed
+ * "2 MIN" while the player counted down from 51 seconds. Same failure as the
+ * sleep tracks: a number written by hand and never checked against the thing
+ * it describes.
+ *
+ * Once the audio element reports its real duration there is no reason to keep
+ * guessing, so we write it back. The estimate is now only ever used for a
+ * story nobody has played yet, and it stops being wrong the first time anyone
+ * presses play.
+ */
+export function useRecordStoryDuration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ storyId, seconds }: { storyId: string; seconds: number }) => {
+      const rounded = Math.round(seconds);
+      const { error } = await supabase
+        .from("moments")
+        .update({ duration_seconds: rounded })
+        .eq("id", storyId);
+      if (error) throw error;
+      return rounded;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: storyKeys.stories });
+    },
+    // Deliberately silent. This is bookkeeping — if it fails the card keeps
+    // the estimate, and telling someone mid-session helps nobody.
+    onError: () => {},
   });
 }
 
