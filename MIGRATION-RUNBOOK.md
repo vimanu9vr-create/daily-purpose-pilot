@@ -131,12 +131,24 @@ directory `.output/public`. Add the same `VITE_*` variables from `.env` as envir
 variables in the Cloudflare dashboard — they're baked in at build time, so the build
 needs them.
 
-## A warning about the lockfile
+## A note about the lockfile
 
-Do not delete `package-lock.json` to force a clean install. A transitive dependency,
-`@tanstack/start-storage-context@1.167.21`, has been unpublished from npm, so a fresh
-resolve fails outright. The lockfile is the only thing pinning a version that still
-exists.
+`@tanstack/start-storage-context@1.167.21` was briefly unpublished from npm, which is
+why an earlier version of this file said never to delete `package-lock.json`. It is
+back on the registry, so that hazard is gone.
+
+The real one was different and would have broken the first deploy: `package.json` and
+`package-lock.json` had drifted out of sync — `lru-cache` was missing from the lock.
+That is invisible locally, because `npm install` papers over it, but Cloudflare runs
+`npm ci`, which refuses to guess and fails the build outright.
+
+Resynced with `npm install --package-lock-only`, which rewrites the lockfile without
+touching `node_modules` — so the platform-specific rolldown binary on your Mac is
+undisturbed. Then verified properly: a clean copy of the repo, `npm ci` from scratch on
+Linux, and a full `npm run build`. 534 packages, no errors, 3.7 MB in `.output/public`.
+That is Cloudflare's build reproduced, so the deploy should not surprise us.
+
+If you ever change dependencies, run `npm install` and commit **both** files together.
 
 ## What you lose, honestly
 
