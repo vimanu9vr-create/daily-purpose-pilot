@@ -4,19 +4,20 @@ import { getAuthSession } from "@/lib/auth-session";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  BookOpen,
+  AudioLines,
   Check,
-  Flame,
-  LineChart,
+  Headphones,
+  MessageCircleHeart,
+  Moon,
   Sparkles,
   Sun,
-  MessageCircleHeart,
 } from "lucide-react";
 
 import { AuroraBackground } from "@/components/aurora-background";
 import { PageTransition, Reveal } from "@/components/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { FREE_LIMITS, PLANS, PREMIUM_FEATURES } from "@/features/billing/plans";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -29,17 +30,20 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "ManifestAI — Turn your intentions into daily actions" },
+      { title: "ManifestAI — Guided manifestation, in a voice you'll want to hear" },
       {
         name: "description",
         content:
-          "Daily AI coaching, guided journaling, personal affirmations and habit tracking in one calm practice. Build the routines behind the goals that matter.",
+          "Tell it what you want. Get manifestation stories written for that desire, narrated in a real human voice, plus affirmations, sleep sessions, meditations and healing frequencies.",
       },
-      { property: "og:title", content: "ManifestAI — Turn your intentions into daily actions" },
+      {
+        property: "og:title",
+        content: "ManifestAI — Guided manifestation, in a voice you'll want to hear",
+      },
       {
         property: "og:description",
         content:
-          "Daily AI coaching, guided journaling, personal affirmations and habit tracking in one calm practice.",
+          "Manifestation stories written for your desire and narrated in a real human voice, plus sleep sessions, meditations and healing frequencies.",
       },
     ],
   }),
@@ -48,65 +52,66 @@ export const Route = createFileRoute("/")({
 
 const features = [
   {
-    icon: MessageCircleHeart,
-    title: "Daily AI coach",
-    body: "A conversation each morning that turns a vague intention into the one action you can actually take today.",
+    icon: Sparkles,
+    title: "Stories written for your desire",
+    body: "Type what you actually want — in your own words — and get short manifestation stories written for that, not a library of generic ones.",
+  },
+  {
+    icon: Headphones,
+    title: "A real human voice",
+    body: "Studio narration, not your phone's robot reader. It's the difference between listening to a session and enduring one.",
   },
   {
     icon: Sun,
-    title: "Personal affirmations",
-    body: "Self-affirmation you write with help — grounded in your own values and goals, not generic mantras.",
+    title: "Affirmations in your own words",
+    body: "Built from the desires you wrote and the way you phrased them, so they sound like you rather than a poster.",
   },
   {
-    icon: BookOpen,
-    title: "Guided journaling",
-    body: "Evidence-informed prompts for reflection, gratitude and mood tracking that take three minutes.",
+    icon: Moon,
+    title: "Sleep, meditations, frequencies",
+    body: "Full-length sessions that run for the time they promise, over a continuous bed of sound. An 18-minute track is 18 minutes.",
   },
   {
-    icon: Flame,
-    title: "Habit streaks",
-    body: "Small, weekly-target habits with gentle streaks. Consistency over intensity, missed days included.",
-  },
-  {
-    icon: LineChart,
-    title: "Progress you can see",
-    body: "Goal milestones, check-in trends and energy over time — so change is visible before it feels obvious.",
+    icon: MessageCircleHeart,
+    title: "A coach that remembers",
+    body: "It already knows what you're working towards, so you never start a conversation by explaining yourself again.",
   },
 ];
 
+/**
+ * Pricing is read from the billing module rather than written out again here.
+ *
+ * The old landing page had its own hardcoded tiers — $12 a month and a $149
+ * lifetime — while the actual paywall charged $8.99 and $129.99. Anyone who
+ * signed up saw a different price to the one that sold them. Deriving it means
+ * that can't happen twice.
+ */
 const tiers = [
   {
     name: "Free",
     price: "$0",
     period: "forever",
-    blurb: "Start the daily practice.",
-    perks: ["3 active goals", "Daily check-in & journal", "5 habits", "Limited AI coaching"],
+    blurb: "Enough to see whether this is for you.",
+    perks: [
+      `${FREE_LIMITS.storiesPerRefresh} stories per refresh`,
+      `${FREE_LIMITS.studioNarrationsTotal} narrations in the studio voice`,
+      `${FREE_LIMITS.coachMessagesPerDay} coach messages a day`,
+      "The full sleep and meditation library",
+    ],
     cta: "Start Free",
     featured: false,
+    badge: null as string | null,
   },
-  {
-    name: "Pro",
-    price: "$12",
-    period: "per month",
-    blurb: "The full coaching loop.",
-    perks: [
-      "Unlimited goals & habits",
-      "Unlimited AI coach sessions",
-      "Personalized affirmations",
-      "Progress insights & exports",
-    ],
-    cta: "Start Free trial",
-    featured: true,
-  },
-  {
-    name: "Lifetime",
-    price: "$149",
-    period: "one time",
-    blurb: "Pay once, keep going.",
-    perks: ["Everything in Pro", "All future features", "Priority support", "No renewals"],
-    cta: "Get Lifetime",
-    featured: false,
-  },
+  ...PLANS.map((plan) => ({
+    name: plan.name,
+    price: plan.priceDisplay,
+    period: plan.cadence,
+    blurb: plan.blurb,
+    perks: [...PREMIUM_FEATURES].slice(0, 4),
+    cta: plan.id === "lifetime" ? "Get Lifetime" : `Get ${plan.name}`,
+    featured: plan.id === "yearly",
+    badge: plan.highlight ?? null,
+  })),
 ];
 
 function Landing() {
@@ -154,7 +159,7 @@ function Landing() {
                 className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 text-xs font-medium text-muted-foreground"
               >
                 <Sparkles className="h-3.5 w-3.5 text-ember" />
-                Habit science + positive psychology, guided by AI
+                Written for your desire. Narrated in a real voice.
               </motion.span>
 
               <motion.h1
@@ -163,7 +168,7 @@ function Landing() {
                 transition={{ duration: 0.6, delay: 0.05 }}
                 className="mt-7 text-balance text-5xl font-semibold leading-[1.05] md:text-7xl"
               >
-                Become the person who <span className="text-gradient">achieves your goals.</span>
+                Say what you want. <span className="text-gradient">Hear it back.</span>
               </motion.h1>
 
               <motion.p
@@ -172,9 +177,10 @@ function Landing() {
                 transition={{ duration: 0.6, delay: 0.12 }}
                 className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground"
               >
-                ManifestAI turns your intentions into daily actions — with an AI coach, affirmations
-                grounded in your own values, guided journaling and habit tracking that keeps you
-                moving on ordinary days.
+                Type the thing you actually want — a calmer mind, your own apartment, being deeply
+                loved — and ManifestAI writes short manifestation stories for it, narrated in a real
+                human voice. Plus affirmations in your own words, sleep sessions, meditations and
+                healing frequencies.
               </motion.p>
 
               <motion.div
@@ -212,20 +218,25 @@ function Landing() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        Today
+                        Manifesting
                       </p>
-                      <h3 className="mt-1 text-2xl font-semibold">Good morning, Maya</h3>
+                      <h3 className="mt-1 text-2xl font-semibold">A calmer mind</h3>
                     </div>
-                    <span className="rounded-full bg-ember/15 px-3 py-1 text-xs font-medium text-ember">
-                      12-day streak
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/15 px-3 py-1 text-xs font-medium text-ember">
+                      <AudioLines className="h-3.5 w-3.5" />
+                      Sarah
                     </span>
                   </div>
 
                   <div className="mt-6 grid gap-4 md:grid-cols-3">
                     {[
-                      { label: "Focus", value: "Draft chapter 3", sub: "Goal · Finish the book" },
-                      { label: "Habits", value: "3 of 4 done", sub: "Move · Read · Meditate" },
-                      { label: "Energy", value: "4 / 5", sub: "Up from last week" },
+                      {
+                        label: "For you today",
+                        value: "The Quiet Morning",
+                        sub: "Story · 4 min",
+                      },
+                      { label: "Tonight", value: "Falling Softly", sub: "Sleep · 18 min" },
+                      { label: "Frequency", value: "528 Hz", sub: "Healing · 30 min" },
                     ].map((card) => (
                       <div
                         key={card.label}
@@ -241,11 +252,11 @@ function Landing() {
                   <div className="mt-4 rounded-2xl surface-gradient p-[1px]">
                     <div className="rounded-2xl bg-card/85 p-5">
                       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        Coach
+                        Your affirmation
                       </p>
                       <p className="mt-2 text-sm leading-relaxed text-foreground/90">
-                        "You've written four mornings in a row. What's the smallest version of
-                        today's session that would still count as a win?"
+                        "I am allowed to move slowly. The quiet I'm looking for is already somewhere
+                        in this day, and I know how to find it."
                       </p>
                     </div>
                   </div>
@@ -258,11 +269,11 @@ function Landing() {
           <section id="features" className="mx-auto max-w-6xl px-6 py-24">
             <Reveal className="max-w-2xl">
               <h2 className="text-4xl font-semibold md:text-5xl">
-                One calm practice, five moving parts.
+                Everything is written for what you asked for.
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Built on what actually drives behaviour change: clear intentions, small repeatable
-                actions, honest reflection and visible progress.
+                Most manifestation apps hand you the same library as everyone else. This one starts
+                from the sentence you typed and builds outward from it.
               </p>
             </Reveal>
 
@@ -283,9 +294,9 @@ function Landing() {
               <Reveal delay={0.3}>
                 <article className="flex h-full flex-col justify-between rounded-3xl surface-gradient p-7 text-primary-foreground shadow-lift">
                   <div>
-                    <h3 className="text-xl font-semibold">Start tomorrow morning</h3>
+                    <h3 className="text-xl font-semibold">Start tonight</h3>
                     <p className="mt-3 text-sm leading-relaxed opacity-90">
-                      Set one goal tonight and get your first coaching check-in at sunrise.
+                      Write one desire and your first stories are ready before you finish typing.
                     </p>
                   </div>
                   <Button asChild variant="glass" className="mt-6 w-fit">
@@ -307,7 +318,7 @@ function Landing() {
               </p>
             </Reveal>
 
-            <div className="mt-14 grid gap-6 md:grid-cols-3">
+            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {tiers.map((tier, i) => (
                 <Reveal key={tier.name} delay={i * 0.08}>
                   <div
@@ -324,15 +335,15 @@ function Landing() {
                           : "flex h-full flex-col rounded-3xl glass-panel p-8"
                       }
                     >
-                      {tier.featured && (
+                      {tier.badge && (
                         <span className="mb-4 w-fit rounded-full bg-ember/15 px-3 py-1 text-xs font-medium text-ember">
-                          Most popular
+                          {tier.badge}
                         </span>
                       )}
                       <h3 className="text-lg font-semibold">{tier.name}</h3>
                       <p className="mt-1 text-sm text-muted-foreground">{tier.blurb}</p>
                       <div className="mt-6 flex items-baseline gap-2">
-                        <span className="font-display text-5xl font-semibold">{tier.price}</span>
+                        <span className="font-display text-4xl font-semibold">{tier.price}</span>
                         <span className="text-sm text-muted-foreground">{tier.period}</span>
                       </div>
                       <ul className="mt-7 space-y-3 text-sm">
@@ -371,8 +382,8 @@ function Landing() {
                   <span className="font-display font-semibold">ManifestAI</span>
                 </div>
                 <p className="mt-3 max-w-md text-xs leading-relaxed text-muted-foreground">
-                  ManifestAI is a personal development tool built on habit formation and positive
-                  psychology research. It is not therapy, medical advice, or a guarantee of results.
+                  ManifestAI is a personal development tool for reflection and visualisation. It is
+                  not therapy, medical advice, or a guarantee of results.
                 </p>
               </div>
               <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-muted-foreground">
@@ -388,7 +399,7 @@ function Landing() {
               </div>
             </div>
             <div className="border-t border-glass-border py-5 text-center text-xs text-muted-foreground">
-              © {new Date().getFullYear()} ManifestAI. Turn your intentions into daily actions.
+              © {new Date().getFullYear()} ManifestAI. Say what you want. Hear it back.
             </div>
           </footer>
         </div>
