@@ -3,6 +3,7 @@ import { Headphones } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
+import { NumberList } from "@/features/numbers/number-card";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { CarouselSection, StoryCard } from "@/features/stories/story-card";
 import { FREQUENCY_DISCLAIMER, KIND_LABELS, KIND_ORDER } from "@/features/stories/track-catalogue";
@@ -169,6 +170,7 @@ function Library() {
             )}
           </div>
         ))}
+      <NumberList />
     </PageTransition>
   );
 }

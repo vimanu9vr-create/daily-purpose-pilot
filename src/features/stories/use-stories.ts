@@ -108,8 +108,25 @@ export function useCreateDesire() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (desire) => {
       void queryClient.invalidateQueries({ queryKey: storyKeys.desires });
+
+      /**
+       * Write affirmations for it immediately.
+       *
+       * Typing what you want is the main thing this app asks of a person, and
+       * until now it produced stories but no affirmations — the affirmations
+       * screen still said "add a goal first", because it read a different
+       * table. Making the user go and press a second button to get the thing
+       * they came for is a design failure even when it works.
+       *
+       * Fire-and-forget: if it fails the library affirmations still show, and
+       * nobody is told about a background job they didn't start.
+       */
+      void supabase.functions
+        .invoke("ai-affirmations", { body: { desireId: desire.id, category: desire.category } })
+        .then(() => queryClient.invalidateQueries({ queryKey: ["affirmations"] }))
+        .catch(() => undefined);
     },
     onError: (error: Error) => toast.error(error.message || "Couldn't save that desire"),
   });
@@ -212,9 +229,36 @@ export function useGenerateStories() {
   const { data: desires } = useDesires();
 
   return useMutation({
-    mutationFn: async ({ perDesire = 3 }: { perDesire?: number } = {}) => {
+    /**
+     * Six per desire, not three.
+     *
+     * With three, one desire filled a single row and the "trending" row below
+     * it re-showed the same cards — the same sentence twice on one screen with
+     * different photographs, which reads as a bug rather than as variety.
+     * There are six templates, so six is the number that uses all of them and
+     * guarantees every card on the page says something different.
+     */
+    mutationFn: async ({ perDesire = 6 }: { perDesire?: number } = {}) => {
       if (!userId) throw new Error("Not signed in");
-      const active = desires ?? [];
+
+      /**
+       * Read the desires fresh rather than from the hook's cache.
+       *
+       * This is why tapping a trending suggestion produced a blank screen.
+       * `createDesire` then `generate` ran back to back, but `desires` here
+       * came from a React Query cache that hadn't refetched yet — so the brand
+       * new desire wasn't in the list, no stories were written for it, and
+       * selecting its chip showed an empty feed. The story generator was
+       * quietly working from a list that was one item out of date.
+       */
+      const { data: fresh, error: readError } = await supabase
+        .from("desires")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      if (readError) throw readError;
+
+      const active = fresh ?? desires ?? [];
       if (active.length === 0) {
         throw new Error("Add something you want first — your stories are written from it.");
       }

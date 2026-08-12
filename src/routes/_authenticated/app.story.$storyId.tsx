@@ -110,6 +110,34 @@ function StoryPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studio.totalSeconds, story?.id, isSession]);
 
+  /**
+   * Bring the voice back through a long session.
+   *
+   * This is the "18 minutes plays for 2" complaint. The bed genuinely ran for
+   * the full eighteen minutes, but the narration is about three minutes long —
+   * so after three minutes there was nothing but a quiet pad, which is
+   * indistinguishable from the track having stopped.
+   *
+   * Real guided sleep audio doesn't talk continuously either; it returns
+   * every couple of minutes with long silences between. So that's what this
+   * does: once the voice finishes, wait, then play it again, as long as
+   * there's enough time left to be worth starting. The silence is intentional
+   * and the returning voice is what tells you it's still running.
+   */
+  const RETURN_AFTER_SECONDS = 75;
+  useEffect(() => {
+    if (!isSession || !bed.isRunning || !studio.available) return;
+    if (narration.isPlaying) return;
+
+    const remainingSeconds = bed.totalSeconds - bed.elapsedSeconds;
+    // Don't start a pass that would be cut off by the end of the session.
+    if (remainingSeconds < RETURN_AFTER_SECONDS + 60) return;
+
+    const id = window.setTimeout(() => narration.play(0), RETURN_AFTER_SECONDS * 1000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSession, bed.isRunning, narration.isPlaying, studio.available]);
+
   // Stop whichever engine isn't in use, so they can't overlap.
   useEffect(() => {
     if (studio.available) browser.stop();
@@ -316,7 +344,7 @@ function StoryPlayer() {
               />
             </div>
             <div className="mt-2 flex justify-between text-[11px] tabular-nums text-white/60">
-              <span>{formatClock(narration.elapsedSeconds)}</span>
+              <span>{formatClock(elapsed)}</span>
               <span>-{formatClock(remaining)}</span>
             </div>
           </div>

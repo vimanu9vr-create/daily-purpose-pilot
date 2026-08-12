@@ -138,7 +138,10 @@ function Landing() {
             </nav>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Button asChild variant="glass" className="hidden sm:inline-flex">
+              {/* Was `hidden sm:inline-flex` — so on a phone, which is where
+                  almost everyone arrives, there was no way to log in at all.
+                  An existing user had to guess the /auth URL. */}
+              <Button asChild variant="glass">
                 <Link to="/auth">Log in</Link>
               </Button>
               <Button asChild variant="hero">

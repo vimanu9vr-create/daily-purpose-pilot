@@ -50,7 +50,7 @@ const MODEL = "eleven_multilingual_v2";
  * the change would keep its old narration and only new stories would sound
  * better — which would have looked like the fix not working.
  */
-const RENDER_VERSION = "v2";
+const RENDER_VERSION = "v3";
 
 /**
  * Settings tuned for calm rather than expressive.
@@ -62,12 +62,30 @@ const RENDER_VERSION = "v2";
  * quality that works for a voiceover and fights a bedtime story.
  */
 const VOICE_SETTINGS = {
-  stability: 0.7,
-  similarity_boost: 0.8,
+  // Very high stability is what stops the voice "performing". Human readers
+  // add emphasis to hold attention; a voice that sounds like it is speaking
+  // from somewhere rather than to you does the opposite — it stays level and
+  // lets the words land on their own.
+  stability: 0.85,
+  similarity_boost: 0.75,
   style: 0,
   use_speaker_boost: false,
-  speed: 0.9,
+  // Slower than natural speech. Unhurried is most of the effect people
+  // describe as "the universe speaking" — nothing that sounds like it is
+  // getting through a script can feel timeless.
+  speed: 0.85,
 };
+
+/**
+ * Silence between sentences.
+ *
+ * Raised from 0.9s. This single number does more for the feeling of space
+ * than any voice setting: at 0.9s the narration reads like an audiobook, and
+ * at 1.6s it reads like something being said into a large room. It also gives
+ * the ambient bed room to be heard between lines, which is where the sense of
+ * atmosphere actually comes from.
+ */
+const BREAK_SECONDS = 1.6;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -146,7 +164,7 @@ Deno.serve(async (req: Request) => {
       ? `catalogue/${slugify(story.title)}-${voice}-${RENDER_VERSION}.mp3`
       : `${user.id}/${storyId}-${voice}-${RENDER_VERSION}.mp3`;
     const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
-    const marks = estimateMarks(sentences, 0.9);
+    const marks = estimateMarks(sentences, BREAK_SECONDS);
 
     if (isCatalogue) {
       // Somebody has already paid for this one. Point this user's row at it
@@ -161,7 +179,7 @@ Deno.serve(async (req: Request) => {
 
     // Pauses are baked into the audio as SSML-style breaks, so the narration
     // breathes the same way whether it's played here or in a notification.
-    const script = sentences.join(' <break time="0.9s" /> ');
+    const script = sentences.join(` <break time="${BREAK_SECONDS}s" /> `);
 
     const speak = (settings: Record<string, number | boolean>) =>
       fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
@@ -266,7 +284,7 @@ function splitSentences(body: string): string[] {
 
 /** Start time per sentence, assuming even delivery plus the break between each. */
 function estimateMarks(sentences: string[], breakSeconds: number): number[] {
-  const WORDS_PER_SECOND = 2.4; // ~144wpm at speed 0.9
+  const WORDS_PER_SECOND = 2.25; // ~135wpm at speed 0.85
   const marks: number[] = [];
   let cursor = 0;
   for (const sentence of sentences) {

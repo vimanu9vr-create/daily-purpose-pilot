@@ -25,6 +25,7 @@ import { useEnsureTodaysActions, useTodaysActions } from "@/features/actions/use
 import { PracticeCard } from "@/features/practice/practice-card";
 import { DesireProgress } from "@/features/milestones/desire-progress";
 import { WeekCard } from "@/features/insights/week-card";
+import { NumberCard } from "@/features/numbers/number-card";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({ meta: [{ title: "ManifestAI" }] }),
@@ -54,7 +55,7 @@ function HomeFeed() {
   // First run: as soon as there's a desire and no stories, fill the feed.
   useEffect(() => {
     if (hasDesires && !isPending && storyList.length === 0 && !generate.isPending) {
-      generate.mutate({ perDesire: 3 });
+      generate.mutate({ perDesire: 6 });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasDesires, isPending, storyList.length]);
@@ -81,8 +82,13 @@ function HomeFeed() {
   const filteredStories = selectedDesireId
     ? storiesOnly.filter((s) => s.desire_id === selectedDesireId)
     : storiesOnly;
-  const forYou = filteredStories.slice(0, 8);
-  const trending = filteredStories.slice(8, 16);
+  // The two rows must never show the same story. Before, "trending" started
+  // at index 8 whether or not eight existed — with three stories the slice was
+  // empty, and with more it silently repeated the top of the list as the feed
+  // reordered. Splitting the same array in half can't overlap.
+  const half = Math.ceil(filteredStories.length / 2);
+  const forYou = filteredStories.slice(0, Math.min(half, 8));
+  const trending = filteredStories.slice(Math.min(half, 8), 16);
 
   // Suggestions the user hasn't already added.
   const trendingItems = TRENDING_DESIRES.filter(
@@ -93,7 +99,7 @@ function HomeFeed() {
     const trimmed = title.trim();
     if (!trimmed) return;
     setInput("");
-    createDesire.mutate({ title: trimmed }, { onSuccess: () => generate.mutate({ perDesire: 3 }) });
+    createDesire.mutate({ title: trimmed }, { onSuccess: () => generate.mutate({ perDesire: 6 }) });
   }
 
   return (
@@ -220,20 +226,39 @@ function HomeFeed() {
           accusation, not information. */}
       <WeekCard />
 
-      {selectedDesire && filteredStories.length === 0 && !generate.isPending && (
+      {/* Below the action and the practice, deliberately. Putting a number at
+          the top would say the app thinks it matters more than what you do. */}
+      <NumberCard />
+
+      {/* Always render something when a desire is selected but has nothing
+          under it. This block used to be hidden while generation was running,
+          and the loading spinner below only appeared when the *whole* feed was
+          empty — so selecting a desire with no stories, while other desires
+          had some, rendered literally nothing. That was the blank screen. */}
+      {selectedDesire && filteredStories.length === 0 && (
         <section className="mt-8 rounded-3xl glass-panel px-7 py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            Nothing written for “{selectedDesire.title}” yet.
-          </p>
-          <Button
-            variant="glass"
-            size="sm"
-            className="mt-4 rounded-full"
-            onClick={() => generate.mutate({ perDesire: 3 })}
-            disabled={generate.isPending}
-          >
-            <Sparkles className="h-3.5 w-3.5" /> Write some now
-          </Button>
+          {generate.isPending ? (
+            <>
+              <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+              <p className="mt-4 text-sm text-muted-foreground">
+                Writing stories for “{selectedDesire.title}”…
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Nothing written for “{selectedDesire.title}” yet.
+              </p>
+              <Button
+                variant="glass"
+                size="sm"
+                className="mt-4 rounded-full"
+                onClick={() => generate.mutate({ perDesire: 6 })}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Write some now
+              </Button>
+            </>
+          )}
         </section>
       )}
 
@@ -293,7 +318,7 @@ function HomeFeed() {
 
       {storyList.length > 0 && (
         <RefreshCountdown
-          onRefresh={() => generate.mutate({ perDesire: 3 })}
+          onRefresh={() => generate.mutate({ perDesire: 6 })}
           busy={generate.isPending}
         />
       )}
