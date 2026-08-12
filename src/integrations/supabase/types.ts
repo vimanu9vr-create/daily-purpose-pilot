@@ -131,6 +131,74 @@ export type Database = {
           },
         ]
       }
+      vision_boards: {
+        Row: {
+          category: string | null
+          cover_url: string | null
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vision_items: {
+        Row: {
+          board_id: string
+          body: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          kind: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          kind?: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          kind?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_items_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "vision_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affirmations: {
         Row: {
           category: string | null
@@ -451,8 +519,10 @@ export type Database = {
           created_at: string
           entry_date: string
           id: string
+          is_favorite: boolean
           mood: number | null
           prompt: string | null
+          tags: string[]
           user_id: string
         }
         Insert: {
@@ -460,8 +530,10 @@ export type Database = {
           created_at?: string
           entry_date?: string
           id?: string
+          is_favorite?: boolean
           mood?: number | null
           prompt?: string | null
+          tags?: string[]
           user_id: string
         }
         Update: {
@@ -469,8 +541,10 @@ export type Database = {
           created_at?: string
           entry_date?: string
           id?: string
+          is_favorite?: boolean
           mood?: number | null
           prompt?: string | null
+          tags?: string[]
           user_id?: string
         }
         Relationships: []
@@ -573,6 +647,9 @@ export type Database = {
           notifications_enabled: boolean
           notify_hour: number
           notify_minute: number
+          practice_minutes: number
+          practice_styles: string[]
+          practice_time_of_day: string
           obstacles: string | null
           onboarded_at: string | null
           subscription_tier: string
@@ -592,6 +669,9 @@ export type Database = {
           notifications_enabled?: boolean
           notify_hour?: number
           notify_minute?: number
+          practice_minutes?: number
+          practice_styles?: string[]
+          practice_time_of_day?: string
           obstacles?: string | null
           onboarded_at?: string | null
           subscription_tier?: string
@@ -611,6 +691,9 @@ export type Database = {
           notifications_enabled?: boolean
           notify_hour?: number
           notify_minute?: number
+          practice_minutes?: number
+          practice_styles?: string[]
+          practice_time_of_day?: string
           obstacles?: string | null
           onboarded_at?: string | null
           subscription_tier?: string

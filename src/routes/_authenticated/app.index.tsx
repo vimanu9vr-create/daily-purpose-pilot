@@ -22,6 +22,9 @@ import {
 import { useProfile } from "@/features/onboarding/use-profile";
 import { ActionEmptyState, TodaysAction } from "@/features/actions/todays-action";
 import { useEnsureTodaysActions, useTodaysActions } from "@/features/actions/use-actions";
+import { PracticeCard } from "@/features/practice/practice-card";
+import { DesireProgress } from "@/features/milestones/desire-progress";
+import { WeekCard } from "@/features/insights/week-card";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({ meta: [{ title: "ManifestAI" }] }),
@@ -178,6 +181,10 @@ function HomeFeed() {
         </DraggableRow>
       )}
 
+      {/* The practice, which is the daily loop. Above the actions because it
+          ends by offering them, so doing it first is the shorter path. */}
+      <PracticeCard />
+
       {/* Today's action sits above the stories on purpose. Listening is the
           easy half; this is the half that changes anything. */}
       {hasDesires && (
@@ -204,6 +211,14 @@ function HomeFeed() {
           <ActionEmptyState />
         </section>
       )}
+
+      {/* Progress, derived from milestones ticked and actions done — never a
+          number anybody typed. */}
+      {hasDesires && <DesireProgress desires={desires!} />}
+
+      {/* Hidden until there's something to report — a week of zeroes is an
+          accusation, not information. */}
+      <WeekCard />
 
       {selectedDesire && filteredStories.length === 0 && !generate.isPending && (
         <section className="mt-8 rounded-3xl glass-panel px-7 py-10 text-center">

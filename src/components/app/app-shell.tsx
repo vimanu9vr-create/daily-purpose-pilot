@@ -1,15 +1,25 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Clock, Headphones, Heart, Home, User } from "lucide-react";
+import { Clock, Headphones, Heart, Home, LayoutGrid, User } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-/** Four tabs, the way the app is actually used: browse, listen, affirm, you. */
+/**
+ * Five tabs: browse, listen, see, affirm, you.
+ *
+ * Five is the ceiling — a sixth makes the targets too narrow to hit reliably
+ * with a thumb on a small phone. Practice and Journal deliberately aren't
+ * here: the practice is offered from Home each day, which is where someone
+ * already is when they open the app, and the journal is reached at the end of
+ * a practice, which is when anybody actually wants it. A tab for something
+ * used once a day is a tab wasted.
+ */
 export const navItems = [
   { title: "Home", to: "/app", icon: Home },
   { title: "Library", to: "/app/library", icon: Headphones },
+  { title: "Vision", to: "/app/vision", icon: LayoutGrid },
   { title: "Affirmations", to: "/app/affirmations", icon: Heart },
   { title: "You", to: "/app/profile", icon: User },
 ] as const;

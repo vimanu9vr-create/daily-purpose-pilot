@@ -22,16 +22,21 @@ import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppAffirmationsRouteImport } from './routes/_authenticated/app.affirmations'
 import { Route as AuthenticatedAppCoachRouteImport } from './routes/_authenticated/app.coach'
 import { Route as AuthenticatedAppGoalsRouteImport } from './routes/_authenticated/app.goals'
+import { Route as AuthenticatedAppGratitudeRouteImport } from './routes/_authenticated/app.gratitude'
 import { Route as AuthenticatedAppHabitsRouteImport } from './routes/_authenticated/app.habits'
 import { Route as AuthenticatedAppJournalRouteImport } from './routes/_authenticated/app.journal'
 import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authenticated/app.library'
 import { Route as AuthenticatedAppMomentsRouteImport } from './routes/_authenticated/app.moments'
+import { Route as AuthenticatedAppPracticeRouteImport } from './routes/_authenticated/app.practice'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app.profile'
 import { Route as AuthenticatedAppProgressRouteImport } from './routes/_authenticated/app.progress'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppUpgradeRouteImport } from './routes/_authenticated/app.upgrade'
+import { Route as AuthenticatedAppVisionRouteImport } from './routes/_authenticated/app.vision'
+import { Route as AuthenticatedAppWeekRouteImport } from './routes/_authenticated/app.week'
 import { Route as AuthenticatedAppGoalsIndexRouteImport } from './routes/_authenticated/app.goals.index'
 import { Route as AuthenticatedAppGoalsGoalIdRouteImport } from './routes/_authenticated/app.goals.$goalId'
+import { Route as AuthenticatedAppPracticeDoneRouteImport } from './routes/_authenticated/app.practice.done'
 import { Route as AuthenticatedAppStoryStoryIdRouteImport } from './routes/_authenticated/app.story.$storyId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -99,6 +104,12 @@ const AuthenticatedAppGoalsRoute = AuthenticatedAppGoalsRouteImport.update({
   path: '/goals',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppGratitudeRoute =
+  AuthenticatedAppGratitudeRouteImport.update({
+    id: '/gratitude',
+    path: '/gratitude',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppHabitsRoute = AuthenticatedAppHabitsRouteImport.update({
   id: '/habits',
   path: '/habits',
@@ -119,6 +130,12 @@ const AuthenticatedAppMomentsRoute = AuthenticatedAppMomentsRouteImport.update({
   path: '/moments',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppPracticeRoute =
+  AuthenticatedAppPracticeRouteImport.update({
+    id: '/practice',
+    path: '/practice',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -141,6 +158,16 @@ const AuthenticatedAppUpgradeRoute = AuthenticatedAppUpgradeRouteImport.update({
   path: '/upgrade',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppVisionRoute = AuthenticatedAppVisionRouteImport.update({
+  id: '/vision',
+  path: '/vision',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const AuthenticatedAppWeekRoute = AuthenticatedAppWeekRouteImport.update({
+  id: '/week',
+  path: '/week',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppGoalsIndexRoute =
   AuthenticatedAppGoalsIndexRouteImport.update({
     id: '/',
@@ -152,6 +179,12 @@ const AuthenticatedAppGoalsGoalIdRoute =
     id: '/$goalId',
     path: '/$goalId',
     getParentRoute: () => AuthenticatedAppGoalsRoute,
+  } as any)
+const AuthenticatedAppPracticeDoneRoute =
+  AuthenticatedAppPracticeDoneRouteImport.update({
+    id: '/done',
+    path: '/done',
+    getParentRoute: () => AuthenticatedAppPracticeRoute,
   } as any)
 const AuthenticatedAppStoryStoryIdRoute =
   AuthenticatedAppStoryStoryIdRouteImport.update({
@@ -172,16 +205,21 @@ export interface FileRoutesByFullPath {
   '/app/affirmations': typeof AuthenticatedAppAffirmationsRoute
   '/app/coach': typeof AuthenticatedAppCoachRoute
   '/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
+  '/app/gratitude': typeof AuthenticatedAppGratitudeRoute
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
   '/app/library': typeof AuthenticatedAppLibraryRoute
   '/app/moments': typeof AuthenticatedAppMomentsRoute
+  '/app/practice': typeof AuthenticatedAppPracticeRouteWithChildren
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
+  '/app/vision': typeof AuthenticatedAppVisionRoute
+  '/app/week': typeof AuthenticatedAppWeekRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/app/practice/done': typeof AuthenticatedAppPracticeDoneRoute
   '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
@@ -195,16 +233,21 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/app/affirmations': typeof AuthenticatedAppAffirmationsRoute
   '/app/coach': typeof AuthenticatedAppCoachRoute
+  '/app/gratitude': typeof AuthenticatedAppGratitudeRoute
   '/app/habits': typeof AuthenticatedAppHabitsRoute
   '/app/journal': typeof AuthenticatedAppJournalRoute
   '/app/library': typeof AuthenticatedAppLibraryRoute
   '/app/moments': typeof AuthenticatedAppMomentsRoute
+  '/app/practice': typeof AuthenticatedAppPracticeRouteWithChildren
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
+  '/app/vision': typeof AuthenticatedAppVisionRoute
+  '/app/week': typeof AuthenticatedAppWeekRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/app/practice/done': typeof AuthenticatedAppPracticeDoneRoute
   '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/app/goals': typeof AuthenticatedAppGoalsIndexRoute
 }
@@ -222,16 +265,21 @@ export interface FileRoutesById {
   '/_authenticated/app/affirmations': typeof AuthenticatedAppAffirmationsRoute
   '/_authenticated/app/coach': typeof AuthenticatedAppCoachRoute
   '/_authenticated/app/goals': typeof AuthenticatedAppGoalsRouteWithChildren
+  '/_authenticated/app/gratitude': typeof AuthenticatedAppGratitudeRoute
   '/_authenticated/app/habits': typeof AuthenticatedAppHabitsRoute
   '/_authenticated/app/journal': typeof AuthenticatedAppJournalRoute
   '/_authenticated/app/library': typeof AuthenticatedAppLibraryRoute
   '/_authenticated/app/moments': typeof AuthenticatedAppMomentsRoute
+  '/_authenticated/app/practice': typeof AuthenticatedAppPracticeRouteWithChildren
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/progress': typeof AuthenticatedAppProgressRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/upgrade': typeof AuthenticatedAppUpgradeRoute
+  '/_authenticated/app/vision': typeof AuthenticatedAppVisionRoute
+  '/_authenticated/app/week': typeof AuthenticatedAppWeekRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
+  '/_authenticated/app/practice/done': typeof AuthenticatedAppPracticeDoneRoute
   '/_authenticated/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/_authenticated/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
@@ -249,16 +297,21 @@ export interface FileRouteTypes {
     | '/app/affirmations'
     | '/app/coach'
     | '/app/goals'
+    | '/app/gratitude'
     | '/app/habits'
     | '/app/journal'
     | '/app/library'
     | '/app/moments'
+    | '/app/practice'
     | '/app/profile'
     | '/app/progress'
     | '/app/settings'
     | '/app/upgrade'
+    | '/app/vision'
+    | '/app/week'
     | '/app/'
     | '/app/goals/$goalId'
+    | '/app/practice/done'
     | '/app/story/$storyId'
     | '/app/goals/'
   fileRoutesByTo: FileRoutesByTo
@@ -272,16 +325,21 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/app/affirmations'
     | '/app/coach'
+    | '/app/gratitude'
     | '/app/habits'
     | '/app/journal'
     | '/app/library'
     | '/app/moments'
+    | '/app/practice'
     | '/app/profile'
     | '/app/progress'
     | '/app/settings'
     | '/app/upgrade'
+    | '/app/vision'
+    | '/app/week'
     | '/app'
     | '/app/goals/$goalId'
+    | '/app/practice/done'
     | '/app/story/$storyId'
     | '/app/goals'
   id:
@@ -298,16 +356,21 @@ export interface FileRouteTypes {
     | '/_authenticated/app/affirmations'
     | '/_authenticated/app/coach'
     | '/_authenticated/app/goals'
+    | '/_authenticated/app/gratitude'
     | '/_authenticated/app/habits'
     | '/_authenticated/app/journal'
     | '/_authenticated/app/library'
     | '/_authenticated/app/moments'
+    | '/_authenticated/app/practice'
     | '/_authenticated/app/profile'
     | '/_authenticated/app/progress'
     | '/_authenticated/app/settings'
     | '/_authenticated/app/upgrade'
+    | '/_authenticated/app/vision'
+    | '/_authenticated/app/week'
     | '/_authenticated/app/'
     | '/_authenticated/app/goals/$goalId'
+    | '/_authenticated/app/practice/done'
     | '/_authenticated/app/story/$storyId'
     | '/_authenticated/app/goals/'
   fileRoutesById: FileRoutesById
@@ -415,6 +478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppGoalsRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/gratitude': {
+      id: '/_authenticated/app/gratitude'
+      path: '/gratitude'
+      fullPath: '/app/gratitude'
+      preLoaderRoute: typeof AuthenticatedAppGratitudeRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/habits': {
       id: '/_authenticated/app/habits'
       path: '/habits'
@@ -441,6 +511,13 @@ declare module '@tanstack/react-router' {
       path: '/moments'
       fullPath: '/app/moments'
       preLoaderRoute: typeof AuthenticatedAppMomentsRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/practice': {
+      id: '/_authenticated/app/practice'
+      path: '/practice'
+      fullPath: '/app/practice'
+      preLoaderRoute: typeof AuthenticatedAppPracticeRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
     '/_authenticated/app/profile': {
@@ -471,6 +548,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppUpgradeRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/vision': {
+      id: '/_authenticated/app/vision'
+      path: '/vision'
+      fullPath: '/app/vision'
+      preLoaderRoute: typeof AuthenticatedAppVisionRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/_authenticated/app/week': {
+      id: '/_authenticated/app/week'
+      path: '/week'
+      fullPath: '/app/week'
+      preLoaderRoute: typeof AuthenticatedAppWeekRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/goals/': {
       id: '/_authenticated/app/goals/'
       path: '/'
@@ -484,6 +575,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/goals/$goalId'
       preLoaderRoute: typeof AuthenticatedAppGoalsGoalIdRouteImport
       parentRoute: typeof AuthenticatedAppGoalsRoute
+    }
+    '/_authenticated/app/practice/done': {
+      id: '/_authenticated/app/practice/done'
+      path: '/done'
+      fullPath: '/app/practice/done'
+      preLoaderRoute: typeof AuthenticatedAppPracticeDoneRouteImport
+      parentRoute: typeof AuthenticatedAppPracticeRoute
     }
     '/_authenticated/app/story/$storyId': {
       id: '/_authenticated/app/story/$storyId'
@@ -510,18 +608,36 @@ const AuthenticatedAppGoalsRouteWithChildren =
     AuthenticatedAppGoalsRouteChildren,
   )
 
+interface AuthenticatedAppPracticeRouteChildren {
+  AuthenticatedAppPracticeDoneRoute: typeof AuthenticatedAppPracticeDoneRoute
+}
+
+const AuthenticatedAppPracticeRouteChildren: AuthenticatedAppPracticeRouteChildren =
+  {
+    AuthenticatedAppPracticeDoneRoute: AuthenticatedAppPracticeDoneRoute,
+  }
+
+const AuthenticatedAppPracticeRouteWithChildren =
+  AuthenticatedAppPracticeRoute._addFileChildren(
+    AuthenticatedAppPracticeRouteChildren,
+  )
+
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppAffirmationsRoute: typeof AuthenticatedAppAffirmationsRoute
   AuthenticatedAppCoachRoute: typeof AuthenticatedAppCoachRoute
   AuthenticatedAppGoalsRoute: typeof AuthenticatedAppGoalsRouteWithChildren
+  AuthenticatedAppGratitudeRoute: typeof AuthenticatedAppGratitudeRoute
   AuthenticatedAppHabitsRoute: typeof AuthenticatedAppHabitsRoute
   AuthenticatedAppJournalRoute: typeof AuthenticatedAppJournalRoute
   AuthenticatedAppLibraryRoute: typeof AuthenticatedAppLibraryRoute
   AuthenticatedAppMomentsRoute: typeof AuthenticatedAppMomentsRoute
+  AuthenticatedAppPracticeRoute: typeof AuthenticatedAppPracticeRouteWithChildren
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppProgressRoute: typeof AuthenticatedAppProgressRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppUpgradeRoute: typeof AuthenticatedAppUpgradeRoute
+  AuthenticatedAppVisionRoute: typeof AuthenticatedAppVisionRoute
+  AuthenticatedAppWeekRoute: typeof AuthenticatedAppWeekRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppStoryStoryIdRoute: typeof AuthenticatedAppStoryStoryIdRoute
 }
@@ -530,14 +646,18 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppAffirmationsRoute: AuthenticatedAppAffirmationsRoute,
   AuthenticatedAppCoachRoute: AuthenticatedAppCoachRoute,
   AuthenticatedAppGoalsRoute: AuthenticatedAppGoalsRouteWithChildren,
+  AuthenticatedAppGratitudeRoute: AuthenticatedAppGratitudeRoute,
   AuthenticatedAppHabitsRoute: AuthenticatedAppHabitsRoute,
   AuthenticatedAppJournalRoute: AuthenticatedAppJournalRoute,
   AuthenticatedAppLibraryRoute: AuthenticatedAppLibraryRoute,
   AuthenticatedAppMomentsRoute: AuthenticatedAppMomentsRoute,
+  AuthenticatedAppPracticeRoute: AuthenticatedAppPracticeRouteWithChildren,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppProgressRoute: AuthenticatedAppProgressRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppUpgradeRoute: AuthenticatedAppUpgradeRoute,
+  AuthenticatedAppVisionRoute: AuthenticatedAppVisionRoute,
+  AuthenticatedAppWeekRoute: AuthenticatedAppWeekRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppStoryStoryIdRoute: AuthenticatedAppStoryStoryIdRoute,
 }

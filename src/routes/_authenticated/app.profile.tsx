@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
 import { useSignOut } from "@/components/app/app-shell";
+import { AchievementGrid } from "@/features/achievements/achievement-grid";
 import { DeleteAccountDialog } from "@/features/account/delete-account-dialog";
 import { planById } from "@/features/billing/plans";
 import { purchaseStore } from "@/features/billing/store";
@@ -345,6 +346,13 @@ function ProfilePage() {
       >
         <LogOut className="h-4 w-4" /> Sign out
       </Button>
+
+      {/* Quiet, and above the account controls rather than buried under them.
+          Unearned ones are shown too — that's how someone learns what this app
+          thinks is worth doing. */}
+      <div className="mt-10">
+        <AchievementGrid />
+      </div>
 
       {/* Required by App Store Guideline 5.1.1(v), and reachable rather than buried. */}
       <Button

@@ -15,6 +15,12 @@ export type OnboardingAnswers = {
   obstacles: string;
   desiredFeeling: string;
   tone: "warm" | "direct" | "calm";
+  /** How long a daily practice should be. One of 2, 5, 10, 15. */
+  practiceMinutes: number;
+  /** Which kinds of practice they like. Empty means no preference. */
+  practiceStyles: string[];
+  /** When they want to practise, which also sets the reminder. */
+  practiceTimeOfDay: "morning" | "afternoon" | "evening";
 };
 
 /** Strip trailing punctuation and lead-ins so a phrase can sit inside a sentence. */

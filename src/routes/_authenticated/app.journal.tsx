@@ -1,5 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  Heart,
+  Loader2,
+  Mic,
+  MicOff,
+  Pencil,
+  RefreshCw,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AppPage } from "@/components/app/app-page";
@@ -14,9 +25,12 @@ import {
   useDeleteEntry,
   useJournalEntries,
   useJournalStats,
+  useToggleJournalFavorite,
   useUpdateEntry,
   type JournalEntry,
 } from "@/features/journal/use-journal";
+import { collectTags, searchEntries } from "@/features/journal/search";
+import { useDictation } from "@/hooks/use-dictation";
 import { formatLongDate, monthKey } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +45,7 @@ function Journal() {
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
+  const toggleFavorite = useToggleJournalFavorite();
 
   const [promptIndex, setPromptIndex] = useState(() =>
     JOURNAL_PROMPTS.indexOf(promptForToday() as (typeof JOURNAL_PROMPTS)[number]),
@@ -40,17 +55,35 @@ function Journal() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [query, setQuery] = useState("");
+  const [tag, setTag] = useState<string | null>(null);
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
+
+  // Dictation appends to the draft rather than replacing it, so speaking
+  // twice adds to what's there instead of wiping the first attempt.
+  const dictation = useDictation((text) => setDraft((current) => `${current} ${text}`.trim()));
 
   const prompt = JOURNAL_PROMPTS[promptIndex] ?? JOURNAL_PROMPTS[0];
 
+  const allTags = useMemo(() => collectTags(entries ?? []), [entries]);
+
+  const visible = useMemo(() => {
+    let rows = entries ?? [];
+    if (favouritesOnly) rows = rows.filter((entry) => entry.is_favorite);
+    if (tag) rows = rows.filter((entry) => entry.tags?.includes(tag));
+    return searchEntries(rows, query);
+  }, [entries, query, tag, favouritesOnly]);
+
   const grouped = useMemo(() => {
     const map = new Map<string, JournalEntry[]>();
-    for (const entry of entries ?? []) {
+    for (const entry of visible) {
       const key = monthKey(entry.entry_date);
       map.set(key, [...(map.get(key) ?? []), entry]);
     }
     return [...map.entries()];
-  }, [entries]);
+  }, [visible]);
+
+  const filtering = Boolean(query.trim() || tag || favouritesOnly);
 
   function save() {
     const content = draft.trim();
@@ -119,10 +152,25 @@ function Journal() {
             ))}
           </div>
 
-          <Button variant="hero" onClick={save} disabled={!draft.trim() || createEntry.isPending}>
-            {createEntry.isPending && <Loader2 className="animate-spin" />}
-            Save entry
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Hidden where the browser has no speech engine, rather than
+                shown and silently failing. */}
+            {dictation.supported && (
+              <Button
+                variant="glass"
+                onClick={dictation.toggle}
+                aria-pressed={dictation.listening}
+                aria-label={dictation.listening ? "Stop dictation" : "Dictate your entry"}
+                className={cn(dictation.listening && "ring-1 ring-primary/50")}
+              >
+                {dictation.listening ? <MicOff /> : <Mic />}
+              </Button>
+            )}
+            <Button variant="hero" onClick={save} disabled={!draft.trim() || createEntry.isPending}>
+              {createEntry.isPending && <Loader2 className="animate-spin" />}
+              Save entry
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -134,7 +182,74 @@ function Journal() {
         </p>
       )}
 
+      {/* Search and filters. Only shown once there's enough written to need
+          them — a search box over three entries is furniture. */}
+      {(entries?.length ?? 0) > 3 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 rounded-full border border-glass-border bg-card/50 px-4 py-2">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search your writing"
+              aria-label="Search your journal"
+              className="min-w-0 flex-1 bg-transparent py-1 text-[15px] placeholder:text-muted-foreground/60 focus:outline-none"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="shrink-0 rounded-full p-1 text-muted-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setFavouritesOnly((on) => !on)}
+              aria-pressed={favouritesOnly}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors",
+                favouritesOnly
+                  ? "surface-gradient text-primary-foreground"
+                  : "bg-primary/10 text-primary",
+              )}
+            >
+              <Heart className={cn("h-3 w-3", favouritesOnly && "fill-current")} /> Saved
+            </button>
+
+            {allTags.slice(0, 8).map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setTag(tag === name ? null : name)}
+                aria-pressed={tag === name}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs transition-colors",
+                  tag === name
+                    ? "surface-gradient text-primary-foreground"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-8">
+        {filtering && visible.length === 0 && (
+          <p className="rounded-3xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+            Nothing matches that. Try a single word — search looks for the stem, so
+            &ldquo;worry&rdquo; finds &ldquo;worrying&rdquo;.
+          </p>
+        )}
+
         {isPending && (
           <div className="space-y-3">
             <Skeleton className="h-20 rounded-2xl" />
@@ -200,7 +315,47 @@ function Journal() {
                           {entry.content}
                         </span>
                       </span>
+
+                      {/* A favourite is "this writing was worth keeping",
+                          which is a different thing from mood. People star the
+                          entry where they finally worked something out, and
+                          that is rarely the day they felt best. */}
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={entry.is_favorite ? "Remove from saved" : "Save this entry"}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleFavorite.mutate({ id: entry.id, favorite: !entry.is_favorite });
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") return;
+                          event.stopPropagation();
+                          toggleFavorite.mutate({ id: entry.id, favorite: !entry.is_favorite });
+                        }}
+                        className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/50 transition-colors hover:text-primary"
+                      >
+                        <Heart
+                          className={cn(
+                            "h-4 w-4",
+                            entry.is_favorite && "fill-primary text-primary",
+                          )}
+                        />
+                      </span>
                     </button>
+
+                    {(entry.tags?.length ?? 0) > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5 pl-8">
+                        {entry.tags.map((name) => (
+                          <span
+                            key={name}
+                            className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {expanded && (
                       <div className="mt-3 border-t border-border pt-3">

@@ -10,6 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { AFFIRMATION_CATEGORIES } from "@/features/affirmations/affirmation-library";
 import type { OnboardingAnswers } from "@/features/onboarding/personalize";
 import { useCompleteOnboarding } from "@/features/onboarding/use-profile";
+import {
+  PRACTICE_LENGTHS,
+  PRACTICE_STYLES,
+  PRACTICE_TIMES,
+} from "@/features/practice/practice-plan";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -23,7 +28,30 @@ const TONES = [
   { id: "calm", label: "Calm", hint: "Steady and unhurried" },
 ] as const;
 
-const STEPS = ["name", "focus", "desire", "feeling", "obstacle", "tone"] as const;
+/**
+ * Nine questions now, not six.
+ *
+ * The three added ones — style, length, time — exist because the daily
+ * practice is assembled from them. Without them everyone gets the same
+ * five-minute session with all seven steps, which is exactly the generic
+ * experience the app is meant to avoid.
+ *
+ * They sit after the personal questions on purpose. Asking "how long do you
+ * have?" before someone has told you what they want makes the app feel like a
+ * settings screen; asking it afterwards makes it feel like it's being fitted
+ * to them.
+ */
+const STEPS = [
+  "name",
+  "focus",
+  "desire",
+  "feeling",
+  "obstacle",
+  "tone",
+  "style",
+  "length",
+  "time",
+] as const;
 
 function Onboarding() {
   const navigate = useNavigate();
@@ -37,6 +65,9 @@ function Onboarding() {
     obstacles: "",
     desiredFeeling: "",
     tone: "warm",
+    practiceMinutes: 5,
+    practiceStyles: [],
+    practiceTimeOfDay: "morning",
   });
 
   const step = STEPS[stepIndex]!;
@@ -52,6 +83,15 @@ function Onboarding() {
         : step === "desire"
           ? answers.desires.trim().length > 0
           : true;
+
+  function toggleStyle(id: string) {
+    setAnswers((a) => ({
+      ...a,
+      practiceStyles: a.practiceStyles.includes(id)
+        ? a.practiceStyles.filter((x) => x !== id)
+        : [...a.practiceStyles, id],
+    }));
+  }
 
   function toggleFocus(id: string) {
     setAnswers((a) => ({
@@ -239,6 +279,97 @@ function Onboarding() {
                           </span>
                         </span>
                         {answers.tone === tone.id && <Check className="h-4 w-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {step === "style" && (
+                <>
+                  <Heading
+                    title="How do you like to practise?"
+                    hint="Pick as many as you like. This decides what your daily session is made of."
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {PRACTICE_STYLES.map((style) => {
+                      const selected = answers.practiceStyles.includes(style.id);
+                      return (
+                        <button
+                          key={style.id}
+                          type="button"
+                          onClick={() => toggleStyle(style.id)}
+                          aria-pressed={selected}
+                          className={cn(
+                            "rounded-full border px-4 py-2 text-sm transition-colors",
+                            selected
+                              ? "border-transparent surface-gradient text-primary-foreground"
+                              : "border-border hover:bg-accent/50",
+                          )}
+                        >
+                          {style.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Skip this and you&rsquo;ll get a bit of everything.
+                  </p>
+                </>
+              )}
+
+              {step === "length" && (
+                <>
+                  <Heading
+                    title="How long do you have each day?"
+                    hint="Be honest rather than ambitious. A practice you actually do beats one you plan."
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    {PRACTICE_LENGTHS.map((minutes) => (
+                      <button
+                        key={minutes}
+                        type="button"
+                        onClick={() => setAnswers({ ...answers, practiceMinutes: minutes })}
+                        aria-pressed={answers.practiceMinutes === minutes}
+                        className={cn(
+                          "rounded-2xl border px-4 py-4 text-center transition-colors",
+                          answers.practiceMinutes === minutes
+                            ? "border-transparent surface-gradient text-primary-foreground"
+                            : "border-border hover:bg-accent/50",
+                        )}
+                      >
+                        <span className="block font-display text-xl">{minutes}</span>
+                        <span className="block text-xs opacity-80">
+                          {minutes === 15 ? "minutes or more" : "minutes"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {step === "time" && (
+                <>
+                  <Heading
+                    title="When would you like it?"
+                    hint="Your reminder follows this, so it arrives when you're actually free."
+                  />
+                  <div className="grid gap-2">
+                    {PRACTICE_TIMES.map((time) => (
+                      <button
+                        key={time.id}
+                        type="button"
+                        onClick={() => setAnswers({ ...answers, practiceTimeOfDay: time.id })}
+                        aria-pressed={answers.practiceTimeOfDay === time.id}
+                        className={cn(
+                          "flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors",
+                          answers.practiceTimeOfDay === time.id
+                            ? "border-transparent surface-gradient text-primary-foreground"
+                            : "border-border hover:bg-accent/50",
+                        )}
+                      >
+                        <span className="text-sm font-medium">{time.label}</span>
+                        {answers.practiceTimeOfDay === time.id && <Check className="h-4 w-4" />}
                       </button>
                     ))}
                   </div>

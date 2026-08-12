@@ -83,6 +83,18 @@ export function useCompleteOnboarding() {
             obstacles: answers.obstacles.trim() || null,
             desired_feeling: answers.desiredFeeling.trim() || null,
             tone: answers.tone,
+            practice_minutes: answers.practiceMinutes,
+            practice_styles: answers.practiceStyles,
+            practice_time_of_day: answers.practiceTimeOfDay,
+            // The reminder follows the practice time, so the two can't
+            // disagree — being nudged at 7am for an evening practice is the
+            // kind of small wrongness that gets notifications turned off.
+            notify_hour:
+              answers.practiceTimeOfDay === "morning"
+                ? 7
+                : answers.practiceTimeOfDay === "afternoon"
+                  ? 13
+                  : 20,
             onboarded_at: new Date().toISOString(),
           },
           { onConflict: "id" },

@@ -68,15 +68,18 @@ export function useCreateEntry() {
       content,
       prompt,
       mood,
+      tags = [],
     }: {
       content: string;
       prompt: string;
       mood: number | null;
+      tags?: string[];
     }) => {
       if (!userId) throw new Error("Not signed in");
       const { error } = await supabase.from("journals").insert({
         user_id: userId,
         content,
+        tags,
         prompt,
         mood,
         entry_date: toISODate(),
@@ -117,3 +120,58 @@ export function useDeleteEntry() {
     onError: (error: Error) => toast.error(error.message || "Couldn't delete that entry"),
   });
 }
+
+/**
+ * Marks an entry as one worth coming back to.
+ *
+ * Separate from mood on purpose: mood is how the day was, a favourite is
+ * whether the writing was any good. People star the entry where they finally
+ * worked something out, and that's rarely the day they felt best.
+ */
+export function useToggleJournalFavorite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, favorite }: { id: string; favorite: boolean }) => {
+      const { error } = await supabase
+        .from("journals")
+        .update({ is_favorite: favorite })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: journalKeys.all }),
+    onError: () => toast.error("Couldn't save that."),
+  });
+}
+
+/** Edits the tags on an existing entry. */
+export function useSetJournalTags() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, tags }: { id: string; tags: string[] }) => {
+      const cleaned = [...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
+      const { error } = await supabase.from("journals").update({ tags: cleaned }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: journalKeys.all }),
+  });
+}
+
+export function useDeleteJournalEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("journals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: journalKeys.all });
+      toast.success("Deleted.");
+    },
+  });
+}
+
+/** The prompt used for gratitude entries, so they can be found again. */
+export const GRATITUDE_PROMPT = "Gratitude";
