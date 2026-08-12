@@ -14,6 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
+      actions: {
+        Row: {
+          body: string
+          completed_at: string | null
+          created_at: string
+          desire_id: string | null
+          for_date: string
+          id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          completed_at?: string | null
+          created_at?: string
+          desire_id?: string | null
+          for_date?: string
+          id?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          completed_at?: string | null
+          created_at?: string
+          desire_id?: string | null
+          for_date?: string
+          id?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actions_desire_id_fkey"
+            columns: ["desire_id"]
+            isOneToOne: false
+            referencedRelation: "desires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestones: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          desire_id: string
+          id: string
+          position: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          desire_id: string
+          id?: string
+          position?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          desire_id?: string
+          id?: string
+          position?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_desire_id_fkey"
+            columns: ["desire_id"]
+            isOneToOne: false
+            referencedRelation: "desires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_sessions: {
+        Row: {
+          created_at: string
+          desire_id: string | null
+          for_date: string
+          id: string
+          seconds: number
+          steps_completed: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          desire_id?: string | null
+          for_date?: string
+          id?: string
+          seconds?: number
+          steps_completed?: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          desire_id?: string | null
+          for_date?: string
+          id?: string
+          seconds?: number
+          steps_completed?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_sessions_desire_id_fkey"
+            columns: ["desire_id"]
+            isOneToOne: false
+            referencedRelation: "desires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affirmations: {
         Row: {
           category: string | null

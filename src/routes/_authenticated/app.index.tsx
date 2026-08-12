@@ -20,6 +20,8 @@ import {
   useToggleStoryFavorite,
 } from "@/features/stories/use-stories";
 import { useProfile } from "@/features/onboarding/use-profile";
+import { ActionEmptyState, TodaysAction } from "@/features/actions/todays-action";
+import { useEnsureTodaysActions, useTodaysActions } from "@/features/actions/use-actions";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({ meta: [{ title: "ManifestAI" }] }),
@@ -53,6 +55,22 @@ function HomeFeed() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasDesires, isPending, storyList.length]);
+
+  // Today's actions. Generated once a day per desire, on first open.
+  const { data: actions } = useTodaysActions();
+  const ensureActions = useEnsureTodaysActions();
+  useEffect(() => {
+    if (!desires || desires.length === 0 || ensureActions.isPending) return;
+    ensureActions.mutate(
+      desires.map((desire) => ({
+        id: desire.id,
+        title: desire.title,
+        category: desire.category,
+        description: desire.description,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desires?.length]);
 
   // Only personalised stories belong on Home; the catalogue lives in Library.
   const storiesOnly = storyList.filter((s) => s.kind === "story");
@@ -158,6 +176,33 @@ function HomeFeed() {
             );
           })}
         </DraggableRow>
+      )}
+
+      {/* Today's action sits above the stories on purpose. Listening is the
+          easy half; this is the half that changes anything. */}
+      {hasDesires && (
+        <section className="mt-6 space-y-3">
+          {(actions ?? [])
+            .filter((action) => !selectedDesireId || action.desire_id === selectedDesireId)
+            .map((action) => {
+              const desire = desires!.find((d) => d.id === action.desire_id);
+              if (!desire) return null;
+              return (
+                <TodaysAction
+                  key={action.id}
+                  action={action}
+                  desireTitle={desire.title}
+                  category={desire.category}
+                />
+              );
+            })}
+        </section>
+      )}
+
+      {!hasDesires && (
+        <section className="mt-6">
+          <ActionEmptyState />
+        </section>
       )}
 
       {selectedDesire && filteredStories.length === 0 && !generate.isPending && (

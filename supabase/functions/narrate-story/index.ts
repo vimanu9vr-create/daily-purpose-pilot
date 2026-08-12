@@ -25,7 +25,49 @@ const VOICES: Record<string, string> = {
 };
 
 const DEFAULT_VOICE = "sarah";
-const MODEL = "eleven_turbo_v2_5";
+
+/**
+ * Narration model.
+ *
+ * This was `eleven_turbo_v2_5`, which ElevenLabs now lists as deprecated and
+ * describes as a low-latency model for real-time agents and chatbots. We were
+ * using a model built for speed to read a meditation — and it sounded like it:
+ * flatter, thinner, and slightly hurried, which is the opposite of calm.
+ *
+ * `eleven_multilingual_v2` is their recommendation for narration and long-form
+ * content, and it's the one they describe as most stable across a long
+ * generation. It costs more per character and takes a couple of seconds longer
+ * to produce. Both are the right trade for something a person listens to with
+ * their eyes closed, and neither is felt after the first play because the
+ * result is cached forever.
+ */
+const MODEL = "eleven_multilingual_v2";
+
+/**
+ * Bumped whenever the model or voice settings change.
+ *
+ * Cached audio is keyed by voice, so without this every story generated before
+ * the change would keep its old narration and only new stories would sound
+ * better — which would have looked like the fix not working.
+ */
+const RENDER_VERSION = "v2";
+
+/**
+ * Settings tuned for calm rather than expressive.
+ *
+ * style at 0 is the important one: any amount of it makes the model perform
+ * the line, and performance is what made this sound like an advert instead of
+ * something to fall asleep to. Higher stability keeps the delivery even across
+ * a long piece, and speaker boost is off because it adds a forward, present
+ * quality that works for a voiceover and fights a bedtime story.
+ */
+const VOICE_SETTINGS = {
+  stability: 0.7,
+  similarity_boost: 0.8,
+  style: 0,
+  use_speaker_boost: false,
+  speed: 0.9,
+};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -59,6 +101,9 @@ Deno.serve(async (req: Request) => {
     if (!storyId) return json({ error: "bad_request", message: "No story given." }, 400);
 
     const voiceId = VOICES[voice.toLowerCase()] ?? VOICES[DEFAULT_VOICE]!;
+    // What gets stored and compared against, so a settings change invalidates
+    // every cached file rather than only affecting new stories.
+    const renderTag = `${voice}@${RENDER_VERSION}`;
 
     // Read the story as the user, so RLS confirms they own it.
     const storyRes = await fetch(
@@ -79,7 +124,7 @@ Deno.serve(async (req: Request) => {
     if (!story) return json({ error: "not_found" }, 404);
 
     // Already paid for in this voice — hand back the cached copy.
-    if (story.audio_url && story.audio_voice === voice) {
+    if (story.audio_url && story.audio_voice === renderTag) {
       return json({ audioUrl: story.audio_url, marks: story.audio_marks, cached: true }, 200);
     }
 
@@ -98,8 +143,8 @@ Deno.serve(async (req: Request) => {
      */
     const isCatalogue = story.source === "catalogue";
     const path = isCatalogue
-      ? `catalogue/${slugify(story.title)}-${voice}.mp3`
-      : `${user.id}/${storyId}-${voice}.mp3`;
+      ? `catalogue/${slugify(story.title)}-${voice}-${RENDER_VERSION}.mp3`
+      : `${user.id}/${storyId}-${voice}-${RENDER_VERSION}.mp3`;
     const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
     const marks = estimateMarks(sentences, 0.9);
 
@@ -108,7 +153,7 @@ Deno.serve(async (req: Request) => {
       // and return without touching ElevenLabs.
       const head = await fetch(audioUrl, { method: "HEAD" });
       if (head.ok) {
-        await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, voice, marks);
+        await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, marks);
         console.log(`reused shared narration ${path}`);
         return json({ audioUrl, marks, cached: true }, 200);
       }
@@ -118,29 +163,28 @@ Deno.serve(async (req: Request) => {
     // breathes the same way whether it's played here or in a notification.
     const script = sentences.join(' <break time="0.9s" /> ');
 
-    const ttsRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
-      {
+    const speak = (settings: Record<string, number | boolean>) =>
+      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
         method: "POST",
         headers: {
           "xi-api-key": apiKey,
           "Content-Type": "application/json",
           Accept: "audio/mpeg",
         },
-        body: JSON.stringify({
-          text: script,
-          model_id: MODEL,
-          voice_settings: {
-            stability: 0.55,
-            similarity_boost: 0.75,
-            // Low style keeps it even and unhurried rather than performed.
-            style: 0.15,
-            use_speaker_boost: true,
-            speed: 0.88,
-          },
-        }),
-      },
-    );
+        body: JSON.stringify({ text: script, model_id: MODEL, voice_settings: settings }),
+      });
+
+    let ttsRes = await speak(VOICE_SETTINGS);
+
+    // `speed` isn't accepted on every model, and which models take it has
+    // changed more than once. Rather than hardcode an assumption that quietly
+    // breaks narration later, drop it and retry — slightly faster delivery is
+    // a far better outcome than no audio at all.
+    if (ttsRes.status === 422) {
+      console.warn("retrying without speed; model rejected the setting");
+      const { speed: _speed, ...withoutSpeed } = VOICE_SETTINGS;
+      ttsRes = await speak(withoutSpeed);
+    }
 
     if (ttsRes.status === 401) {
       return json({ error: "bad_key", message: "The ElevenLabs key was rejected." }, 502);
@@ -171,7 +215,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "storage_error", message: "Couldn't save the narration." }, 500);
     }
 
-    await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, voice, marks);
+    await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, marks);
 
     console.log(
       `narrated ${storyId} voice=${voice} chars=${script.length} shared=${isCatalogue}`,
@@ -222,7 +266,7 @@ function splitSentences(body: string): string[] {
 
 /** Start time per sentence, assuming even delivery plus the break between each. */
 function estimateMarks(sentences: string[], breakSeconds: number): number[] {
-  const WORDS_PER_SECOND = 2.35; // ~140wpm at speed 0.88
+  const WORDS_PER_SECOND = 2.4; // ~144wpm at speed 0.9
   const marks: number[] = [];
   let cursor = 0;
   for (const sentence of sentences) {
