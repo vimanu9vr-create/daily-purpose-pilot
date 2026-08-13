@@ -269,6 +269,29 @@ export function useGenerateStories() {
 
       const rows: Database["public"]["Tables"]["moments"]["Insert"][] = [];
 
+      /**
+       * Ask for every story at once instead of one after another.
+       *
+       * This used to be a nested loop with `await` inside it: one HTTP request
+       * per story, each waiting for the last to finish. Three desires at six
+       * stories each is eighteen sequential round trips — about sixteen seconds
+       * of staring at a spinner, which is what "it's taking too long" was. The
+       * work was always parallelisable; it just wasn't parallel.
+       *
+       * Now every request is started together and awaited as a group, so the
+       * total wait is roughly the slowest single call rather than the sum of
+       * all of them. `allSettled` rather than `all` because one story failing
+       * should not discard the seventeen that succeeded.
+       */
+      type Pending = {
+        desire: (typeof active)[number];
+        variant: number;
+        seed: Parameters<typeof composeMomentAt>[0];
+        request: Promise<Response> | null;
+      };
+
+      const pending: Pending[] = [];
+
       for (const desire of active) {
         const seed = {
           title: desire.title,
@@ -279,29 +302,45 @@ export function useGenerateStories() {
         };
 
         for (let variant = 0; variant < perDesire; variant += 1) {
+          pending.push({
+            desire,
+            variant,
+            seed,
+            request: token
+              ? fetch(`${supabaseUrl}/functions/v1/ai-moment`, {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({ desireId: desire.id, variant }),
+                }).catch(() => null as unknown as Response)
+              : null,
+          });
+        }
+      }
+
+      const responses = await Promise.allSettled(pending.map((item) => item.request));
+
+      {
+        for (const [index, item] of pending.entries()) {
+          const { desire, variant, seed } = item;
           let composed = composeMomentAt(seed, variant);
           let source = "composed";
 
-          if (token) {
+          const settled = responses[index];
+          const response = settled?.status === "fulfilled" ? settled.value : null;
+
+          if (response?.ok) {
             try {
-              const response = await fetch(`${supabaseUrl}/functions/v1/ai-moment`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ desireId: desire.id, variant }),
-              });
-              if (response.ok) {
-                const result = (await response.json()) as { title?: string; body?: string };
-                if (result.body?.trim()) {
-                  composed = {
-                    key: "ai",
-                    title: result.title?.trim() || composed.title,
-                    body: result.body.trim(),
-                  };
-                  source = "ai";
-                }
+              const result = (await response.json()) as { title?: string; body?: string };
+              if (result.body?.trim()) {
+                composed = {
+                  key: "ai",
+                  title: result.title?.trim() || composed.title,
+                  body: result.body.trim(),
+                };
+                source = "ai";
               }
             } catch {
-              // Not deployed or offline — the composed version stands.
+              // Unparseable — the composed version stands.
             }
           }
 
