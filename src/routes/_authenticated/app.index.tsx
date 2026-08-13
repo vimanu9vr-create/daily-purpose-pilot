@@ -23,6 +23,7 @@ import { useProfile } from "@/features/onboarding/use-profile";
 import { ActionEmptyState, TodaysAction } from "@/features/actions/todays-action";
 import { useEnsureTodaysActions, useTodaysActions } from "@/features/actions/use-actions";
 import { PracticeCard } from "@/features/practice/practice-card";
+import { AffirmationRow } from "@/features/affirmations/affirmation-row";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({ meta: [{ title: "ManifestAI" }] }),
@@ -235,6 +236,11 @@ function HomeFeed() {
           and the loading spinner below only appeared when the *whole* feed was
           empty — so selecting a desire with no stories, while other desires
           had some, rendered literally nothing. That was the blank screen. */}
+      {/* The affirmations written from what you typed. These existed but lived
+          only on another tab, so typing a desire looked like it produced
+          stories and nothing else. */}
+      {hasDesires && <AffirmationRow isGenerating={createDesire.isPending} />}
+
       {selectedDesire && filteredStories.length === 0 && (
         <section className="mt-8 rounded-3xl glass-panel px-7 py-10 text-center">
           {generate.isPending ? (
