@@ -14,7 +14,7 @@ import {
   useSaveAffirmation,
   useSavedAffirmations,
 } from "@/features/affirmations/use-affirmations";
-import { useSpeech } from "@/hooks/use-speech";
+import { useSpokenLine } from "@/hooks/use-spoken-line";
 import { haptic, hapticSuccess, share as nativeShare } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ function Affirmations() {
   const { data: saved } = useSavedAffirmations();
   const saveAffirmation = useSaveAffirmation();
   const generate = useGenerateAffirmations();
-  const speech = useSpeech();
+  const speech = useSpokenLine();
 
   const savedTexts = useMemo(() => new Set((saved ?? []).map((a) => a.text)), [saved]);
   const visible = showFavorites ? deck.filter((a) => savedTexts.has(a.text)) : deck;
@@ -183,7 +183,9 @@ function Affirmations() {
                     className="absolute bottom-6 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105"
                     aria-label={speech.isSpeaking ? "Stop" : "Read aloud"}
                   >
-                    {speech.isSpeaking ? (
+                    {speech.isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : speech.isSpeaking ? (
                       <Pause className="h-4 w-4 fill-current" />
                     ) : (
                       <Volume2 className="h-4 w-4" />

@@ -16,7 +16,7 @@ import {
   useToggleMomentFavorite,
   useTodaysMoment,
 } from "@/features/moments/use-moments";
-import { useSpeech } from "@/hooks/use-speech";
+import { useSpokenLine } from "@/hooks/use-spoken-line";
 import { formatLongDate, toISODate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ function Moments() {
   const toggleFavorite = useToggleMomentFavorite();
   const markListened = useMarkListened();
   const deleteMoment = useDeleteMoment();
-  const speech = useSpeech();
+  const speech = useSpokenLine();
 
   const [variant, setVariant] = useState(0);
 
@@ -134,8 +134,14 @@ function Moments() {
                 <div className="mt-8 flex flex-wrap items-center gap-2">
                   {speech.isSupported && (
                     <Button variant="hero" onClick={listen}>
-                      {speech.isSpeaking ? <Pause /> : <Volume2 />}
-                      {speech.isSpeaking ? "Stop" : "Listen"}
+                      {speech.isLoading ? (
+                        <Loader2 className="animate-spin" />
+                      ) : speech.isSpeaking ? (
+                        <Pause />
+                      ) : (
+                        <Volume2 />
+                      )}
+                      {speech.isLoading ? "Getting Sarah…" : speech.isSpeaking ? "Stop" : "Listen"}
                     </Button>
                   )}
 
