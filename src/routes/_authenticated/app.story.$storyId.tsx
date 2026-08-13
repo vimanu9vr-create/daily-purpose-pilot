@@ -15,15 +15,18 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import {
+  storyKeys,
   useRecordStoryDuration,
   useStory,
   useToggleStoryFavorite,
 } from "@/features/stories/use-stories";
+import { supabase } from "@/integrations/supabase/client";
 import { formatClock, useNarration } from "@/hooks/use-narration";
 import { useSessionBed } from "@/hooks/use-session-bed";
 import { useStudioNarration } from "@/hooks/use-studio-narration";
@@ -45,6 +48,7 @@ function StoryPlayer() {
   const { storyId } = Route.useParams();
   const navigate = useNavigate();
   const { data: story, isPending } = useStory(storyId);
+  const queryClient = useQueryClient();
   const toggleFavorite = useToggleStoryFavorite();
 
   const [showFullStory, setShowFullStory] = useState(false);
@@ -146,6 +150,29 @@ function StoryPlayer() {
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSession, bed.isRunning, narration.isPlaying, studio.available]);
+
+  /**
+   * Give this story its own artwork, the first time anyone opens it.
+   *
+   * Generated on open rather than on creation. Forty-two stories are written
+   * every refresh and most are never played, so generating a picture for all
+   * of them would cost more per day than the subscription costs per month.
+   * Opening one is the signal that it's worth four cents.
+   *
+   * Fire-and-forget: the stock photo is already on screen and stays there if
+   * this fails or is slow. It arrives on the next visit instead.
+   */
+  useEffect(() => {
+    if (!story) return;
+    const stock = !story.image_url || story.image_url.includes("unsplash.com");
+    if (!stock) return;
+
+    void supabase.functions
+      .invoke("generate-cover", { body: { storyId: story.id } })
+      .then(() => queryClient.invalidateQueries({ queryKey: storyKeys.story(story.id) }))
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.id]);
 
   // Stop whichever engine isn't in use, so they can't overlap.
   useEffect(() => {
