@@ -19,12 +19,71 @@ Form:
 - Quiet and specific rather than grand. Ordinary sensory detail beats triumphant imagery. No stock phrases like "close your eyes and imagine".
 - End with one small concrete action they could take today.
 
+SETTING — you will be given a place. Obey it:
+- The scene happens THERE. Open with something physical about that place: a sound, the temperature, the light, what's in your hands.
+- Do not relocate to an office, a desk, a laptop, a screen or a meeting. Those are the default images and they are the reason every one of these reads the same. If the given setting is not a workplace, no workplace may appear.
+- The place is where they are; the thing they want is what they're thinking about. Don't make the place a metaphor for the goal.
+
 Hard constraint — this is the difference between a useful exercise and a false promise:
 - Describe the user DOING the work and how that feels. Never describe the outcome arriving by itself, being given to them, or the universe/fate/energy delivering it.
 - Never imply that visualizing causes external events. The honest mechanism is attention and follow-through: picturing it clearly helps you notice and take chances to act.
 - No guarantees, no timelines, no "it's already yours".
 
 Return ONLY JSON: {"title": "...", "body": "..."} where body uses \\n\\n between paragraphs. Title is 2-5 words. No markdown fence.`;
+
+/**
+ * Where each visualization takes place.
+ *
+ * This list exists because of a real complaint: "in more for you and trending
+ * for you it shows you sit at your desk for everything, every track." That was
+ * accurate — 135 of 590 stories mentioned a desk. Left to itself the model
+ * writes an office every time, because a desk is what "working toward a goal"
+ * looks like in its training data.
+ *
+ * The old defence was a line telling it to AVOID REPEATING recent titles. That
+ * cannot work here. Forty stories are generated in parallel in about three
+ * seconds, so every one of them reads the same "five most recent" list — none
+ * of the others exist yet. Each request independently decides to be different
+ * from the same five stories, and independently lands on a desk.
+ *
+ * So the setting is assigned rather than discouraged. It's derived from the
+ * variant index, which the caller already varies per story, so forty parallel
+ * requests get forty different places without any of them needing to know what
+ * the others are doing. A constraint beats an instruction.
+ */
+const SCENES = [
+  "a kitchen at night, everyone else asleep",
+  "a bus or train, halfway through a journey",
+  "a park bench, mid-afternoon, nothing scheduled",
+  "the walk back from somewhere ordinary, in the cold",
+  "a doorway, keys still in hand, having just got in",
+  "a stairwell, sitting down for a second on the way up",
+  "the shower, or just after it",
+  "a bed, awake earlier than the alarm",
+  "a queue somewhere dull — a bank, a pharmacy, a checkout",
+  "a balcony or a step outside, in the first warm week of the year",
+  "a car in a car park, engine off, not going in yet",
+  "a kitchen table on a Sunday, the day unstructured",
+  "a corridor outside a room you're about to walk into",
+  "a window seat on a grey afternoon, rain on the glass",
+  "the last ten minutes of a long walk with no destination",
+  "a quiet cafe where nobody knows you",
+];
+
+/**
+ * Pick a setting. Deterministic, so the same request always gets the same place.
+ *
+ * Both inputs matter. Variant alone would give every desire the same sequence
+ * of places, so a user with four desires would see the kitchen scene four
+ * times in one feed. Subject alone would give one desire one place forever.
+ * Combined, the feed varies across both axes.
+ */
+function sceneFor(variant: number | undefined, subjectTitle: string): string {
+  let hash = 0;
+  for (const char of subjectTitle) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
+  return SCENES[index % SCENES.length]!;
+}
 
 /**
  * Which AI provider to call.
@@ -127,24 +186,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Recent titles, so a "different one" is actually different.
-    const recentRes = await fetch(
-      `${supabaseUrl}/rest/v1/moments?select=title&order=created_at.desc&limit=5`,
-      { headers: { Authorization: authHeader, apikey: anonKey } },
-    );
-    const recent = recentRes.ok ? await recentRes.json() : [];
-    const recentTitles = Array.isArray(recent)
-      ? recent.map((m: { title: string }) => m.title).join(", ")
-      : "";
-
     const context = [
       `WHAT THEY WANT: ${subject.title}`,
       subject.why ? `WHY IT MATTERS: ${subject.why}` : "",
       subject.feeling ? `HOW THEY WANT IT TO FEEL: ${subject.feeling}` : "",
       subject.obstacles ? `WHAT'S IN THE WAY: ${subject.obstacles}` : "",
       subject.progress != null ? `MILESTONE PROGRESS: ${subject.progress}%` : "",
-      recentTitles ? `AVOID REPEATING THESE RECENT ANGLES: ${recentTitles}` : "",
-      variant !== undefined ? `The user asked for a different angle than the last one.` : "",
+      `SETTING: ${sceneFor(variant, subject.title)}`,
     ]
       .filter(Boolean)
       .join("\n");
