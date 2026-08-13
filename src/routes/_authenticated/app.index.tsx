@@ -23,9 +23,6 @@ import { useProfile } from "@/features/onboarding/use-profile";
 import { ActionEmptyState, TodaysAction } from "@/features/actions/todays-action";
 import { useEnsureTodaysActions, useTodaysActions } from "@/features/actions/use-actions";
 import { PracticeCard } from "@/features/practice/practice-card";
-import { DesireProgress } from "@/features/milestones/desire-progress";
-import { WeekCard } from "@/features/insights/week-card";
-import { NumberCard } from "@/features/numbers/number-card";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({ meta: [{ title: "ManifestAI" }] }),
@@ -75,6 +72,25 @@ function HomeFeed() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desires?.length]);
+
+  /**
+   * The one action to show. The selected desire's if a chip is active, the
+   * oldest incomplete one otherwise — oldest because the thing you've been
+   * avoiding longest is the thing worth surfacing.
+   */
+  const todaysAction = useMemo(() => {
+    const rows = actions ?? [];
+    if (rows.length === 0 || !desires) return null;
+
+    const pick =
+      (selectedDesireId && rows.find((a) => a.desire_id === selectedDesireId)) ??
+      rows.find((a) => !a.completed_at) ??
+      rows[0];
+    if (!pick) return null;
+
+    const desire = desires.find((d) => d.id === pick.desire_id);
+    return desire ? { action: pick, desire } : null;
+  }, [actions, desires, selectedDesireId]);
 
   // Only personalised stories belong on Home; the catalogue lives in Library.
   const storiesOnly = storyList.filter((s) => s.kind === "story");
@@ -191,24 +207,20 @@ function HomeFeed() {
           ends by offering them, so doing it first is the shorter path. */}
       <PracticeCard />
 
-      {/* Today's action sits above the stories on purpose. Listening is the
-          easy half; this is the half that changes anything. */}
-      {hasDesires && (
-        <section className="mt-6 space-y-3">
-          {(actions ?? [])
-            .filter((action) => !selectedDesireId || action.desire_id === selectedDesireId)
-            .map((action) => {
-              const desire = desires!.find((d) => d.id === action.desire_id);
-              if (!desire) return null;
-              return (
-                <TodaysAction
-                  key={action.id}
-                  action={action}
-                  desireTitle={desire.title}
-                  category={desire.category}
-                />
-              );
-            })}
+      {/* One action, not one per desire.
+          
+          This screen showed a card for every desire, so three desires meant
+          three things being asked of you before you had read anything. Being
+          handed a to-do list on opening an app about calm is the wrong feeling,
+          and three asks get ignored where one gets done. The rest are on the
+          goal itself. */}
+      {hasDesires && todaysAction && (
+        <section className="mt-6">
+          <TodaysAction
+            action={todaysAction.action}
+            desireTitle={todaysAction.desire.title}
+            category={todaysAction.desire.category}
+          />
         </section>
       )}
 
@@ -217,18 +229,6 @@ function HomeFeed() {
           <ActionEmptyState />
         </section>
       )}
-
-      {/* Progress, derived from milestones ticked and actions done — never a
-          number anybody typed. */}
-      {hasDesires && <DesireProgress desires={desires!} />}
-
-      {/* Hidden until there's something to report — a week of zeroes is an
-          accusation, not information. */}
-      <WeekCard />
-
-      {/* Below the action and the practice, deliberately. Putting a number at
-          the top would say the app thinks it matters more than what you do. */}
-      <NumberCard />
 
       {/* Always render something when a desire is selected but has nothing
           under it. This block used to be hidden while generation was running,

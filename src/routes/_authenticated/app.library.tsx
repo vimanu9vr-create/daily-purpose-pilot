@@ -9,6 +9,11 @@ import { CarouselSection, StoryCard } from "@/features/stories/story-card";
 import { FREQUENCY_DISCLAIMER, KIND_LABELS, KIND_ORDER } from "@/features/stories/track-catalogue";
 import { useStories, useToggleStoryFavorite, type Story } from "@/features/stories/use-stories";
 import { useHasTracks, useSeedTracks } from "@/features/stories/use-tracks";
+import {
+  useHasAffirmationTracks,
+  useSeedAffirmationTracks,
+} from "@/features/affirmations/use-affirmation-tracks";
+import { useAddWeeklyTracks } from "@/features/stories/use-new-tracks";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/library")({
@@ -36,6 +41,9 @@ function Library() {
   const { data: stories, isPending } = useStories();
   const { data: hasTracks } = useHasTracks();
   const seedTracks = useSeedTracks();
+  const { data: hasAffirmationTracks } = useHasAffirmationTracks();
+  const seedAffirmationTracks = useSeedAffirmationTracks();
+  const addWeekly = useAddWeeklyTracks();
   const toggleFavorite = useToggleStoryFavorite();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [seeAll, setSeeAll] = useState<string | null>(null);
@@ -48,6 +56,19 @@ function Library() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasTracks]);
+
+  /**
+   * Affirmation tracks are built per person rather than seeded from a fixed
+   * list, because they're assembled from that person's own affirmations. This
+   * is what turns the library from ten items into twenty-two, and affirmations
+   * from something you read into something you play.
+   */
+  useEffect(() => {
+    if (hasAffirmationTracks === false && !seedAffirmationTracks.isPending) {
+      seedAffirmationTracks.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAffirmationTracks]);
 
   const all = useMemo(() => stories ?? [], [stories]);
 
@@ -69,6 +90,23 @@ function Library() {
   }, [visible]);
 
   const expanded = seeAll ? (byKind.find(([kind]) => kind === seeAll)?.[1] ?? []) : null;
+
+  /**
+   * Top the library up once a week, quietly, on open.
+   *
+   * Not a button, because a library that only grows when you ask it to is a
+   * library that never grows. Three new sessions land on their own and the
+   * toast is the only mention.
+   */
+  useEffect(() => {
+    if (hasTracks !== true || addWeekly.isPending) return;
+    const key = "manifestai:weekly-tracks";
+    const week = Math.floor(Date.now() / (7 * 86_400_000));
+    if (localStorage.getItem(key) === String(week)) return;
+    localStorage.setItem(key, String(week));
+    addWeekly.mutate({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasTracks]);
 
   return (
     <PageTransition>

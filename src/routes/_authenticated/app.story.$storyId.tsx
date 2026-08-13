@@ -77,7 +77,16 @@ function StoryPlayer() {
   // Sleep, meditation and frequency sessions are timed experiences rather than
   // a piece of speech, so their clock and their sound run for the advertised
   // length instead of stopping when the voice does.
-  const isSession = story ? story.kind !== "story" && story.kind !== "affirmation" : false;
+  /**
+   * Affirmation tracks count as sessions now.
+   *
+   * They were excluded because an "affirmation" used to be a single sentence.
+   * They're ten-minute tracks built from a repeating set, so they need the
+   * timed bed and the returning voice like every other session — otherwise a
+   * 10 MIN label would end after one pass, which is the exact bug we spent
+   * today fixing on the sleep tracks.
+   */
+  const isSession = story ? story.kind !== "story" : false;
   const bed = useSessionBed({
     kind: (story?.kind as "sleep") ?? "story",
     totalSeconds: story?.duration_seconds ?? 0,

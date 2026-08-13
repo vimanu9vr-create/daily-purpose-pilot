@@ -25,6 +25,10 @@ import { useEffect, useState } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useSignOut } from "@/components/app/app-shell";
 import { AchievementGrid } from "@/features/achievements/achievement-grid";
+import { DesireProgress } from "@/features/milestones/desire-progress";
+import { WeekCard } from "@/features/insights/week-card";
+import { NumberCard } from "@/features/numbers/number-card";
+import { useDesires } from "@/features/stories/use-stories";
 import { DeleteAccountDialog } from "@/features/account/delete-account-dialog";
 import { planById } from "@/features/billing/plans";
 import { purchaseStore } from "@/features/billing/store";
@@ -60,6 +64,7 @@ const MORE_LINKS = [
 
 function ProfilePage() {
   const { data: profile } = useProfile();
+  const { data: desires } = useDesires();
   const updateProfile = useUpdateProfile();
   const signOut = useSignOut();
   const { isPremium, plan, subscription } = useSubscription();
@@ -346,6 +351,16 @@ function ProfilePage() {
       >
         <LogOut className="h-4 w-4" /> Sign out
       </Button>
+
+      {/* Progress, the week and the number live here rather than on Home.
+          They are all things you look at deliberately, not things you need in
+          front of you at 7am — and Home had grown to fourteen sections, which
+          is a wall rather than an invitation. */}
+      {(desires?.length ?? 0) > 0 && <DesireProgress desires={desires!} />}
+
+      <WeekCard />
+
+      <NumberCard />
 
       {/* Quiet, and above the account controls rather than buried under them.
           Unearned ones are shown too — that's how someone learns what this app
