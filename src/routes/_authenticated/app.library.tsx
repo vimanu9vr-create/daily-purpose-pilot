@@ -14,6 +14,7 @@ import {
   useSeedAffirmationTracks,
 } from "@/features/affirmations/use-affirmation-tracks";
 import { useAddWeeklyTracks } from "@/features/stories/use-new-tracks";
+import { useGenerateCovers } from "@/features/stories/use-covers";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/library")({
@@ -44,6 +45,7 @@ function Library() {
   const { data: hasAffirmationTracks } = useHasAffirmationTracks();
   const seedAffirmationTracks = useSeedAffirmationTracks();
   const addWeekly = useAddWeeklyTracks();
+  const generateCovers = useGenerateCovers();
   const toggleFavorite = useToggleStoryFavorite();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [seeAll, setSeeAll] = useState<string | null>(null);
@@ -98,6 +100,20 @@ function Library() {
    * library that never grows. Three new sessions land on their own and the
    * toast is the only mention.
    */
+  /**
+   * Fill in generated covers, four per visit.
+   *
+   * Slowly on purpose: they're shared across users so they only need making
+   * once ever, and a burst of image requests is the quickest way to be rate
+   * limited. By the third or fourth open the library is all its own artwork.
+   */
+  useEffect(() => {
+    if (hasTracks !== true || generateCovers.isPending) return;
+    const id = window.setTimeout(() => generateCovers.mutate(), 2500);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasTracks]);
+
   useEffect(() => {
     if (hasTracks !== true || addWeekly.isPending) return;
     const key = "manifestai:weekly-tracks";

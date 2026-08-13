@@ -31,14 +31,17 @@ export type AffirmationTrackSeed = {
 };
 
 /**
- * How many times the set repeats to fill the time.
+ * How many passes the *player* will make through the set.
  *
- * A line at this pace takes roughly six seconds to say, plus the 1.6 second
- * pause between sentences — call it eight. Twelve lines is therefore about a
- * hundred seconds per pass, so a ten-minute track wants six passes.
+ * Note where the repetition happens: in the player, not in the script. That
+ * distinction is the whole point of this function existing.
  *
- * Capped at eight because past that it stops feeling like a practice and
- * starts feeling like a loop someone forgot to stop.
+ * The first version baked six repetitions into the text, so ElevenLabs had to
+ * generate six times more audio than the set contains — a ten-minute track
+ * took thirty to forty seconds to appear, and cost six times what it needed
+ * to. The audio for one pass is identical to the audio for the sixth, so
+ * generating it once and letting the player return to it is the same
+ * experience for a sixth of the wait and a sixth of the bill.
  */
 export function passesFor(minutes: TrackLength, lineCount: number): number {
   const secondsPerLine = 8;
@@ -54,27 +57,15 @@ export function passesFor(minutes: TrackLength, lineCount: number): number {
  * list being read out, and they give the person somewhere to arrive.
  */
 export function buildTrackScript(seed: AffirmationTrackSeed): string {
-  const passes = passesFor(seed.minutes, seed.lines.length);
-
   const opening = [
     "Settle where you are.",
     "There's nothing to get right here. Just listen, and let these land where they land.",
   ];
 
-  const closing = [
-    "That's the set.",
-    "You don't have to believe every one of these today. Saying them is how believing starts.",
-  ];
-
-  const body: string[] = [];
-  for (let pass = 0; pass < passes; pass += 1) {
-    // A short breath line between passes, so the repetition has a shape rather
-    // than running together into one long recital.
-    if (pass > 0) body.push(pass % 2 === 0 ? "Again, slower." : "Once more.");
-    body.push(...seed.lines);
-  }
-
-  return [...opening, ...body, ...closing].join("\n\n");
+  // One pass only. The player runs the session for its full length and brings
+  // the voice back every seventy-five seconds, so repeating the lines here as
+  // well would mean generating — and paying for — the same audio six times.
+  return [...opening, ...seed.lines].join("\n\n");
 }
 
 /**

@@ -85,9 +85,33 @@ function hash(seed: string): number {
   return Math.abs(h);
 }
 
+/**
+ * Every photo in the set, used as an overflow pool.
+ *
+ * Four photos per theme meant a feed of twelve cards showed the same three
+ * pictures repeatedly, and because themeFor() falls through to "confidence"
+ * for most free text, the majority of cards drew from a single pool of four.
+ * Spreading across the whole set when a theme runs out is the difference
+ * between "curated" and "did this app only download four images".
+ */
+const ALL_PHOTOS: string[] = Object.values(PHOTOS).flat();
+
+/**
+ * A cover for a card.
+ *
+ * Two hashes rather than one. The first picks inside the matching theme; if
+ * the theme's pool is small relative to how many cards are on screen, the
+ * second spreads the overflow across every photo we have. A card keeps the
+ * same cover forever either way, because both hashes are of the seed.
+ */
 export function coverImage(seed: string, theme?: ImageTheme, width = 800): string {
   const key = theme ?? themeFor(seed);
   const pool = PHOTOS[key];
-  const id = pool[hash(seed) % pool.length]!;
+  const n = hash(seed);
+
+  // Two thirds stay on-theme; the rest reach into the wider set so a long
+  // scroll doesn't become the same four pictures.
+  const id = n % 3 === 2 ? ALL_PHOTOS[n % ALL_PHOTOS.length]! : pool[n % pool.length]!;
+
   return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=70`;
 }
