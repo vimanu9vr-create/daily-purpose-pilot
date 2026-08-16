@@ -263,6 +263,25 @@ export function useGenerateStories() {
         throw new Error("Add something you want first — your stories are written from it.");
       }
 
+      /**
+       * Make sure each dream has its own artwork.
+       *
+       * Hooked here rather than onto the insert because there are two places a
+       * dream can be created — onboarding and the home input — and a cover set
+       * that only appears from one of them is the kind of gap that goes
+       * unnoticed for weeks. Everything that writes stories comes through here.
+       *
+       * Safe to call on every refresh: the function checks storage first and
+       * returns without spending anything when the images already exist. Not
+       * awaited, because covers arriving a minute later is fine and the stock
+       * photograph is showing in the meantime.
+       */
+      for (const desire of active) {
+        void supabase.functions
+          .invoke("generate-desire-covers", { body: { desireId: desire.id } })
+          .catch(() => undefined);
+      }
+
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
       const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] as string;

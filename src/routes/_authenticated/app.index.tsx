@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DesireSheet } from "@/features/stories/desire-sheet";
 import { useDesirePlaceholder } from "@/features/stories/desire-placeholder";
+import { coverIndexFor } from "@/features/stories/dream-cover";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { CarouselSection, DraggableRow, StoryCard } from "@/features/stories/story-card";
 import { TrendingMarquee } from "@/features/stories/trending-marquee";
@@ -295,6 +296,8 @@ function HomeFeed() {
                 id: story.id,
                 hook: story.hook ?? story.title,
                 imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
+                desireId: story.desire_id,
+                coverIndex: coverIndexFor(story.id),
                 durationSeconds: story.duration_seconds,
                 isFavorite: story.is_favorite,
               }}
@@ -314,6 +317,8 @@ function HomeFeed() {
                 id: story.id,
                 hook: story.hook ?? story.title,
                 imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
+                desireId: story.desire_id,
+                coverIndex: coverIndexFor(story.id),
                 durationSeconds: story.duration_seconds,
                 isFavorite: story.is_favorite,
               }}

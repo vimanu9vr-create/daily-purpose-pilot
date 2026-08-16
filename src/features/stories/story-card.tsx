@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Heart, Play } from "lucide-react";
 
+import { DreamCover } from "./dream-cover";
+
 import { useCenterFocus } from "@/hooks/use-center-focus";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { cn } from "@/lib/utils";
@@ -11,6 +13,10 @@ export type StoryCardData = {
   imageUrl: string;
   durationSeconds: number;
   isFavorite?: boolean;
+  /** Which dream this belongs to, so it can show that dream's own artwork. */
+  desireId?: string | null;
+  /** Which of the dream's images to use — the story's variant. */
+  coverIndex?: number;
 };
 
 export function minutesLabel(seconds: number): string {
@@ -53,10 +59,10 @@ export function StoryCard({
         // square photo — which is why the cards looked like boxes.
         className="group relative block h-full w-full overflow-hidden rounded-[32px] shadow-card transition-transform duration-300 hover:-translate-y-1"
       >
-        <img
-          src={story.imageUrl}
-          alt=""
-          loading="lazy"
+        <DreamCover
+          fallbackSrc={story.imageUrl}
+          desireId={story.desireId}
+          index={story.coverIndex ?? 0}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="photo-scrim absolute inset-0" />

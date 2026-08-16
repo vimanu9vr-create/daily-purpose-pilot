@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
 import { NumberList } from "@/features/numbers/number-card";
+import { coverIndexFor } from "@/features/stories/dream-cover";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { CarouselSection, StoryCard } from "@/features/stories/story-card";
 import { FREQUENCY_DISCLAIMER, KIND_LABELS, KIND_ORDER } from "@/features/stories/track-catalogue";
@@ -33,6 +34,8 @@ function toCard(story: Story) {
     id: story.id,
     hook: story.hook ?? story.title,
     imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
+    desireId: story.desire_id,
+    coverIndex: coverIndexFor(story.id),
     durationSeconds: story.duration_seconds,
     isFavorite: story.is_favorite,
   };
