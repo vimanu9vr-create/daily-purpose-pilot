@@ -174,6 +174,19 @@ function StoryPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.id]);
 
+  /**
+   * Get the first lines ready while they're still looking at the cover.
+   *
+   * Opening a story and pressing play are a couple of seconds apart, and those
+   * are seconds the narration can spend rendering. Only the opening — the rest
+   * is the expensive half and still waits for a real press.
+   */
+  useEffect(() => {
+    if (!story?.body) return;
+    void studio.prepareOpening("sarah");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.id]);
+
   // Stop whichever engine isn't in use, so they can't overlap.
   useEffect(() => {
     if (studio.available) browser.stop();

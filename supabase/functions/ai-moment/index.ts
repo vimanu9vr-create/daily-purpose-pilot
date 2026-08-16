@@ -180,10 +180,7 @@ Deno.serve(async (req: Request) => {
     // If a specific desire was asked for and doesn't exist, don't quietly
     // substitute something else — that's the bug this replaces.
     if (!subject) {
-      return json(
-        { error: "no_subject", message: "Nothing to write about yet." },
-        400,
-      );
+      return json({ error: "no_subject", message: "Nothing to write about yet." }, 400);
     }
 
     const context = [
@@ -220,7 +217,10 @@ Deno.serve(async (req: Request) => {
 
     const payload = (await upstream.json()) as { choices?: { message?: { content?: string } }[] };
     const raw = (payload.choices?.[0]?.message?.content ?? "").trim();
-    const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    const cleaned = raw
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/, "")
+      .trim();
 
     try {
       const parsed = JSON.parse(cleaned) as { title?: string; body?: string };

@@ -44,13 +44,16 @@ const DEFAULT_VOICE = "sarah";
 const MODEL = "eleven_multilingual_v2";
 
 /**
- * Bumped whenever the model or voice settings change.
+ * Bumped whenever the model, voice settings, or timing source change.
+ *
+ * v4 switches from estimated sentence times to real ones. Everything cached
+ * before it has marks that drift, so it all has to be produced again.
  *
  * Cached audio is keyed by voice, so without this every story generated before
  * the change would keep its old narration and only new stories would sound
  * better — which would have looked like the fix not working.
  */
-const RENDER_VERSION = "v3";
+const RENDER_VERSION = "v4";
 
 /**
  * Settings tuned for calm rather than expressive.
@@ -87,6 +90,26 @@ const VOICE_SETTINGS = {
  */
 const BREAK_SECONDS = 1.6;
 
+/**
+ * How much of the story gets generated first.
+ *
+ * The complaint: "voice starts playing after 40 secs, I need immediately
+ * because it gets frustrating." That was accurate and it's a straight
+ * consequence of the design — ElevenLabs was asked for the entire track, and
+ * an eighteen-minute sleep script is thousands of characters. Nothing could
+ * play until the last character was rendered.
+ *
+ * Nobody needs the last character to start listening. So the opening is
+ * requested on its own and comes back in a few seconds, the player starts, and
+ * the remainder is fetched underneath while those first lines are being read.
+ *
+ * Two sentences rather than one: a single sentence can be four words, which
+ * would run out before the rest arrives. Two plus the 1.6s pause between them
+ * buys roughly ten to fifteen seconds of cover, which is comfortably more than
+ * the rest takes to render.
+ */
+const OPENING_SENTENCES = 2;
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
@@ -112,9 +135,15 @@ Deno.serve(async (req: Request) => {
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
     const user = (await userRes.json()) as { id: string };
 
-    const { storyId, voice = DEFAULT_VOICE } = (await req.json().catch(() => ({}))) as {
+    const {
+      storyId,
+      voice = DEFAULT_VOICE,
+      part,
+    } = (await req.json().catch(() => ({}))) as {
       storyId?: string;
       voice?: string;
+      /** "opening" for the first lines, "rest" for everything after. Omit for the whole thing. */
+      part?: "opening" | "rest";
     };
     if (!storyId) return json({ error: "bad_request", message: "No story given." }, 400);
 
@@ -142,12 +171,25 @@ Deno.serve(async (req: Request) => {
     if (!story) return json({ error: "not_found" }, 404);
 
     // Already paid for in this voice — hand back the cached copy.
-    if (story.audio_url && story.audio_voice === renderTag) {
+    if (!part && story.audio_url && story.audio_voice === renderTag) {
       return json({ audioUrl: story.audio_url, marks: story.audio_marks, cached: true }, 200);
     }
 
-    const sentences = splitSentences(story.body);
-    if (sentences.length === 0) return json({ error: "empty" }, 400);
+    const allSentences = splitSentences(story.body);
+    if (allSentences.length === 0) return json({ error: "empty" }, 400);
+
+    const sentences =
+      part === "opening"
+        ? allSentences.slice(0, OPENING_SENTENCES)
+        : part === "rest"
+          ? allSentences.slice(OPENING_SENTENCES)
+          : allSentences;
+
+    // A story shorter than the opening has no remainder. Say so rather than
+    // billing for an empty generation.
+    if (sentences.length === 0) return json({ audioUrl: null, marks: [], empty: true }, 200);
+
+    const partSuffix = part ? `-${part}` : "";
 
     /**
      * Sleep, meditation and frequency tracks are word-for-word identical for
@@ -161,36 +203,95 @@ Deno.serve(async (req: Request) => {
      */
     const isCatalogue = story.source === "catalogue";
     const path = isCatalogue
-      ? `catalogue/${slugify(story.title)}-${voice}-${RENDER_VERSION}.mp3`
-      : `${user.id}/${storyId}-${voice}-${RENDER_VERSION}.mp3`;
+      ? `catalogue/${slugify(story.title)}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`
+      : `${user.id}/${storyId}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`;
     const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
-    const marks = estimateMarks(sentences, BREAK_SECONDS);
 
-    if (isCatalogue) {
+    /**
+     * Sentence times live beside the audio as a small JSON file.
+     *
+     * The whole-story marks are stored on the `moments` row, but a part has
+     * nowhere to go there — and without somewhere to put them, a cached part
+     * would have to be regenerated purely to recover its timings, which would
+     * defeat the caching entirely. A few hundred bytes next to the mp3 is
+     * cheaper than a schema change and doesn't need a migration.
+     */
+    const marksPath = `${path.replace(/\.mp3$/, "")}.marks.json`;
+    const marksUrl = `${supabaseUrl}/storage/v1/object/public/narration/${marksPath}`;
+
+    if (part) {
+      const head = await fetch(audioUrl, { method: "HEAD" });
+      if (head.ok) {
+        const marksRes = await fetch(marksUrl);
+        const cachedMarks = marksRes.ok ? ((await marksRes.json()) as number[]) : [];
+        console.log(`reused ${part} ${path}`);
+        return json({ audioUrl, marks: cachedMarks, cached: true }, 200);
+      }
+    }
+
+    if (isCatalogue && !part) {
       // Somebody has already paid for this one. Point this user's row at it
       // and return without touching ElevenLabs.
       const head = await fetch(audioUrl, { method: "HEAD" });
       if (head.ok) {
-        await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, marks);
-        console.log(`reused shared narration ${path}`);
-        return json({ audioUrl, marks, cached: true }, 200);
+        // Another user already paid for this track. Their row has the real
+        // marks; read them rather than estimating, so the second listener gets
+        // the same sync as the first.
+        const sharedRes = await fetch(
+          `${supabaseUrl}/rest/v1/moments?select=audio_marks&audio_url=eq.${encodeURIComponent(audioUrl)}&audio_marks=not.is.null&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+        );
+        const sharedRows = sharedRes.ok ? await sharedRes.json() : [];
+        const sharedMarks = Array.isArray(sharedRows) ? sharedRows[0]?.audio_marks : null;
+        const reused = Array.isArray(sharedMarks) ? (sharedMarks as number[]) : [];
+        await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, reused);
+        console.log(`reused shared narration ${path} marks=${reused.length}`);
+        return json({ audioUrl, marks: reused, cached: true }, 200);
       }
     }
 
     // Pauses are baked into the audio as SSML-style breaks, so the narration
     // breathes the same way whether it's played here or in a notification.
-    const script = sentences.join(` <break time="${BREAK_SECONDS}s" /> `);
+    const joiner = ` <break time="${BREAK_SECONDS}s" /> `;
+    const script = sentences.join(joiner);
 
+    // Where each sentence starts inside `script`, so the returned per-character
+    // times can be turned back into per-sentence times.
+    const sentenceOffsets: number[] = [];
+    let cursor = 0;
+    for (const sentence of sentences) {
+      sentenceOffsets.push(cursor);
+      cursor += sentence.length + joiner.length;
+    }
+
+    /**
+     * `/with-timestamps` rather than the plain endpoint.
+     *
+     * It returns the audio as base64 plus the start and end time of every
+     * character, which is the whole point: the previous version guessed the
+     * timings from a hardcoded 2.25 words per second, and a guess that is even
+     * slightly wrong accumulates. By the twentieth sentence of a story the
+     * highlighted line and the voice were seconds apart — reported as "voice
+     * and wordings doesn't tally, voice goes fast".
+     *
+     * No estimate can fix that, because real delivery isn't uniform: Sarah
+     * slows on long clauses, pauses at commas, and takes a different amount of
+     * time on "no" than on "unremarkable". The only correct source for when a
+     * sentence starts is the engine that spoke it.
+     */
     const speak = (settings: Record<string, number | boolean>) =>
-      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
-        method: "POST",
-        headers: {
-          "xi-api-key": apiKey,
-          "Content-Type": "application/json",
-          Accept: "audio/mpeg",
+      fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps?output_format=mp3_44100_128`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": apiKey,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ text: script, model_id: MODEL, voice_settings: settings }),
         },
-        body: JSON.stringify({ text: script, model_id: MODEL, voice_settings: settings }),
-      });
+      );
 
     let ttsRes = await speak(VOICE_SETTINGS);
 
@@ -215,29 +316,40 @@ Deno.serve(async (req: Request) => {
       return json({ error: "upstream_error", message: "Couldn't generate narration." }, 502);
     }
 
-    const audio = new Uint8Array(await ttsRes.arrayBuffer());
+    const spoken = (await ttsRes.json()) as {
+      audio_base64?: string;
+      alignment?: { characters?: string[]; character_start_times_seconds?: number[] } | null;
+    };
 
-    const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/narration/${path}`, {
-      method: "POST",
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "audio/mpeg",
-        "x-upsert": "true",
-      },
-      body: audio,
-    });
+    if (!spoken.audio_base64) {
+      console.error("no audio in timestamped response");
+      return json({ error: "upstream_error", message: "Couldn't generate narration." }, 502);
+    }
 
-    if (!uploadRes.ok) {
-      console.error("upload failed", await uploadRes.text().catch(() => ""));
+    const audio = decodeBase64(spoken.audio_base64);
+    const marks = marksFromAlignment(script, sentenceOffsets, spoken.alignment ?? null, sentences);
+
+    const uploaded = await uploadToStorage(supabaseUrl, serviceKey, path, audio, "audio/mpeg");
+    if (!uploaded) {
       return json({ error: "storage_error", message: "Couldn't save the narration." }, 500);
     }
 
-    await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, marks);
+    if (part) {
+      // Parts keep their timings beside the audio; only the whole story is
+      // recorded on the row, so a half-finished play can't leave the row
+      // pointing at two sentences of narration.
+      await uploadToStorage(
+        supabaseUrl,
+        serviceKey,
+        marksPath,
+        new TextEncoder().encode(JSON.stringify(marks)),
+        "application/json",
+      );
+    } else {
+      await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, marks);
+    }
 
-    console.log(
-      `narrated ${storyId} voice=${voice} chars=${script.length} shared=${isCatalogue}`,
-    );
+    console.log(`narrated ${storyId} voice=${voice} chars=${script.length} shared=${isCatalogue}`);
     return json({ audioUrl, marks, cached: false }, 200);
   } catch (error) {
     console.error("narrate-story failed", error);
@@ -252,6 +364,27 @@ function slugify(title: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
+}
+
+async function uploadToStorage(
+  supabaseUrl: string,
+  serviceKey: string,
+  path: string,
+  body: Uint8Array,
+  contentType: string,
+): Promise<boolean> {
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/narration/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": contentType,
+      "x-upsert": "true",
+    },
+    body,
+  });
+  if (!res.ok) console.error("upload failed", path, await res.text().catch(() => ""));
+  return res.ok;
 }
 
 async function saveToMoment(
@@ -282,17 +415,48 @@ function splitSentences(body: string): string[] {
     .filter(Boolean);
 }
 
-/** Start time per sentence, assuming even delivery plus the break between each. */
-function estimateMarks(sentences: string[], breakSeconds: number): number[] {
-  const WORDS_PER_SECOND = 2.25; // ~135wpm at speed 0.85
-  const marks: number[] = [];
-  let cursor = 0;
-  for (const sentence of sentences) {
-    marks.push(Number(cursor.toFixed(2)));
-    const words = sentence.split(/\s+/).filter(Boolean).length;
-    cursor += words / WORDS_PER_SECOND + breakSeconds;
+/** Base64 to bytes, without pulling in a dependency for four lines. */
+function decodeBase64(input: string): Uint8Array {
+  const binary = atob(input);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * Turn per-character times into the moment each sentence begins.
+ *
+ * ElevenLabs times every character it spoke. We know where each sentence
+ * starts in the script we sent, so a sentence's start time is the time of the
+ * character at that offset.
+ *
+ * The one wrinkle is that the returned character list doesn't always match the
+ * text we sent one-for-one — SSML break tags and text normalisation ("20000cr"
+ * becoming words) change the length. So when the lengths disagree, positions
+ * are scaled proportionally instead. That is still enormously better than the
+ * old estimate: it's anchored to the real total duration rather than to an
+ * assumed reading speed, so error can't accumulate across a long story.
+ */
+function marksFromAlignment(
+  script: string,
+  offsets: number[],
+  alignment: { characters?: string[]; character_start_times_seconds?: number[] } | null,
+  sentences: string[],
+): number[] {
+  const times = alignment?.character_start_times_seconds;
+  if (!times || times.length === 0) {
+    // No alignment came back. Return nothing rather than inventing times: the
+    // player treats an empty list as "don't advance the highlight", which is
+    // honest. Guessing is what produced the bug this replaces.
+    console.warn(`no alignment returned for ${sentences.length} sentences`);
+    return [];
   }
-  return marks;
+
+  const scale = times.length / Math.max(1, script.length);
+  return offsets.map((offset) => {
+    const index = Math.min(times.length - 1, Math.max(0, Math.round(offset * scale)));
+    return Number((times[index] ?? 0).toFixed(2));
+  });
 }
 
 function json(body: unknown, status: number) {
