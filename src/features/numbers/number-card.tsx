@@ -2,7 +2,9 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { ANGEL_NUMBERS, numberForToday } from "./angel-numbers";
+import { useDesires } from "@/features/stories/use-stories";
+
+import { ANGEL_NUMBERS, numberForToday, reflectionFor } from "./angel-numbers";
 
 /**
  * Today's number, on Home.
@@ -19,6 +21,11 @@ import { ANGEL_NUMBERS, numberForToday } from "./angel-numbers";
 export function NumberCard() {
   const today = numberForToday();
   const [open, setOpen] = useState(false);
+
+  // The newest dream, so the question is about what they're working on now
+  // rather than something they typed in April.
+  const { data: desires } = useDesires();
+  const reflection = reflectionFor(today, desires?.[0]?.title);
 
   return (
     <section className="mt-6">
@@ -47,7 +54,7 @@ export function NumberCard() {
       {open && (
         <div className="mt-2 rounded-[24px] surface-gradient p-[1px]">
           <div className="rounded-[23px] bg-card/85 p-5">
-            <p className="text-[15px] leading-relaxed">{today.prompt}</p>
+            <p className="text-[15px] leading-relaxed">{reflection}</p>
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
               A repeated number isn&rsquo;t a prediction. It&rsquo;s a reason to stop for a second
               and ask the question.
@@ -59,7 +66,13 @@ export function NumberCard() {
   );
 }
 
-/** The full list, for the Library. */
+/**
+ * The full list, for the Library.
+ *
+ * Shows the general questions rather than the personalised ones. This is a
+ * reference page — someone reading all ten at once is looking up what the
+ * numbers mean, not being asked ten questions about their own life.
+ */
 export function NumberList() {
   return (
     <section className="mt-8">
