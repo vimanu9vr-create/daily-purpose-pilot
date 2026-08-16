@@ -312,8 +312,19 @@ export function useGenerateStories() {
        * returns without spending anything when the images already exist. Not
        * awaited, because covers arriving a minute later is fine and the stock
        * photograph is showing in the meantime.
+       *
+       * CAPPED AT THREE DESIRES PER VISIT, and that cap is the important part.
+       * Six images at four cents is twenty-four cents per dream — fine once,
+       * and not fine multiplied by however many dreams somebody has written.
+       * This account has eleven, which without the cap would be $2.64 the
+       * first time Home loaded. Three at a time means the whole set is covered
+       * within a few visits and no single visit is expensive.
+       *
+       * Newest first, because a dream someone just added is the one they're
+       * looking at.
        */
-      for (const desire of active) {
+      const COVER_BATCH = 3;
+      for (const desire of active.slice(0, COVER_BATCH)) {
         void supabase.functions
           .invoke("generate-desire-covers", { body: { desireId: desire.id } })
           .catch(() => undefined);
@@ -348,7 +359,21 @@ export function useGenerateStories() {
 
       const pending: Pending[] = [];
 
-      for (const desire of active) {
+      /**
+       * How many dreams the feed is written from in one go.
+       *
+       * Same problem as the covers, one layer up: this multiplies. Six stories
+       * per dream is one AI call each, so eleven active dreams is sixty-six
+       * calls fired at once — which is both a rate-limit and a bill nobody
+       * asked for. A feed is something you scroll for a minute; it does not
+       * need sixty-six cards.
+       *
+       * Newest first, because the dream someone just typed is the one they're
+       * waiting to see.
+       */
+      const DESIRE_BATCH = 4;
+
+      for (const desire of active.slice(0, DESIRE_BATCH)) {
         const seed = {
           title: desire.title,
           why: desire.description,

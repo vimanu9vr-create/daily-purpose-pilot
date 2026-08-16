@@ -51,13 +51,23 @@ function HomeFeed() {
   const hasDesires = (desires?.length ?? 0) > 0;
   const storyList = stories ?? [];
 
-  // First run: as soon as there's a desire and no stories, fill the feed.
+  /**
+   * Refill the feed when there are no stories in it.
+   *
+   * Counts `storiesOnly`, not everything fetched. The query returns the
+   * library tracks as well now, and those never expire — so a check against
+   * the whole list would see thirty-five rows, conclude the feed was fine, and
+   * leave Home showing nothing but sleep tracks forever once the day's stories
+   * aged out. The refill has to ask about the thing it refills.
+   */
+  const storiesOnly = storyList.filter((s) => s.kind === "story");
+
   useEffect(() => {
-    if (hasDesires && !isPending && storyList.length === 0 && !generate.isPending) {
+    if (hasDesires && !isPending && storiesOnly.length === 0 && !generate.isPending) {
       generate.mutate({ perDesire: 6 });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasDesires, isPending, storyList.length]);
+  }, [hasDesires, isPending, storiesOnly.length]);
 
   // Today's actions. Generated once a day per desire, on first open.
   const { data: actions } = useTodaysActions();
@@ -95,7 +105,6 @@ function HomeFeed() {
   }, [actions, desires, selectedDesireId]);
 
   // Only personalised stories belong on Home; the catalogue lives in Library.
-  const storiesOnly = storyList.filter((s) => s.kind === "story");
   const selectedDesire = desires?.find((d) => d.id === selectedDesireId) ?? null;
   const filteredStories = selectedDesireId
     ? storiesOnly.filter((s) => s.desire_id === selectedDesireId)
@@ -280,7 +289,7 @@ function HomeFeed() {
         </section>
       )}
 
-      {hasDesires && (isPending || generate.isPending) && storyList.length === 0 && (
+      {hasDesires && (isPending || generate.isPending) && storiesOnly.length === 0 && (
         <div className="mt-10 flex flex-col items-center py-16 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <p className="mt-4 text-sm text-muted-foreground">Writing your stories…</p>
@@ -327,7 +336,7 @@ function HomeFeed() {
         </CarouselSection>
       )}
 
-      {storyList.length > 0 && (
+      {storiesOnly.length > 0 && (
         <RefreshCountdown
           onRefresh={() => generate.mutate({ perDesire: 6 })}
           busy={generate.isPending}
