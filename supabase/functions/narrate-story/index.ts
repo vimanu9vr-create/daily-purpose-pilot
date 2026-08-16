@@ -46,16 +46,19 @@ const MODEL = "eleven_multilingual_v2";
 /**
  * Bumped whenever the model, voice settings, or timing source change.
  *
- * v4 switched from estimated sentence times to real ones. v5 slows the voice
- * to 0.7 and opens the gaps to 2.4s — every cached file was rendered at the
- * old pace, so without the bump only brand new tracks would sound different
- * and the change would look like it hadn't worked.
+ * v4 switched from estimated sentence times to real ones. v5 slowed the voice
+ * to 0.7 and opened the gaps to 2.4s. v6 gives each half of a split narration
+ * the text either side of it, so the two halves sound like one performance
+ * instead of two.
+ *
+ * Every cached file was rendered under the old rules, so without the bump only
+ * brand new tracks would change and the fix would look like it hadn't worked.
  *
  * Cached audio is keyed by voice, so without this every story generated before
  * the change would keep its old narration and only new stories would sound
  * better — which would have looked like the fix not working.
  */
-const RENDER_VERSION = "v5";
+const RENDER_VERSION = "v6";
 
 /**
  * Settings tuned for calm rather than expressive.
@@ -270,6 +273,38 @@ Deno.serve(async (req: Request) => {
     const joiner = ` <break time="${BREAK_SECONDS}s" /> `;
     const script = sentences.join(joiner);
 
+    /**
+     * Tell the model what comes either side of this chunk.
+     *
+     * THIS IS THE FIX FOR "the voice first feels robotic and after some
+     * seconds it goes fast."
+     *
+     * Splitting the narration in two made it start quickly, but it also meant
+     * asking ElevenLabs for two unrelated performances. The opening is around
+     * eighty characters — with no context at all, the model has nothing to
+     * pitch against and delivers it flat and clipped, which is what "robotic"
+     * is. The remainder is thousands of characters, so it settles into a
+     * natural, flowing, noticeably quicker read. Two different voices, joined
+     * fifteen seconds in.
+     *
+     * `previous_text` and `next_text` exist precisely for this: ElevenLabs
+     * documents them as improving continuity when concatenating separate
+     * generations. Giving the opening a glimpse of what follows, and the
+     * remainder a glimpse of what preceded it, makes both halves sound like
+     * one person reading one thing.
+     *
+     * Neither is spoken. They are context only.
+     */
+    const CONTEXT_CHARS = 400;
+    const previousText =
+      part === "rest"
+        ? allSentences.slice(0, OPENING_SENTENCES).join(" ").slice(-CONTEXT_CHARS)
+        : "";
+    const nextText =
+      part === "opening"
+        ? allSentences.slice(OPENING_SENTENCES).join(" ").slice(0, CONTEXT_CHARS)
+        : "";
+
     // Where each sentence starts inside `script`, so the returned per-character
     // times can be turned back into per-sentence times.
     const sentenceOffsets: number[] = [];
@@ -304,7 +339,13 @@ Deno.serve(async (req: Request) => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ text: script, model_id: MODEL, voice_settings: settings }),
+          body: JSON.stringify({
+            text: script,
+            model_id: MODEL,
+            voice_settings: settings,
+            ...(previousText ? { previous_text: previousText } : {}),
+            ...(nextText ? { next_text: nextText } : {}),
+          }),
         },
       );
 
