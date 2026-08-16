@@ -46,14 +46,16 @@ const MODEL = "eleven_multilingual_v2";
 /**
  * Bumped whenever the model, voice settings, or timing source change.
  *
- * v4 switches from estimated sentence times to real ones. Everything cached
- * before it has marks that drift, so it all has to be produced again.
+ * v4 switched from estimated sentence times to real ones. v5 slows the voice
+ * to 0.7 and opens the gaps to 2.4s — every cached file was rendered at the
+ * old pace, so without the bump only brand new tracks would sound different
+ * and the change would look like it hadn't worked.
  *
  * Cached audio is keyed by voice, so without this every story generated before
  * the change would keep its old narration and only new stories would sound
  * better — which would have looked like the fix not working.
  */
-const RENDER_VERSION = "v4";
+const RENDER_VERSION = "v5";
 
 /**
  * Settings tuned for calm rather than expressive.
@@ -73,22 +75,35 @@ const VOICE_SETTINGS = {
   similarity_boost: 0.75,
   style: 0,
   use_speaker_boost: false,
-  // Slower than natural speech. Unhurried is most of the effect people
-  // describe as "the universe speaking" — nothing that sounds like it is
-  // getting through a script can feel timeless.
-  speed: 0.85,
+  /**
+   * Slower than natural speech.
+   *
+   * Was 0.85, and reported back as still feeling fast — "it's not like the
+   * universe is speaking". The logs confirmed 0.85 was genuinely being applied
+   * rather than being rejected and silently dropped, so the setting was right
+   * and the number was wrong.
+   *
+   * 0.7 is close to the floor of what stays natural; below it the model starts
+   * to slur rather than slow. Most of the remaining effect comes from the
+   * silence between sentences instead, which is the cheaper lever.
+   */
+  speed: 0.7,
 };
 
 /**
  * Silence between sentences.
  *
- * Raised from 0.9s. This single number does more for the feeling of space
- * than any voice setting: at 0.9s the narration reads like an audiobook, and
- * at 1.6s it reads like something being said into a large room. It also gives
- * the ambient bed room to be heard between lines, which is where the sense of
- * atmosphere actually comes from.
+ * This single number does more for the feeling of space than any voice
+ * setting. At 0.9s the narration reads like an audiobook. At 1.6s it reads
+ * like something said into a large room. At 2.4s it stops sounding like
+ * reading at all — the gap is long enough that each line arrives on its own
+ * rather than as the next item in a list, and long enough for the ambient bed
+ * to be heard underneath, which is where the atmosphere actually lives.
+ *
+ * It is also what makes a slow voice bearable: 0.7 speed with short gaps just
+ * sounds sluggish. Slow delivery plus long silence sounds deliberate.
  */
-const BREAK_SECONDS = 1.6;
+const BREAK_SECONDS = 2.4;
 
 /**
  * How much of the story gets generated first.

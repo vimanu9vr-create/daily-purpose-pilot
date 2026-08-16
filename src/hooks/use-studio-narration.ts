@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { SILENT_WAV } from "@/lib/ambient-audio";
 import { reportError, trail } from "@/lib/telemetry";
 
 /**
@@ -66,6 +67,8 @@ export function useStudioNarration(
   const openingSecondsRef = useRef(0);
   const playWhenReadyRef = useRef(false);
   const restRequestedRef = useRef<string | null>(null);
+  /** In-flight requests, so a prefetch and a tap don't both pay for the same audio. */
+  const inFlightRef = useRef(new Map<string, Promise<Piece | null>>());
 
   useEffect(() => {
     if (!cachedUrl) return;
@@ -75,19 +78,50 @@ export function useStudioNarration(
 
   const current = stage === "rest" ? restRef : openingRef;
 
-  /** Build an audio element and wire the shared handlers onto it. */
-  const attach = useCallback(
-    (url: string, which: "opening" | "rest") => {
-      const audio = new Audio(url);
-      audio.preload = "auto";
+  /**
+   * Values the audio listeners need, held in refs.
+   *
+   * The elements are built once and never rebuilt (see below), so their
+   * listeners close over the first render's values. Refs are how they read the
+   * current ones without the elements having to be torn down and recreated.
+   */
+  const singleRef = useRef(single);
+  const loopingRef = useRef(looping);
+  useEffect(() => {
+    singleRef.current = single;
+  }, [single]);
+  useEffect(() => {
+    loopingRef.current = looping;
+  }, [looping]);
 
+  /**
+   * Two audio elements, created once and reused.
+   *
+   * This is the fix for "I have to tap play twice and after that only it
+   * plays". Browsers only let audio start inside the user gesture that asked
+   * for it. The old code built `new Audio(url)` after awaiting the network, so
+   * by the time `.play()` ran the gesture was long over and the browser
+   * refused — silently, because the rejection was caught. The second tap
+   * worked because by then the audio existed and play ran synchronously.
+   *
+   * Making the elements persistent means they can be unlocked during the tap
+   * itself, before any network call, and are still permitted to start when the
+   * URL arrives seconds later.
+   */
+  useEffect(() => {
+    const opening = new Audio();
+    const rest = new Audio();
+    opening.preload = "auto";
+    rest.preload = "auto";
+    openingRef.current = opening;
+    restRef.current = rest;
+
+    const wire = (audio: HTMLAudioElement, which: "opening" | "rest") => {
       audio.addEventListener("loadedmetadata", () => {
         if (which === "opening") openingSecondsRef.current = audio.duration || 0;
-        setDuration(() => {
-          const head = openingSecondsRef.current;
-          const tail = restRef.current?.duration || 0;
-          return head + (Number.isFinite(tail) ? tail : 0);
-        });
+        const head = openingSecondsRef.current;
+        const tail = restRef.current?.duration || 0;
+        setDuration(head + (Number.isFinite(tail) ? tail : 0));
       });
 
       audio.addEventListener("timeupdate", () => {
@@ -98,9 +132,9 @@ export function useStudioNarration(
       });
 
       audio.addEventListener("ended", () => {
-        if (which === "opening" && !single) {
+        if (which === "opening" && !singleRef.current) {
           const tail = restRef.current;
-          if (tail) {
+          if (tail?.src && !tail.src.startsWith("data:")) {
             setStage("rest");
             void tail.play().catch(() => setIsPlaying(false));
             return;
@@ -112,7 +146,7 @@ export function useStudioNarration(
           setIsPlaying(false);
           return;
         }
-        if (looping) {
+        if (loopingRef.current) {
           audio.currentTime = 0;
           void audio.play();
           return;
@@ -120,43 +154,64 @@ export function useStudioNarration(
         setIsPlaying(false);
       });
 
+      // Only complain about a real file. Setting src to the silent unlock clip
+      // and back again fires error events that mean nothing.
       audio.addEventListener("error", () => {
+        if (!audio.src || audio.src.startsWith("data:")) return;
         setError("Couldn't play that narration.");
         setIsPlaying(false);
       });
+    };
 
-      return audio;
-    },
-    [looping, single],
-  );
+    wire(opening, "opening");
+    wire(rest, "rest");
 
-  // The opening (or, on the cached path, the whole story).
+    return () => {
+      opening.pause();
+      rest.pause();
+      openingRef.current = null;
+      restRef.current = null;
+    };
+  }, []);
+
+  /**
+   * Claim permission to make sound, synchronously, inside the tap.
+   *
+   * Must be called from the click handler before anything is awaited — that is
+   * the entire point. Playing a few milliseconds of silence is enough for the
+   * browser to mark these elements as user-initiated.
+   */
+  const unlock = useCallback(() => {
+    for (const audio of [openingRef.current, restRef.current]) {
+      if (!audio || audio.src) continue;
+      audio.src = SILENT_WAV;
+      void audio.play().catch(() => undefined);
+    }
+  }, []);
+
+  // Point the opening element at its file. The element already exists, so this
+  // is a src change rather than a construction — which is what keeps whatever
+  // permission the tap earned.
   useEffect(() => {
-    if (!opening) return;
-    const audio = attach(opening.audioUrl, "opening");
-    openingRef.current = audio;
+    const audio = openingRef.current;
+    if (!audio || !opening) return;
+    audio.src = opening.audioUrl;
 
     if (playWhenReadyRef.current && stage === "opening") {
       playWhenReadyRef.current = false;
       void audio
         .play()
         .then(() => setIsPlaying(true))
-        // iOS refuses if too long has passed since the tap. Leave it ready.
         .catch(() => setIsPlaying(false));
     }
-
-    return () => {
-      audio.pause();
-      openingRef.current = null;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opening?.audioUrl, attach]);
+  }, [opening?.audioUrl]);
 
-  // The remainder, prepared silently while the opening plays.
+  // The remainder, loaded quietly while the opening plays.
   useEffect(() => {
-    if (!rest) return;
-    const audio = attach(rest.audioUrl, "rest");
-    restRef.current = audio;
+    const audio = restRef.current;
+    if (!audio || !rest) return;
+    audio.src = rest.audioUrl;
 
     // The opening finished before this arrived — pick straight up.
     if (playWhenReadyRef.current) {
@@ -167,13 +222,8 @@ export function useStudioNarration(
         .then(() => setIsPlaying(true))
         .catch(() => setIsPlaying(false));
     }
-
-    return () => {
-      audio.pause();
-      restRef.current = null;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rest?.audioUrl, attach]);
+  }, [rest?.audioUrl]);
 
   /**
    * Sentence times across both files.
@@ -205,8 +255,7 @@ export function useStudioNarration(
     marksRef.current = marks;
   }, [marks]);
 
-  /** One call to the narration function. Returns the piece, or null. */
-  const request = useCallback(
+  const requestOnce = useCallback(
     async (voice: string, part?: "opening" | "rest"): Promise<Piece | null> => {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
@@ -232,6 +281,34 @@ export function useStudioNarration(
       if (!result.audioUrl || result.empty) return null;
       return { audioUrl: result.audioUrl, marks: result.marks ?? [] };
     },
+    [storyId],
+  );
+
+  /**
+   * One call to the narration function, deduplicated.
+   *
+   * The prefetch on screen-open and the press of the play button both ask for
+   * the opening, and before this they raced: the logs show the same two
+   * sentences generated twice, 77 milliseconds apart. Both missed the storage
+   * cache because neither had finished writing it, so ElevenLabs was paid
+   * twice for identical audio on every first play.
+   *
+   * Keyed by story and part rather than a single flag, because the opening and
+   * the remainder are legitimately in flight at the same time.
+   */
+  const request = useCallback(
+    (voice: string, part?: "opening" | "rest"): Promise<Piece | null> => {
+      const key = `${storyId}:${part ?? "all"}:${voice}`;
+      const existing = inFlightRef.current.get(key);
+      if (existing) return existing;
+
+      const promise = requestOnce(voice, part).finally(() => {
+        inFlightRef.current.delete(key);
+      });
+      inFlightRef.current.set(key, promise);
+      return promise;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [storyId],
   );
 
@@ -394,6 +471,7 @@ export function useStudioNarration(
     error,
     generate,
     prepareOpening,
+    unlock,
     isPlaying,
     currentIndex,
     currentSentence: sentences[currentIndex] ?? "",

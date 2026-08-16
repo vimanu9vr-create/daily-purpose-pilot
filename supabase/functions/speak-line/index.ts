@@ -32,20 +32,22 @@ const DEFAULT_VOICE = "sarah";
 const MODEL = "eleven_multilingual_v2";
 
 /** Bump to invalidate every cached line at once. Mirrors narrate-story. */
-const RENDER_VERSION = "v1";
+const RENDER_VERSION = "v2";
 
 /**
  * Deliberately identical to narrate-story's settings.
  *
  * If an affirmation sounds different from a story, the app has two voices and
- * neither feels like a person. Same voice, same stability, same slowness.
+ * neither feels like a person. Same voice, same stability, same slowness —
+ * which means this file has to be changed every time that one is. v2 follows
+ * narrate-story down to 0.7 speed and 2.4s gaps.
  */
 const VOICE_SETTINGS = {
   stability: 0.85,
   similarity_boost: 0.75,
   style: 0,
   use_speaker_boost: false,
-  speed: 0.85,
+  speed: 0.7,
 };
 
 /**
@@ -54,7 +56,7 @@ const VOICE_SETTINGS = {
  * An affirmation is usually one sentence, so this mostly does nothing — but
  * Today's Moment is several, and without it they run together.
  */
-const BREAK_SECONDS = 1.6;
+const BREAK_SECONDS = 2.4;
 
 /**
  * Hard ceiling on what counts as a "line".

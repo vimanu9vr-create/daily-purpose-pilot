@@ -30,7 +30,7 @@ const TONE_FILES: Record<number, string> = {
 };
 
 /** One-frame silent WAV. Playing this escapes the iOS silent switch. */
-const SILENT_WAV =
+export const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
 let silentUnlocker: HTMLAudioElement | null = null;

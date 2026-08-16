@@ -104,7 +104,12 @@ function StoryPlayer() {
   // toggle almost nobody found, so speech played over silence.
   useEffect(() => {
     if (isSession || !music) return;
-    if (narration.isPlaying) ambientPad().start(0.09);
+    // Raised from 0.09. At that level the pad was technically playing and
+    // effectively inaudible on a phone speaker, so narration still landed on
+    // silence — which is most of why it read as a voice reading text rather
+    // than a voice in a room. Still well under the speech; it should be felt
+    // rather than noticed.
+    if (narration.isPlaying) ambientPad().start(0.16);
     else ambientPad().stop();
   }, [narration.isPlaying, isSession, music]);
 
@@ -437,6 +442,8 @@ function StoryPlayer() {
                   } else {
                     bed.start();
                     if (!studio.available) {
+                      // Synchronously, inside the tap, before any await.
+                      studio.unlock();
                       if (!studio.isGenerating) void studio.generate("sarah", true);
                     } else {
                       studio.toggle();
@@ -455,6 +462,10 @@ function StoryPlayer() {
                 if (!studio.available) {
                   if (studio.isGenerating) return;
                   unlockAudioSession();
+                  // Claims permission for the narration elements specifically.
+                  // unlockAudioSession() only unlocks the ambient bed's own
+                  // element, and on iOS that permission does not carry across.
+                  studio.unlock();
                   ambientPad().start(0.09);
                   void studio.generate("sarah", true);
                   return;
