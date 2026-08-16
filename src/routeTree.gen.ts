@@ -34,6 +34,7 @@ import { Route as AuthenticatedAppProgressRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppUpgradeRouteImport } from './routes/_authenticated/app.upgrade'
 import { Route as AuthenticatedAppVisionRouteImport } from './routes/_authenticated/app.vision'
+import { Route as AuthenticatedAppVoiceLabRouteImport } from './routes/_authenticated/app.voice-lab'
 import { Route as AuthenticatedAppWeekRouteImport } from './routes/_authenticated/app.week'
 import { Route as AuthenticatedAppGoalsIndexRouteImport } from './routes/_authenticated/app.goals.index'
 import { Route as AuthenticatedAppGoalsGoalIdRouteImport } from './routes/_authenticated/app.goals.$goalId'
@@ -171,6 +172,12 @@ const AuthenticatedAppVisionRoute = AuthenticatedAppVisionRouteImport.update({
   path: '/vision',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppVoiceLabRoute =
+  AuthenticatedAppVoiceLabRouteImport.update({
+    id: '/voice-lab',
+    path: '/voice-lab',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppWeekRoute = AuthenticatedAppWeekRouteImport.update({
   id: '/week',
   path: '/week',
@@ -231,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
   '/app/vision': typeof AuthenticatedAppVisionRoute
+  '/app/voice-lab': typeof AuthenticatedAppVoiceLabRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
@@ -261,6 +269,7 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
   '/app/vision': typeof AuthenticatedAppVisionRoute
+  '/app/voice-lab': typeof AuthenticatedAppVoiceLabRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
@@ -295,6 +304,7 @@ export interface FileRoutesById {
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/upgrade': typeof AuthenticatedAppUpgradeRoute
   '/_authenticated/app/vision': typeof AuthenticatedAppVisionRoute
+  '/_authenticated/app/voice-lab': typeof AuthenticatedAppVoiceLabRoute
   '/_authenticated/app/week': typeof AuthenticatedAppWeekRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/upgrade'
     | '/app/vision'
+    | '/app/voice-lab'
     | '/app/week'
     | '/app/'
     | '/app/goals/$goalId'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/upgrade'
     | '/app/vision'
+    | '/app/voice-lab'
     | '/app/week'
     | '/app'
     | '/app/goals/$goalId'
@@ -392,6 +404,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/settings'
     | '/_authenticated/app/upgrade'
     | '/_authenticated/app/vision'
+    | '/_authenticated/app/voice-lab'
     | '/_authenticated/app/week'
     | '/_authenticated/app/'
     | '/_authenticated/app/goals/$goalId'
@@ -588,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppVisionRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/voice-lab': {
+      id: '/_authenticated/app/voice-lab'
+      path: '/voice-lab'
+      fullPath: '/app/voice-lab'
+      preLoaderRoute: typeof AuthenticatedAppVoiceLabRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/week': {
       id: '/_authenticated/app/week'
       path: '/week'
@@ -678,6 +698,7 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppUpgradeRoute: typeof AuthenticatedAppUpgradeRoute
   AuthenticatedAppVisionRoute: typeof AuthenticatedAppVisionRoute
+  AuthenticatedAppVoiceLabRoute: typeof AuthenticatedAppVoiceLabRoute
   AuthenticatedAppWeekRoute: typeof AuthenticatedAppWeekRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppProgrammeProgrammeIdRoute: typeof AuthenticatedAppProgrammeProgrammeIdRoute
@@ -700,6 +721,7 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppUpgradeRoute: AuthenticatedAppUpgradeRoute,
   AuthenticatedAppVisionRoute: AuthenticatedAppVisionRoute,
+  AuthenticatedAppVoiceLabRoute: AuthenticatedAppVoiceLabRoute,
   AuthenticatedAppWeekRoute: AuthenticatedAppWeekRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppProgrammeProgrammeIdRoute:

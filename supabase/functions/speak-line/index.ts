@@ -89,10 +89,40 @@ Deno.serve(async (req: Request) => {
     });
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
 
-    const { text, voice = DEFAULT_VOICE } = (await req.json().catch(() => ({}))) as {
+    /**
+     * Optional overrides, for comparing candidates side by side.
+     *
+     * Five rounds of "change a number, ship it, wait to be told it's still
+     * wrong" is not a process that converges — especially when the person
+     * changing the number has never heard the result. These let the app render
+     * the same passage in several voices and paces at once so the choice can be
+     * made by ear in one sitting.
+     *
+     * Both are clamped rather than trusted. This endpoint is reachable by any
+     * signed-in user, and an unbounded gap would let someone request an hour of
+     * silence at our expense.
+     */
+    const {
+      text,
+      voice = DEFAULT_VOICE,
+      speed,
+      gapSeconds,
+    } = (await req.json().catch(() => ({}))) as {
       text?: string;
       voice?: string;
+      speed?: number;
+      gapSeconds?: number;
     };
+
+    const chosenSpeed =
+      typeof speed === "number" && Number.isFinite(speed)
+        ? Math.min(1.1, Math.max(0.6, speed))
+        : VOICE_SETTINGS.speed;
+
+    const chosenGap =
+      typeof gapSeconds === "number" && Number.isFinite(gapSeconds)
+        ? Math.min(4, Math.max(0.4, gapSeconds))
+        : BREAK_SECONDS;
 
     const clean = (text ?? "").trim();
     if (!clean) return json({ error: "bad_request", message: "Nothing to say." }, 400);
@@ -105,7 +135,7 @@ Deno.serve(async (req: Request) => {
 
     // The cache key is the words themselves, so the same affirmation in two
     // different people's libraries is one file.
-    const hash = await sha256(`${RENDER_VERSION}|${voiceKey}|${clean}`);
+    const hash = await sha256(`${RENDER_VERSION}|${voiceKey}|${chosenSpeed}|${chosenGap}|${clean}`);
     const path = `lines/${hash}.mp3`;
     const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
 
@@ -117,7 +147,7 @@ Deno.serve(async (req: Request) => {
       .map((s) => s.trim())
       .filter(Boolean);
     const script = (sentences.length > 0 ? sentences : [clean]).join(
-      ` <break time="${BREAK_SECONDS}s" /> `,
+      ` <break time="${chosenGap}s" /> `,
     );
 
     const speak = (settings: Record<string, number | boolean>) =>
@@ -131,12 +161,13 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ text: script, model_id: MODEL, voice_settings: settings }),
       });
 
-    let ttsRes = await speak(VOICE_SETTINGS);
+    const settings = { ...VOICE_SETTINGS, speed: chosenSpeed };
+    let ttsRes = await speak(settings);
     if (ttsRes.status === 422) {
       // Same guard as narrate-story: `speed` isn't accepted on every model, and
       // slightly quicker delivery beats no audio.
       console.warn("retrying without speed; model rejected the setting");
-      const { speed: _speed, ...withoutSpeed } = VOICE_SETTINGS;
+      const { speed: _speed, ...withoutSpeed } = settings;
       ttsRes = await speak(withoutSpeed);
     }
 
@@ -169,7 +200,9 @@ Deno.serve(async (req: Request) => {
       return json({ error: "storage_error", message: "Couldn't save that." }, 500);
     }
 
-    console.log(`spoke line hash=${hash} chars=${script.length} voice=${voiceKey}`);
+    console.log(
+      `spoke line hash=${hash} chars=${script.length} voice=${voiceKey} speed=${chosenSpeed} gap=${chosenGap}`,
+    );
     return json({ audioUrl, cached: false }, 200);
   } catch (error) {
     console.error("speak-line failed", error);
