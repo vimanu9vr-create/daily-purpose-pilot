@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { trail } from "@/lib/telemetry";
 
-import { buildTrackScript, TRACK_THEMES } from "./affirmation-tracks";
+import { buildTrackScript, linesNeededFor, trackSeconds, TRACK_THEMES } from "./affirmation-tracks";
 
 /**
  * Builds a personal library of affirmation tracks.
@@ -69,16 +69,22 @@ export function useSeedAffirmationTracks() {
           AFFIRMATION_CATEGORIES.find((c) => c.id === theme.category)?.affirmations ?? [];
         const personal = mine.get(theme.category) ?? [];
 
-        // Personal lines lead, curated fills to twelve. Twelve is about a
-        // hundred seconds of speech, which is the right size for a set that
-        // repeats — short enough to become familiar, long enough not to grate.
-        const lines = [...new Set([...personal, ...curated])].slice(0, 12);
+        /**
+         * Take as many distinct lines as are available, up to what a
+         * fifteen-minute track would need.
+         *
+         * The old cap was twelve, chosen because twelve lines was "the right
+         * size for a set that repeats". That reasoning was fine and the
+         * consequence wasn't: twelve lines is under two minutes of audio, and
+         * the track was labelled up to fifteen. Now the material decides the
+         * length instead of the length being asserted over the material.
+         */
+        const lines = [...new Set([...personal, ...curated])].slice(0, linesNeededFor(15));
         if (lines.length < 5) continue;
 
         const body = buildTrackScript({
           theme: theme.title,
           lines,
-          minutes: theme.minutes,
           category: theme.category,
         });
 
@@ -89,7 +95,9 @@ export function useSeedAffirmationTracks() {
           body,
           category: theme.category,
           image_url: coverImage(`affirmation-${theme.id}`, themeFor(theme.category)),
-          duration_seconds: theme.minutes * 60,
+          // Measured from the words, not declared. This is the number the
+          // "10 MIN" badge renders, so it has to be the real one.
+          duration_seconds: trackSeconds(lines),
           kind: "affirmation",
           // "catalogue" so narration is shared across users by title — one
           // person's generation pays for everyone's.
