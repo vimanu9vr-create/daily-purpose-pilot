@@ -29,6 +29,7 @@ import { Route as AuthenticatedAppLibraryRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppMomentsRouteImport } from './routes/_authenticated/app.moments'
 import { Route as AuthenticatedAppPracticeRouteImport } from './routes/_authenticated/app.practice'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app.profile'
+import { Route as AuthenticatedAppProgrammesRouteImport } from './routes/_authenticated/app.programmes'
 import { Route as AuthenticatedAppProgressRouteImport } from './routes/_authenticated/app.progress'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppUpgradeRouteImport } from './routes/_authenticated/app.upgrade'
@@ -37,6 +38,7 @@ import { Route as AuthenticatedAppWeekRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAppGoalsIndexRouteImport } from './routes/_authenticated/app.goals.index'
 import { Route as AuthenticatedAppGoalsGoalIdRouteImport } from './routes/_authenticated/app.goals.$goalId'
 import { Route as AuthenticatedAppPracticeDoneRouteImport } from './routes/_authenticated/app.practice.done'
+import { Route as AuthenticatedAppProgrammeProgrammeIdRouteImport } from './routes/_authenticated/app.programme.$programmeId'
 import { Route as AuthenticatedAppStoryStoryIdRouteImport } from './routes/_authenticated/app.story.$storyId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -141,6 +143,12 @@ const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppProgrammesRoute =
+  AuthenticatedAppProgrammesRouteImport.update({
+    id: '/programmes',
+    path: '/programmes',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppProgressRoute =
   AuthenticatedAppProgressRouteImport.update({
     id: '/progress',
@@ -186,6 +194,12 @@ const AuthenticatedAppPracticeDoneRoute =
     path: '/done',
     getParentRoute: () => AuthenticatedAppPracticeRoute,
   } as any)
+const AuthenticatedAppProgrammeProgrammeIdRoute =
+  AuthenticatedAppProgrammeProgrammeIdRouteImport.update({
+    id: '/programme/$programmeId',
+    path: '/programme/$programmeId',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppStoryStoryIdRoute =
   AuthenticatedAppStoryStoryIdRouteImport.update({
     id: '/story/$storyId',
@@ -212,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/app/moments': typeof AuthenticatedAppMomentsRoute
   '/app/practice': typeof AuthenticatedAppPracticeRouteWithChildren
   '/app/profile': typeof AuthenticatedAppProfileRoute
+  '/app/programmes': typeof AuthenticatedAppProgrammesRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
@@ -220,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
   '/app/practice/done': typeof AuthenticatedAppPracticeDoneRoute
+  '/app/programme/$programmeId': typeof AuthenticatedAppProgrammeProgrammeIdRoute
   '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
@@ -240,6 +256,7 @@ export interface FileRoutesByTo {
   '/app/moments': typeof AuthenticatedAppMomentsRoute
   '/app/practice': typeof AuthenticatedAppPracticeRouteWithChildren
   '/app/profile': typeof AuthenticatedAppProfileRoute
+  '/app/programmes': typeof AuthenticatedAppProgrammesRoute
   '/app/progress': typeof AuthenticatedAppProgressRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/upgrade': typeof AuthenticatedAppUpgradeRoute
@@ -248,6 +265,7 @@ export interface FileRoutesByTo {
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
   '/app/practice/done': typeof AuthenticatedAppPracticeDoneRoute
+  '/app/programme/$programmeId': typeof AuthenticatedAppProgrammeProgrammeIdRoute
   '/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/app/goals': typeof AuthenticatedAppGoalsIndexRoute
 }
@@ -272,6 +290,7 @@ export interface FileRoutesById {
   '/_authenticated/app/moments': typeof AuthenticatedAppMomentsRoute
   '/_authenticated/app/practice': typeof AuthenticatedAppPracticeRouteWithChildren
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
+  '/_authenticated/app/programmes': typeof AuthenticatedAppProgrammesRoute
   '/_authenticated/app/progress': typeof AuthenticatedAppProgressRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/upgrade': typeof AuthenticatedAppUpgradeRoute
@@ -280,6 +299,7 @@ export interface FileRoutesById {
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/goals/$goalId': typeof AuthenticatedAppGoalsGoalIdRoute
   '/_authenticated/app/practice/done': typeof AuthenticatedAppPracticeDoneRoute
+  '/_authenticated/app/programme/$programmeId': typeof AuthenticatedAppProgrammeProgrammeIdRoute
   '/_authenticated/app/story/$storyId': typeof AuthenticatedAppStoryStoryIdRoute
   '/_authenticated/app/goals/': typeof AuthenticatedAppGoalsIndexRoute
 }
@@ -304,6 +324,7 @@ export interface FileRouteTypes {
     | '/app/moments'
     | '/app/practice'
     | '/app/profile'
+    | '/app/programmes'
     | '/app/progress'
     | '/app/settings'
     | '/app/upgrade'
@@ -312,6 +333,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/goals/$goalId'
     | '/app/practice/done'
+    | '/app/programme/$programmeId'
     | '/app/story/$storyId'
     | '/app/goals/'
   fileRoutesByTo: FileRoutesByTo
@@ -332,6 +354,7 @@ export interface FileRouteTypes {
     | '/app/moments'
     | '/app/practice'
     | '/app/profile'
+    | '/app/programmes'
     | '/app/progress'
     | '/app/settings'
     | '/app/upgrade'
@@ -340,6 +363,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/goals/$goalId'
     | '/app/practice/done'
+    | '/app/programme/$programmeId'
     | '/app/story/$storyId'
     | '/app/goals'
   id:
@@ -363,6 +387,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/moments'
     | '/_authenticated/app/practice'
     | '/_authenticated/app/profile'
+    | '/_authenticated/app/programmes'
     | '/_authenticated/app/progress'
     | '/_authenticated/app/settings'
     | '/_authenticated/app/upgrade'
@@ -371,6 +396,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/'
     | '/_authenticated/app/goals/$goalId'
     | '/_authenticated/app/practice/done'
+    | '/_authenticated/app/programme/$programmeId'
     | '/_authenticated/app/story/$storyId'
     | '/_authenticated/app/goals/'
   fileRoutesById: FileRoutesById
@@ -527,6 +553,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/programmes': {
+      id: '/_authenticated/app/programmes'
+      path: '/programmes'
+      fullPath: '/app/programmes'
+      preLoaderRoute: typeof AuthenticatedAppProgrammesRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/progress': {
       id: '/_authenticated/app/progress'
       path: '/progress'
@@ -583,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppPracticeDoneRouteImport
       parentRoute: typeof AuthenticatedAppPracticeRoute
     }
+    '/_authenticated/app/programme/$programmeId': {
+      id: '/_authenticated/app/programme/$programmeId'
+      path: '/programme/$programmeId'
+      fullPath: '/app/programme/$programmeId'
+      preLoaderRoute: typeof AuthenticatedAppProgrammeProgrammeIdRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/story/$storyId': {
       id: '/_authenticated/app/story/$storyId'
       path: '/story/$storyId'
@@ -633,12 +673,14 @@ interface AuthenticatedAppRouteChildren {
   AuthenticatedAppMomentsRoute: typeof AuthenticatedAppMomentsRoute
   AuthenticatedAppPracticeRoute: typeof AuthenticatedAppPracticeRouteWithChildren
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
+  AuthenticatedAppProgrammesRoute: typeof AuthenticatedAppProgrammesRoute
   AuthenticatedAppProgressRoute: typeof AuthenticatedAppProgressRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppUpgradeRoute: typeof AuthenticatedAppUpgradeRoute
   AuthenticatedAppVisionRoute: typeof AuthenticatedAppVisionRoute
   AuthenticatedAppWeekRoute: typeof AuthenticatedAppWeekRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppProgrammeProgrammeIdRoute: typeof AuthenticatedAppProgrammeProgrammeIdRoute
   AuthenticatedAppStoryStoryIdRoute: typeof AuthenticatedAppStoryStoryIdRoute
 }
 
@@ -653,12 +695,15 @@ const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppMomentsRoute: AuthenticatedAppMomentsRoute,
   AuthenticatedAppPracticeRoute: AuthenticatedAppPracticeRouteWithChildren,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
+  AuthenticatedAppProgrammesRoute: AuthenticatedAppProgrammesRoute,
   AuthenticatedAppProgressRoute: AuthenticatedAppProgressRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppUpgradeRoute: AuthenticatedAppUpgradeRoute,
   AuthenticatedAppVisionRoute: AuthenticatedAppVisionRoute,
   AuthenticatedAppWeekRoute: AuthenticatedAppWeekRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppProgrammeProgrammeIdRoute:
+    AuthenticatedAppProgrammeProgrammeIdRoute,
   AuthenticatedAppStoryStoryIdRoute: AuthenticatedAppStoryStoryIdRoute,
 }
 

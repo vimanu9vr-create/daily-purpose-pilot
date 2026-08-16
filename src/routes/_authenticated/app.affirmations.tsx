@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, Loader2, Pause, Share2, Sparkles, Volume2 } from "lucide-react";
+import { ChevronRight, Heart, Loader2, Pause, Share2, Sparkles, Volume2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -14,6 +14,8 @@ import {
   useSaveAffirmation,
   useSavedAffirmations,
 } from "@/features/affirmations/use-affirmations";
+import { programmeProgress, type ProgrammeLength } from "@/features/programmes/programme-plan";
+import { useProgrammeDays, useProgrammes } from "@/features/programmes/use-programmes";
 import { useSpokenLine } from "@/hooks/use-spoken-line";
 import { haptic, hapticSuccess, share as nativeShare } from "@/lib/native";
 import { cn } from "@/lib/utils";
@@ -72,6 +74,8 @@ function Affirmations() {
 
   return (
     <PageTransition>
+      <ProgrammeEntry />
+
       <header className="flex items-start justify-between">
         <div>
           <h1 className="font-display text-[32px] font-medium leading-none">Affirmations</h1>
@@ -224,5 +228,67 @@ function Affirmations() {
         </Button>
       </div>
     </PageTransition>
+  );
+}
+
+/**
+ * The way into programmes.
+ *
+ * Placed on the affirmations screen rather than given its own tab. Five is
+ * already as many as a bottom bar can carry without becoming a menu, and a
+ * programme is a run of affirmations — this is where somebody would look for
+ * it. If it turns out to be the thing people open the app for, it earns a tab
+ * then, on evidence rather than on a guess.
+ */
+function ProgrammeEntry() {
+  const { data: programmes } = useProgrammes();
+  const { data: days } = useProgrammeDays((programmes ?? []).find((p) => !p.completed_at)?.id);
+
+  const active = (programmes ?? []).find((p) => !p.completed_at);
+
+  if (!active) {
+    return (
+      <Link
+        to="/app/programmes"
+        className="mb-6 flex items-center justify-between gap-3 rounded-[24px] border border-glass-border bg-card/50 px-5 py-4 transition hover:bg-card/70"
+      >
+        <div>
+          <p className="font-display text-[17px]">Start a 7 or 21 day programme</p>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            A run of days on one thing you want.
+          </p>
+        </div>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
+    );
+  }
+
+  const done = (days ?? []).filter((day) => day.completed_at).length;
+  const progress = programmeProgress(done, active.length_days as ProgrammeLength);
+
+  return (
+    <Link
+      to="/app/programme/$programmeId"
+      params={{ programmeId: active.id }}
+      className="mb-6 block rounded-[24px] surface-gradient p-[1px]"
+    >
+      <div className="rounded-[23px] bg-card/85 px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="eyebrow text-muted-foreground">
+              Day {progress.current} of {active.length_days}
+            </p>
+            <p className="mt-1 truncate font-display text-[17px]">{active.title}</p>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </div>
+        <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-500"
+            style={{ width: `${progress.percent}%` }}
+          />
+        </div>
+      </div>
+    </Link>
   );
 }

@@ -55,6 +55,94 @@ export type Database = {
           },
         ]
       }
+      programmes: {
+        Row: {
+          id: string
+          user_id: string
+          desire_id: string | null
+          title: string
+          length_days: number
+          started_on: string
+          completed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          desire_id?: string | null
+          title: string
+          length_days: number
+          started_on?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          desire_id?: string | null
+          title?: string
+          length_days?: number
+          started_on?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programmes_desire_id_fkey"
+            columns: ["desire_id"]
+            isOneToOne: false
+            referencedRelation: "desires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_days: {
+        Row: {
+          id: string
+          programme_id: string
+          user_id: string
+          day_number: number
+          theme: string
+          intention: string
+          lines: string[]
+          moment_id: string | null
+          completed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          programme_id: string
+          user_id: string
+          day_number: number
+          theme: string
+          intention: string
+          lines: string[]
+          moment_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          programme_id?: string
+          user_id?: string
+          day_number?: number
+          theme?: string
+          intention?: string
+          lines?: string[]
+          moment_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_days_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "programmes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestones: {
         Row: {
           completed_at: string | null
