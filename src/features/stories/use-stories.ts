@@ -173,19 +173,56 @@ export function useDeleteDesire() {
   });
 }
 
+/**
+ * Everything the library and the feed are built from.
+ *
+ * ## Why this is two queries
+ *
+ * It used to be one: newest 60 rows, any kind. That was fine at twenty stories
+ * and silently wrong at six hundred. Personal stories regenerate every four
+ * hours, so they are always the newest rows in the table — and once there were
+ * more than sixty of them, they filled the limit completely and pushed the
+ * library out of the result entirely.
+ *
+ * The sleep, meditation, frequency and affirmation tracks were all still in
+ * the database. They just hadn't been fetched since the day they were seeded.
+ * Reported as "there is no sleep tracks, meditation, frequency" — accurate
+ * from the outside, and nothing to do with seeding.
+ *
+ * Splitting them means a flood of one kind can never hide the other, whatever
+ * happens to the volume of either. A shared limit across two things that grow
+ * at wildly different rates is a bug waiting for a big enough number.
+ */
 export function useStories() {
   const userId = useUserId();
   return useQuery({
     queryKey: storyKeys.stories,
     enabled: Boolean(userId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("moments")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(60);
-      if (error) throw error;
-      return data;
+      const [personal, catalogue] = await Promise.all([
+        // Today's feed. Expired ones are replaced on the next refresh, and
+        // showing them meanwhile means yesterday's stories in today's feed.
+        supabase
+          .from("moments")
+          .select("*")
+          .in("source", ["composed", "ai"])
+          .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+          .order("created_at", { ascending: false })
+          .limit(60),
+        // The library. Small, fixed, and grows by a handful a week, so it is
+        // fetched whole rather than competing for a slot.
+        supabase
+          .from("moments")
+          .select("*")
+          .eq("source", "catalogue")
+          .order("created_at", { ascending: false })
+          .limit(200),
+      ]);
+
+      if (personal.error) throw personal.error;
+      if (catalogue.error) throw catalogue.error;
+
+      return [...(personal.data ?? []), ...(catalogue.data ?? [])];
     },
   });
 }
