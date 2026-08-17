@@ -42,7 +42,6 @@ import {
   usePushState,
   useSendTestNotification,
 } from "@/features/notifications/use-push";
-import { VoicePicker } from "@/features/notifications/voice-picker";
 import { useProfile, useUpdateProfile } from "@/features/onboarding/use-profile";
 import { formatLongDate } from "@/lib/dates";
 import { openExternal } from "@/lib/native";
@@ -264,10 +263,6 @@ function ProfilePage() {
             </Button>
           </>
         )}
-      </Card>
-
-      <Card label="Voice">
-        <VoicePicker />
       </Card>
 
       <Card label="More">

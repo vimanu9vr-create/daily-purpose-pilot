@@ -27,7 +27,7 @@ import {
   useToggleStoryFavorite,
 } from "@/features/stories/use-stories";
 import { supabase } from "@/integrations/supabase/client";
-import { formatClock, useNarration } from "@/hooks/use-narration";
+import { formatClock, useSentences } from "@/hooks/use-narration";
 import { useSessionBed } from "@/hooks/use-session-bed";
 import { useStudioNarration } from "@/hooks/use-studio-narration";
 import {
@@ -56,24 +56,31 @@ function StoryPlayer() {
   // to sound, not an extra.
   const [music, setMusic] = useState(true);
 
-  const browser = useNarration(story?.body ?? "");
+  /**
+   * Sentences, for the highlighting and the transcript.
+   *
+   * The browser's own speech synthesis used to live here too, as a fallback.
+   * It is gone. Reported as "voice generator is using robo first and later it
+   * uses ElevenLabs, I don't need robo" — and the path was the session logic
+   * below, which called `narration.play()` on a timer. If Sarah hadn't arrived
+   * yet, `narration` was the robot, so a sleep track would open in the device
+   * voice and switch mid-session.
+   *
+   * A fallback that only appears when the real thing is slow is worse than no
+   * fallback, because it appears exactly when someone is paying attention.
+   * Waiting in silence is honest; a satnav reading a meditation is not.
+   */
+  const sentences = useSentences(story?.body ?? "");
   const studio = useStudioNarration(
     story?.id,
     story?.body ?? "",
     story?.audio_url ?? null,
     (story?.audio_marks as number[] | null) ?? null,
-    browser.sentences,
+    sentences,
   );
 
-  // Sarah, always. The browser voice is no longer a fallback — it was the
-  // thing that made the app feel cheap, and it kept winning the race on first
-  // play: generating Sarah takes a few seconds, and the old code started
-  // speech synthesis in the meantime. So you got the robot the first time and
-  // Sarah the second, once the audio was cached.
-  //
-  // Now the first press waits. If Sarah genuinely can't be produced we say so
-  // rather than substituting a worse voice.
-  const narration = studio.available ? studio : browser;
+  // There is only one voice now.
+  const narration = studio;
 
   // A "528 Hz" track with no 528 Hz tone is just text. Play the real thing.
   const toneHz = story?.kind === "frequency" ? frequencyFromTitle(story.title) : null;
@@ -193,12 +200,6 @@ function StoryPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.id]);
 
-  // Stop whichever engine isn't in use, so they can't overlap.
-  useEffect(() => {
-    if (studio.available) browser.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studio.available]);
-
   // Always fade the pad out when leaving the player.
   useEffect(() => {
     return () => {
@@ -312,43 +313,9 @@ function StoryPlayer() {
             >
               <BookOpen className="h-3.5 w-3.5" /> Read the full story
             </button>
-
-            {!studio.available && (
-              <button
-                type="button"
-                onClick={() => {
-                  browser.stop();
-                  void studio.generate("sarah");
-                }}
-                disabled={studio.isGenerating}
-                className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-[13px] text-white backdrop-blur-sm transition hover:bg-white/25 disabled:opacity-60"
-              >
-                {studio.isGenerating ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5" />
-                )}
-                {studio.isGenerating ? "Recording…" : "Studio voice"}
-              </button>
-            )}
           </div>
 
           {studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>}
-
-          {/* Device voices vary enormously and the default is often the worst
-              one installed, so make the picker reachable from here. */}
-          {!studio.available && !toneHz && browser.isSupported && (
-            <button
-              type="button"
-              onClick={() => {
-                narration.stop();
-                navigate({ to: "/app/profile" });
-              }}
-              className="text-[11px] text-white/50 underline underline-offset-2"
-            >
-              Voice sound wrong? Change it in You → Voice
-            </button>
-          )}
 
           <div className="flex items-center justify-between gap-4">
             <p className="min-w-0 flex-1 truncate text-sm text-white/60">{story.title}</p>
@@ -374,7 +341,7 @@ function StoryPlayer() {
               tabIndex={0}
               aria-label="Seek"
               aria-valuemin={0}
-              aria-valuemax={browser.sentences.length - 1}
+              aria-valuemax={sentences.length - 1}
               aria-valuenow={narration.currentIndex}
               onKeyDown={(e) => {
                 if (e.key === "ArrowRight") narration.skip(10);
@@ -385,8 +352,7 @@ function StoryPlayer() {
                 const ratio = (e.clientX - rect.left) / rect.width;
                 // Real audio can seek anywhere; speech synthesis only per sentence.
                 if (isSession) bed.seekToRatio(ratio);
-                else if (studio.available) studio.seekToRatio(ratio);
-                else browser.seekToSentence(Math.round(ratio * (browser.sentences.length - 1)));
+                else studio.seekToRatio(ratio);
               }}
             >
               <div
@@ -508,12 +474,6 @@ function StoryPlayer() {
               <Share2 className="h-5 w-5" />
             </button>
           </div>
-
-          {!studio.available && !browser.isSupported && (
-            <p className="text-center text-[11px] text-white/50">
-              This browser can't read aloud. Tap "Read the full story" instead.
-            </p>
-          )}
         </div>
       </div>
 
@@ -544,7 +504,7 @@ function StoryPlayer() {
               </div>
 
               <div className="mt-7 space-y-5">
-                {browser.sentences.map((sentence: string, i: number) => (
+                {sentences.map((sentence: string, i: number) => (
                   <button
                     key={i}
                     type="button"

@@ -59,134 +59,134 @@ export function unlockAudioSession(): void {
 /**
  * A background layer that loops without a gap.
  *
- * ## Why this isn't just `audio.loop = true`
+ * ## Why not `audio.loop = true`
  *
- * Reported: "in frequency it pauses, doesn't play properly." It does, and it's
- * measurable rather than subjective — every tone file is 30.04 seconds long
- * when it should be exactly 30. That extra 40 milliseconds is encoder padding:
- * the MP3 format cannot represent an arbitrary length, so every encoder pads
- * the start and end with silence. `audio.loop` replays that padding on every
- * lap, so a frequency session ticks audibly every thirty seconds. No amount of
- * re-exporting fixes it; it is a property of the format.
+ * Reported: "in frequency it pauses, doesn't play properly." Measurable rather
+ * than subjective — every tone file is 30.04 seconds when it should be exactly
+ * 30. That 40ms is encoder padding: MP3 cannot represent an arbitrary length,
+ * so every encoder pads the ends with silence. `audio.loop` replays that
+ * padding on every lap, so a frequency session ticks every thirty seconds.
  *
- * So two elements play the same file in relay. Before one reaches the end the
- * other starts from the beginning, and they cross over during the overlap —
- * which both hides the padding and, for a continuous tone, hides the seam
- * entirely because the two are the same waveform.
+ * ## Why not two <audio> elements either
+ *
+ * That was my first fix, and it caused "while playing frequencies it stops
+ * playing suddenly". Two elements per layer, two layers for a frequency
+ * session, plus the narration and the silent unlocker, is six concurrently
+ * decoding elements. Mobile browsers cap that — and the ones over the cap
+ * don't error, they just quietly refuse to play. Fixing a tick by adding
+ * elements traded a small flaw for a total failure.
+ *
+ * ## Web Audio, decoded once
+ *
+ * One `AudioBufferSourceNode` with `loop = true` loops at sample boundaries,
+ * so there is no padding and no seam by construction — nothing to cross-fade
+ * because nothing is ever cut. One node instead of two elements, and decoding
+ * happens once instead of continuously.
+ *
+ * The file header used to say Web Audio "did not work" on iPhone. That was
+ * true and the diagnosis was wrong: the cause was the physical silent switch,
+ * not the API. `unlockAudioSession()` handles that now by keeping a silent
+ * <audio> element playing, which moves the page onto the playback audio
+ * session. Web Audio on top of that is fine — and it's what a continuous tone
+ * actually needs.
  */
-const CROSSFADE_SECONDS = 2;
-
 class LoopingLayer {
-  private elements: [HTMLAudioElement, HTMLAudioElement] | null = null;
-  private active = 0;
-  private volume = 0;
+  private context: AudioContext | null = null;
+  private source: AudioBufferSourceNode | null = null;
+  private gain: GainNode | null = null;
   private src = "";
-  private timer: number | null = null;
+  private token = 0;
+
+  /** Decoded files, shared across every layer. Decoding is the expensive part. */
+  private static buffers = new Map<string, Promise<AudioBuffer>>();
+
+  private static decode(context: AudioContext, src: string): Promise<AudioBuffer> {
+    const existing = LoopingLayer.buffers.get(src);
+    if (existing) return existing;
+
+    const promise = fetch(src)
+      .then((response) => response.arrayBuffer())
+      .then((bytes) => context.decodeAudioData(bytes));
+
+    LoopingLayer.buffers.set(src, promise);
+    return promise;
+  }
 
   play(src: string, volume: number): void {
     if (typeof window === "undefined") return;
 
     // Same source already running: change the level, don't restart it.
-    if (this.elements && this.src === src) {
+    if (this.source && this.src === src) {
       this.setVolume(volume);
       return;
     }
 
     this.stop();
     this.src = src;
-    this.volume = clamp(volume);
 
-    const make = () => {
-      const audio = new Audio(src);
-      audio.preload = "auto";
-      audio.volume = 0;
-      audio.setAttribute("playsinline", "true");
-      return audio;
-    };
+    const Ctor =
+      window.AudioContext ??
+      (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
 
-    this.elements = [make(), make()];
-    this.active = 0;
-    this.elements[0].volume = this.volume;
+    this.context ??= new Ctor();
+    const context = this.context;
+    void context.resume().catch(() => undefined);
 
-    void this.elements[0].play().catch(() => {
-      // Refused because we're too far from the tap. Leave it loaded so the
-      // next press works rather than throwing an error at the user.
-    });
+    const gain = context.createGain();
+    gain.gain.value = clamp(volume);
+    gain.connect(context.destination);
+    this.gain = gain;
 
-    this.watch();
-  }
+    // Guards against a slow decode landing after the layer has been stopped
+    // or pointed somewhere else — otherwise a track you've left starts
+    // playing over the one you're on.
+    this.token += 1;
+    const token = this.token;
 
-  /**
-   * Hand over before the file runs out.
-   *
-   * Polled rather than driven by `timeupdate`, because browsers fire that at
-   * their own convenience — as little as four times a second, and less when
-   * the tab is backgrounded. A missed handover is an audible gap, which is the
-   * exact thing this exists to prevent.
-   */
-  private watch(): void {
-    this.timer = window.setInterval(() => {
-      const pair = this.elements;
-      if (!pair) return;
-
-      const current = pair[this.active]!;
-      const other = pair[this.active === 0 ? 1 : 0]!;
-      const duration = current.duration;
-      if (!Number.isFinite(duration) || duration === 0) return;
-
-      const remaining = duration - current.currentTime;
-      if (remaining > CROSSFADE_SECONDS) return;
-
-      if (other.paused) {
-        other.currentTime = 0;
-        other.volume = 0;
-        void other.play().catch(() => undefined);
-      }
-
-      // Equal-power-ish crossover. A straight linear fade dips in the middle,
-      // because two correlated signals at half amplitude are quieter than one
-      // at full — and a dip in a continuous tone is as noticeable as a gap.
-      const progress = Math.max(0, Math.min(1, 1 - remaining / CROSSFADE_SECONDS));
-      current.volume = clamp(Math.cos((progress * Math.PI) / 2) * this.volume);
-      other.volume = clamp(Math.sin((progress * Math.PI) / 2) * this.volume);
-
-      if (remaining <= 0.12) {
-        current.pause();
-        current.currentTime = 0;
-        current.volume = 0;
-        other.volume = this.volume;
-        this.active = this.active === 0 ? 1 : 0;
-      }
-    }, 100);
+    void LoopingLayer.decode(context, src)
+      .then((buffer) => {
+        if (token !== this.token) return;
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(gain);
+        source.start();
+        this.source = source;
+      })
+      .catch(() => {
+        // Decode or fetch failed. Silence is better than a crash, and the
+        // narration is the part that carries the session anyway.
+      });
   }
 
   setVolume(volume: number): void {
-    this.volume = clamp(volume);
-    const pair = this.elements;
-    if (!pair) return;
-    // Only the element in front. The other is mid-crossover and the poll owns
-    // its level; writing to it here would produce an audible jump.
-    const current = pair[this.active]!;
-    if (pair[this.active === 0 ? 1 : 0]!.paused) current.volume = this.volume;
+    if (!this.gain || !this.context) return;
+    // Ramped rather than set. An instant gain change on a sustained tone is an
+    // audible click, which on a 528 Hz track is worse than the wrong level.
+    const target = clamp(volume);
+    this.gain.gain.cancelScheduledValues(this.context.currentTime);
+    this.gain.gain.setTargetAtTime(target, this.context.currentTime, 0.08);
   }
 
   stop(): void {
-    if (this.timer !== null) {
-      window.clearInterval(this.timer);
-      this.timer = null;
+    this.token += 1;
+    if (this.source) {
+      try {
+        this.source.stop();
+      } catch {
+        // Already stopped.
+      }
+      this.source.disconnect();
+      this.source = null;
     }
-    for (const audio of this.elements ?? []) {
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
-    }
-    this.elements = null;
+    this.gain?.disconnect();
+    this.gain = null;
     this.src = "";
   }
 
   get playing(): boolean {
-    const pair = this.elements;
-    return Boolean(pair && (!pair[0].paused || !pair[1].paused));
+    return Boolean(this.source);
   }
 }
 

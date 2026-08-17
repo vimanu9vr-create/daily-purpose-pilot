@@ -122,11 +122,42 @@ function HomeFeed() {
     (title) => !desires?.some((d) => d.title === title),
   );
 
+  /**
+   * Add something you want, and show what happens next.
+   *
+   * Reported as "if I type anything in what do you want to manifest it's not
+   * generating" and, separately, that a trending chip should put its text in
+   * the box first. Both are the same problem, and it isn't generation —
+   * checking the database, every desire added today has its six stories. The
+   * work happened and nothing on screen said so.
+   *
+   * Three things were missing. The text vanished from the box the instant it
+   * was submitted, so a trending tap looked like it went nowhere. The button
+   * spinner tracked `createDesire`, which finishes in a moment, while the
+   * stories take ten seconds — so the spinner stopped long before anything
+   * appeared. And the new desire wasn't selected afterwards, so its six
+   * stories arrived somewhere in a feed of eighteen rather than in front of
+   * you.
+   */
   function submitDesire(title: string) {
     const trimmed = title.trim();
     if (!trimmed) return;
-    setInput("");
-    createDesire.mutate({ title: trimmed }, { onSuccess: () => generate.mutate({ perDesire: 6 }) });
+
+    // Put it in the box, so a tap on a trending chip is visibly the same
+    // action as typing it.
+    setInput(trimmed);
+
+    createDesire.mutate(
+      { title: trimmed },
+      {
+        onSuccess: (desire) => {
+          setInput("");
+          // Point the feed at what was just asked for.
+          setSelectedDesireId(desire.id);
+          generate.mutate({ perDesire: 6 });
+        },
+      },
+    );
   }
 
   return (
@@ -152,11 +183,14 @@ function HomeFeed() {
         <button
           type="button"
           onClick={() => submitDesire(input)}
-          disabled={!input.trim() || createDesire.isPending}
+          disabled={!input.trim() || createDesire.isPending || generate.isPending}
           aria-label="Add this desire"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition disabled:opacity-40"
         >
-          {createDesire.isPending ? (
+          {/* Spins until the stories exist, not until the row is inserted.
+              Those are ten seconds apart, and the gap was read as nothing
+              happening. */}
+          {createDesire.isPending || generate.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <ArrowUp className="h-4 w-4" />
@@ -289,10 +323,15 @@ function HomeFeed() {
         </section>
       )}
 
-      {hasDesires && (isPending || generate.isPending) && storiesOnly.length === 0 && (
-        <div className="mt-10 flex flex-col items-center py-16 text-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <p className="mt-4 text-sm text-muted-foreground">Writing your stories…</p>
+      {/* Shown whenever stories are being written, not only when the feed is
+          empty. With eighteen already there the empty check never fired, so
+          the one moment that most needed a progress state didn't have one. */}
+      {hasDesires && (isPending || generate.isPending) && (
+        <div className="mt-6 flex items-center gap-3 rounded-[24px] border border-glass-border bg-card/40 px-5 py-4">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            Writing your stories&hellip; this takes a few seconds.
+          </p>
         </div>
       )}
 
