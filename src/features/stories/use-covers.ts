@@ -18,7 +18,19 @@ import { storyKeys } from "./use-stories";
  * second visit is fine, and a burst of image requests is the fastest way to be
  * rate limited.
  */
-const BATCH = 4;
+/**
+ * Off, for now.
+ *
+ * This drew four AI covers per Library visit for the shared tracks. Sound
+ * economics in the long run — one generation serves every user — and the wrong
+ * call while a single OpenAI balance also has to pay for the story writer, the
+ * affirmations, the daily action and the milestones. When it ran out, all four
+ * of those silently fell back to templates and the app looked broken in ways
+ * that had nothing to do with pictures.
+ *
+ * Set this above zero once there's headroom. The stock photographs are fine.
+ */
+const BATCH = 0;
 
 export function useGenerateCovers() {
   const queryClient = useQueryClient();
@@ -38,7 +50,7 @@ export function useGenerateCovers() {
         .filter((row) => !row.image_url || row.image_url.includes("unsplash.com"))
         .slice(0, BATCH);
 
-      if (needing.length === 0) return 0;
+      if (BATCH === 0 || needing.length === 0) return 0;
 
       const results = await Promise.allSettled(
         needing.map((row) =>

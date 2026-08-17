@@ -164,27 +164,18 @@ function StoryPlayer() {
   }, [isSession, bed.isRunning, narration.isPlaying, studio.available]);
 
   /**
-   * Give this story its own artwork, the first time anyone opens it.
+   * No per-story artwork any more.
    *
-   * Generated on open rather than on creation. Forty-two stories are written
-   * every refresh and most are never played, so generating a picture for all
-   * of them would cost more per day than the subscription costs per month.
-   * Opening one is the signal that it's worth four cents.
+   * Opening a track used to commission a four-cent image for it. That is a
+   * sound idea and the wrong economics for this app right now: forty-seven
+   * images were drawn in a day, and the OpenAI balance ran out, which took the
+   * story writer, the affirmations, the actions and the milestones down with
+   * it — all of them silently falling back to local templates.
    *
-   * Fire-and-forget: the stock photo is already on screen and stays there if
-   * this fails or is slow. It arrives on the next visit instead.
+   * Each dream already has its own generated images, and every story under it
+   * uses one of those. The difference between "art for this dream" and "art
+   * for this exact story" is not worth being unable to write anything at all.
    */
-  useEffect(() => {
-    if (!story) return;
-    const stock = !story.image_url || story.image_url.includes("unsplash.com");
-    if (!stock) return;
-
-    void supabase.functions
-      .invoke("generate-cover", { body: { storyId: story.id } })
-      .then(() => queryClient.invalidateQueries({ queryKey: storyKeys.story(story.id) }))
-      .catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [story?.id]);
 
   /**
    * Start rendering the narration while they're still looking at the cover.

@@ -208,7 +208,20 @@ Deno.serve(async (req: Request) => {
       }),
     });
 
-    if (upstream.status === 429) return json({ error: "rate_limited" }, 429);
+    /**
+     * Log why, not just that.
+     *
+     * Every chat call in the app returned 429 for a whole day and none of them
+     * said anything about it, because this line returned before logging. A 429
+     * from OpenAI is either "too many requests" or "no credit", and those need
+     * completely different responses — one is our burst, the other is the
+     * account. Not knowing which cost a day of guessing at symptoms.
+     */
+    if (upstream.status === 429) {
+      const reason = await upstream.text().catch(() => "");
+      console.error("rate limited by provider", reason.slice(0, 400));
+      return json({ error: "rate_limited", detail: reason.slice(0, 200) }, 429);
+    }
     if (upstream.status === 402) return json({ error: "credits_exhausted" }, 402);
     if (!upstream.ok) {
       console.error("gateway error", upstream.status, await upstream.text().catch(() => ""));

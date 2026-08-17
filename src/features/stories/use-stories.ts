@@ -17,8 +17,19 @@ export const storyKeys = {
   story: (id: string) => ["stories", id] as const,
 };
 
-/** Stories all regenerate on a 4-hour cycle, like Stella's refresh countdown. */
-export const REFRESH_HOURS = 4;
+/**
+ * How often the feed rewrites itself.
+ *
+ * Was 4 hours, copied from Stella's refresh countdown. Stella can afford it;
+ * this account could not. Six refreshes a day times six stories times every
+ * active dream is how 240 stories got written in one day for one person, and
+ * how an OpenAI balance disappears without anyone doing anything unusual.
+ *
+ * Once a day is what a daily practice actually needs. Nobody reads forty
+ * stories before lunch, and the "Refresh" button is still there for anyone who
+ * wants new ones sooner.
+ */
+export const REFRESH_HOURS = 24;
 
 export function nextRefreshAt(from = new Date()): Date {
   const next = new Date(from);
@@ -275,7 +286,15 @@ export function useGenerateStories() {
      * There are six templates, so six is the number that uses all of them and
      * guarantees every card on the page says something different.
      */
-    mutationFn: async ({ perDesire = 6 }: { perDesire?: number } = {}) => {
+    /**
+     * Three stories per dream, not six.
+     *
+     * Six was chosen to fill two rows on Home. Filling a row is not a reason to
+     * write something nobody asked for — and at six per dream across several
+     * dreams, six times a day, the feed was generating more in a morning than
+     * anyone would read in a month.
+     */
+    mutationFn: async ({ perDesire = 3 }: { perDesire?: number } = {}) => {
       if (!userId) throw new Error("Not signed in");
 
       /**
@@ -323,7 +342,16 @@ export function useGenerateStories() {
        * Newest first, because a dream someone just added is the one they're
        * looking at.
        */
-      const COVER_BATCH = 3;
+      /**
+       * One dream's artwork per visit, not three.
+       *
+       * Images are where the money actually goes: a story costs a fraction of
+       * a cent to write and a picture costs four cents to draw. Three dreams a
+       * visit at six images each is seventy-two cents every time Home loads.
+       * The stock photographs are a perfectly good default while these arrive
+       * over a few visits.
+       */
+      const COVER_BATCH = 1;
       for (const desire of active.slice(0, COVER_BATCH)) {
         void supabase.functions
           .invoke("generate-desire-covers", { body: { desireId: desire.id } })
@@ -371,7 +399,7 @@ export function useGenerateStories() {
        * Newest first, because the dream someone just typed is the one they're
        * waiting to see.
        */
-      const DESIRE_BATCH = 4;
+      const DESIRE_BATCH = 2;
 
       for (const desire of active.slice(0, DESIRE_BATCH)) {
         const seed = {
@@ -398,7 +426,25 @@ export function useGenerateStories() {
         }
       }
 
-      const responses = await Promise.allSettled(pending.map((item) => item.request));
+      /**
+       * In small groups, not all at once.
+       *
+       * Firing twenty-four chat requests in the same instant is a rate limit
+       * waiting to happen, and it was happening: every AI story request in a
+       * day came back 429, so every "AI" story in the app is actually the local
+       * template. The parallelism was mine, added to fix a slow sequential
+       * loop, and I overcorrected from one-at-a-time to all-at-once.
+       *
+       * Six at a time keeps it fast — a few hundred milliseconds of waves
+       * rather than several seconds of queue — without asking a provider to
+       * accept a spike it has every right to refuse.
+       */
+      const WAVE = 6;
+      const responses: PromiseSettledResult<Response | null>[] = [];
+      for (let start = 0; start < pending.length; start += WAVE) {
+        const wave = pending.slice(start, start + WAVE);
+        responses.push(...(await Promise.allSettled(wave.map((item) => item.request))));
+      }
 
       {
         for (const [index, item] of pending.entries()) {

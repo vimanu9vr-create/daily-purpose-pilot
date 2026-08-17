@@ -48,8 +48,18 @@ const SCENES = [
   "a balcony step in the first warm evening of the year",
 ];
 
-/** How many to make per dream. */
-const DEFAULT_COUNT = 6;
+/**
+ * How many to make per dream.
+ *
+ * Was six. Six images is twenty-four cents, and with several dreams that is
+ * real money against a balance that ran out and took every text feature down
+ * with it — the story writer, the affirmations, the daily action and the
+ * milestones all share one OpenAI account.
+ *
+ * Two is enough to stop a dream's feed looking like one repeated picture,
+ * which was the original complaint. The stock photographs fill the rest.
+ */
+const DEFAULT_COUNT = 2;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
