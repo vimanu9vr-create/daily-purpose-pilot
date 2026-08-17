@@ -180,15 +180,16 @@ function StoryPlayer() {
   }, [story?.id]);
 
   /**
-   * Get the first lines ready while they're still looking at the cover.
+   * Start rendering the narration while they're still looking at the cover.
    *
-   * Opening a story and pressing play are a couple of seconds apart, and those
-   * are seconds the narration can spend rendering. Only the opening — the rest
-   * is the expensive half and still waits for a real press.
+   * This is what replaces the old split. Opening a track and pressing play are
+   * a few seconds apart, and those are seconds the audio can spend being made
+   * — which buys the same head start as splitting did, without ever leaving a
+   * gap in the middle of a track.
    */
   useEffect(() => {
     if (!story?.body) return;
-    void studio.prepareOpening("sarah");
+    void studio.prepare("sarah");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.id]);
 

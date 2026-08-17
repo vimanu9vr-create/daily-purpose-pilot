@@ -7,26 +7,34 @@ import { reportError, trail } from "@/lib/telemetry";
 /**
  * Plays real narration audio (ElevenLabs, generated server-side and cached).
  *
- * Exposes the same shape as `useNarration` so the player doesn't care which
- * engine is running. If narration isn't configured, or generation fails, the
- * hook reports `available: false` and the player says so rather than falling
- * back to a worse voice.
+ * ## One file. This used to be two, and that was a mistake.
  *
- * ## Why this plays two files
+ * To make playback start quickly I split every track: generate the opening two
+ * sentences on their own, start playing those, fetch the remainder underneath.
+ * It fixed the forty-second wait and caused two worse problems.
  *
- * "Voice starts playing after 40 secs, I need immediately because it gets
- * frustrating." The cause was structural: the whole story went to ElevenLabs
- * in one request, and an eighteen-minute sleep script is thousands of
- * characters. Nothing could play until the final character had been rendered.
+ * The halves didn't match. Two separate requests are two separate
+ * performances — eighty characters with no context comes out flat and clipped,
+ * thousands of characters comes out flowing and quicker. Reported as "the voice
+ * first feels robotic and after some seconds it goes fast." I patched that by
+ * passing each half the text either side of it, which helped.
  *
- * But nobody needs the last sentence in order to hear the first. So the
- * opening two sentences are requested on their own — a few seconds — and start
- * playing immediately, while the remainder renders underneath. When the
- * opening ends, the rest is already loaded and takes over.
+ * Then: "voice gets lag and it gets stuck in between, it doesn't play
+ * continuously." That one has no patch. If the remainder isn't rendered by the
+ * time the opening runs out — fifteen seconds — the track stops dead until it
+ * arrives. A gap in the middle of something you're listening to with your eyes
+ * shut is worse than a wait before it starts, because the wait is honest and
+ * the gap feels like a fault.
  *
- * The join lands on a sentence boundary, where the narration already has a
- * 1.6-second pause built in, so the handover sits inside a silence that was
- * going to be there anyway.
+ * So: one request, one file, one performance. It cannot desynchronise and it
+ * cannot stall, because there is nothing to hand over to.
+ *
+ * Latency is handled the honest way instead — by starting the work earlier
+ * rather than by starting the playback earlier. Opening a track begins
+ * generating it, so by the time the play button is pressed it's usually ready.
+ * That costs real money for tracks that are opened and never played, and it's
+ * worth it: audio is cached forever, and library tracks are shared by title, so
+ * the first person to open one pays and nobody else ever does.
  */
 
 export type StudioState = {
@@ -35,8 +43,6 @@ export type StudioState = {
   error: string | null;
 };
 
-type Piece = { audioUrl: string; marks: number[] };
-
 export function useStudioNarration(
   storyId: string | undefined,
   body: string,
@@ -44,14 +50,8 @@ export function useStudioNarration(
   cachedMarks: number[] | null,
   sentences: string[],
 ) {
-  const [opening, setOpening] = useState<Piece | null>(
-    cachedUrl ? { audioUrl: cachedUrl, marks: cachedMarks ?? [] } : null,
-  );
-  const [rest, setRest] = useState<Piece | null>(null);
-  // True once the whole story is in one file — the cached path, where there is
-  // nothing to hand over to.
-  const [single, setSingle] = useState(Boolean(cachedUrl));
-
+  const [audioUrl, setAudioUrl] = useState<string | null>(cachedUrl);
+  const [marks, setMarks] = useState<number[]>(cachedMarks ?? []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,186 +59,85 @@ export function useStudioNarration(
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [duration, setDuration] = useState(0);
   const [looping, setLooping] = useState(false);
-  /** Which file is sounding right now. */
-  const [stage, setStage] = useState<"opening" | "rest">("opening");
 
-  const openingRef = useRef<HTMLAudioElement | null>(null);
-  const restRef = useRef<HTMLAudioElement | null>(null);
-  const openingSecondsRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const playWhenReadyRef = useRef(false);
-  const restRequestedRef = useRef<string | null>(null);
-  /** In-flight requests, so a prefetch and a tap don't both pay for the same audio. */
-  const inFlightRef = useRef(new Map<string, Promise<Piece | null>>());
-
-  useEffect(() => {
-    if (!cachedUrl) return;
-    setOpening({ audioUrl: cachedUrl, marks: cachedMarks ?? [] });
-    setSingle(true);
-  }, [cachedUrl, cachedMarks]);
-
-  const current = stage === "rest" ? restRef : openingRef;
-
-  /**
-   * Values the audio listeners need, held in refs.
-   *
-   * The elements are built once and never rebuilt (see below), so their
-   * listeners close over the first render's values. Refs are how they read the
-   * current ones without the elements having to be torn down and recreated.
-   */
-  const singleRef = useRef(single);
   const loopingRef = useRef(looping);
-  useEffect(() => {
-    singleRef.current = single;
-  }, [single]);
+  /** In flight, so a prefetch and a tap don't both pay for the same audio. */
+  const inFlightRef = useRef<Promise<void> | null>(null);
+
   useEffect(() => {
     loopingRef.current = looping;
   }, [looping]);
 
+  useEffect(() => {
+    if (!cachedUrl) return;
+    setAudioUrl(cachedUrl);
+    setMarks(cachedMarks ?? []);
+  }, [cachedUrl, cachedMarks]);
+
   /**
-   * Two audio elements, created once and reused.
+   * One audio element, created once and reused.
    *
-   * This is the fix for "I have to tap play twice and after that only it
-   * plays". Browsers only let audio start inside the user gesture that asked
-   * for it. The old code built `new Audio(url)` after awaiting the network, so
-   * by the time `.play()` ran the gesture was long over and the browser
-   * refused — silently, because the rejection was caught. The second tap
-   * worked because by then the audio existed and play ran synchronously.
-   *
-   * Making the elements persistent means they can be unlocked during the tap
-   * itself, before any network call, and are still permitted to start when the
-   * URL arrives seconds later.
+   * Persistent rather than built per URL so it can be unlocked during the tap,
+   * before any network call. Building it after an await is why the play button
+   * needed pressing twice: the browser only allows audio to start inside the
+   * gesture that asked for it, and by then the gesture was over.
    */
   useEffect(() => {
-    const opening = new Audio();
-    const rest = new Audio();
-    opening.preload = "auto";
-    rest.preload = "auto";
-    openingRef.current = opening;
-    restRef.current = rest;
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.setAttribute("playsinline", "true");
+    audioRef.current = audio;
 
-    const wire = (audio: HTMLAudioElement, which: "opening" | "rest") => {
-      audio.addEventListener("loadedmetadata", () => {
-        if (which === "opening") openingSecondsRef.current = audio.duration || 0;
-        const head = openingSecondsRef.current;
-        const tail = restRef.current?.duration || 0;
-        setDuration(head + (Number.isFinite(tail) ? tail : 0));
-      });
-
-      audio.addEventListener("timeupdate", () => {
-        // One continuous clock across both files, so the progress bar and the
-        // sentence highlighting don't jump backwards at the handover.
-        const offset = which === "rest" ? openingSecondsRef.current : 0;
-        setElapsedSeconds(offset + audio.currentTime);
-      });
-
-      audio.addEventListener("ended", () => {
-        if (which === "opening" && !singleRef.current) {
-          const tail = restRef.current;
-          if (tail?.src && !tail.src.startsWith("data:")) {
-            setStage("rest");
-            void tail.play().catch(() => setIsPlaying(false));
-            return;
-          }
-          // The remainder hasn't landed yet. Wait for it rather than stopping:
-          // stopping here is what a listener would read as the track ending
-          // early, which is the bug we spent a day on.
-          playWhenReadyRef.current = true;
-          setIsPlaying(false);
-          return;
-        }
-        if (loopingRef.current) {
-          audio.currentTime = 0;
-          void audio.play();
-          return;
-        }
-        setIsPlaying(false);
-      });
-
-      // Only complain about a real file. Setting src to the silent unlock clip
-      // and back again fires error events that mean nothing.
-      audio.addEventListener("error", () => {
-        if (!audio.src || audio.src.startsWith("data:")) return;
-        setError("Couldn't play that narration.");
-        setIsPlaying(false);
-      });
+    const onLoaded = () => setDuration(audio.duration || 0);
+    const onTime = () => setElapsedSeconds(audio.currentTime);
+    const onEnded = () => {
+      if (loopingRef.current) {
+        audio.currentTime = 0;
+        void audio.play();
+        return;
+      }
+      setIsPlaying(false);
+    };
+    const onError = () => {
+      // The silent unlock clip fires an error on some browsers. Ignore it.
+      if (!audio.src || audio.src.startsWith("data:")) return;
+      setError("Couldn't play that narration.");
+      setIsPlaying(false);
     };
 
-    wire(opening, "opening");
-    wire(rest, "rest");
+    audio.addEventListener("loadedmetadata", onLoaded);
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
 
     return () => {
-      opening.pause();
-      rest.pause();
-      openingRef.current = null;
-      restRef.current = null;
+      audio.pause();
+      audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
+      audioRef.current = null;
     };
   }, []);
 
-  /**
-   * Claim permission to make sound, synchronously, inside the tap.
-   *
-   * Must be called from the click handler before anything is awaited — that is
-   * the entire point. Playing a few milliseconds of silence is enough for the
-   * browser to mark these elements as user-initiated.
-   */
-  const unlock = useCallback(() => {
-    for (const audio of [openingRef.current, restRef.current]) {
-      if (!audio || audio.src) continue;
-      audio.src = SILENT_WAV;
-      void audio.play().catch(() => undefined);
-    }
-  }, []);
-
-  // Point the opening element at its file. The element already exists, so this
-  // is a src change rather than a construction — which is what keeps whatever
-  // permission the tap earned.
+  // Point it at the file. A src change, not a construction, so whatever
+  // permission the tap earned survives.
   useEffect(() => {
-    const audio = openingRef.current;
-    if (!audio || !opening) return;
-    audio.src = opening.audioUrl;
+    const audio = audioRef.current;
+    if (!audio || !audioUrl) return;
+    audio.src = audioUrl;
 
-    if (playWhenReadyRef.current && stage === "opening") {
-      playWhenReadyRef.current = false;
-      void audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opening?.audioUrl]);
-
-  // The remainder, loaded quietly while the opening plays.
-  useEffect(() => {
-    const audio = restRef.current;
-    if (!audio || !rest) return;
-    audio.src = rest.audioUrl;
-
-    // The opening finished before this arrived — pick straight up.
     if (playWhenReadyRef.current) {
       playWhenReadyRef.current = false;
-      setStage("rest");
       void audio
         .play()
         .then(() => setIsPlaying(true))
+        // iOS refuses if too long has passed since the tap. Leave it ready.
         .catch(() => setIsPlaying(false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rest?.audioUrl]);
-
-  /**
-   * Sentence times across both files.
-   *
-   * The remainder's timings start from zero in its own file, so they're shifted
-   * by the opening's real duration. Using the measured duration rather than the
-   * last mark matters: the story ends with a trailing pause that no sentence
-   * starts in, and ignoring it would make every later sentence land early.
-   */
-  const marks = useMemo(() => {
-    const head = opening?.marks ?? [];
-    if (!rest) return head;
-    const offset = openingSecondsRef.current;
-    return [...head, ...rest.marks.map((mark) => mark + offset)];
-  }, [opening?.marks, rest]);
+  }, [audioUrl]);
 
   const currentIndex = useMemo(() => {
     if (marks.length === 0) return 0;
@@ -255,8 +154,22 @@ export function useStudioNarration(
     marksRef.current = marks;
   }, [marks]);
 
-  const requestOnce = useCallback(
-    async (voice: string, part?: "opening" | "rest"): Promise<Piece | null> => {
+  /**
+   * Claim permission to make sound, synchronously, inside the tap.
+   *
+   * Must be called from the click handler before anything is awaited. Playing
+   * a few milliseconds of silence is enough for the browser to mark this
+   * element as user-initiated.
+   */
+  const unlock = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || audio.src) return;
+    audio.src = SILENT_WAV;
+    void audio.play().catch(() => undefined);
+  }, []);
+
+  const fetchNarration = useCallback(
+    async (voice: string): Promise<void> => {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
       if (!token) throw new Error("Session expired.");
@@ -265,7 +178,7 @@ export function useStudioNarration(
       const response = await fetch(`${supabaseUrl}/functions/v1/narrate-story`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ storyId, voice, part }),
+        body: JSON.stringify({ storyId, voice }),
       });
 
       if (!response.ok) {
@@ -273,43 +186,24 @@ export function useStudioNarration(
         throw new Error(detail?.message ?? "Studio narration isn't available.");
       }
 
-      const result = (await response.json()) as {
-        audioUrl: string | null;
-        marks: number[] | null;
-        empty?: boolean;
-      };
-      if (!result.audioUrl || result.empty) return null;
-      return { audioUrl: result.audioUrl, marks: result.marks ?? [] };
+      const result = (await response.json()) as { audioUrl: string; marks: number[] | null };
+      setAudioUrl(result.audioUrl);
+      setMarks(result.marks ?? []);
     },
     [storyId],
   );
 
-  /**
-   * One call to the narration function, deduplicated.
-   *
-   * The prefetch on screen-open and the press of the play button both ask for
-   * the opening, and before this they raced: the logs show the same two
-   * sentences generated twice, 77 milliseconds apart. Both missed the storage
-   * cache because neither had finished writing it, so ElevenLabs was paid
-   * twice for identical audio on every first play.
-   *
-   * Keyed by story and part rather than a single flag, because the opening and
-   * the remainder are legitimately in flight at the same time.
-   */
+  /** Deduplicated, so the prefetch and the play button share one request. */
   const request = useCallback(
-    (voice: string, part?: "opening" | "rest"): Promise<Piece | null> => {
-      const key = `${storyId}:${part ?? "all"}:${voice}`;
-      const existing = inFlightRef.current.get(key);
-      if (existing) return existing;
-
-      const promise = requestOnce(voice, part).finally(() => {
-        inFlightRef.current.delete(key);
+    (voice: string): Promise<void> => {
+      if (inFlightRef.current) return inFlightRef.current;
+      const promise = fetchNarration(voice).finally(() => {
+        inFlightRef.current = null;
       });
-      inFlightRef.current.set(key, promise);
+      inFlightRef.current = promise;
       return promise;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [storyId],
+    [fetchNarration],
   );
 
   const generate = useCallback(
@@ -318,37 +212,11 @@ export function useStudioNarration(
       playWhenReadyRef.current = playWhenReady;
       setIsGenerating(true);
       setError(null);
-      setStage("opening");
       trail("narration", "generate:start", { voice, playWhenReady });
 
       try {
-        // Only the opening is awaited. This is the entire latency fix: the
-        // listener waits for two sentences, not for eighteen minutes of audio.
-        const head = await request(voice, "opening");
-        if (!head) {
-          setError("There's nothing to read here.");
-          return false;
-        }
-        setSingle(false);
-        setOpening(head);
-        trail("narration", "opening:ready");
-
-        // Deliberately not awaited. The opening is already playing by the time
-        // this resolves, which is the whole point.
-        if (restRequestedRef.current !== storyId) {
-          restRequestedRef.current = storyId;
-          void request(voice, "rest")
-            .then((tail) => {
-              if (tail) setRest(tail);
-              else setSingle(true); // Short story: the opening was all of it.
-              trail("narration", "rest:ready", { had: Boolean(tail) });
-            })
-            .catch((err) => {
-              // The opening still plays. Report it, don't interrupt them.
-              reportError(err, { feature: "narration", phase: "rest" });
-            });
-        }
-
+        await request(voice);
+        trail("narration", "generate:ok");
         return true;
       } catch (err) {
         setError((err as Error).message);
@@ -363,50 +231,47 @@ export function useStudioNarration(
   );
 
   /**
-   * Fetch just the opening, without the remainder.
+   * Start generating when the screen opens, so pressing play is usually free.
    *
-   * Called when the player screen opens, so the first lines are usually
-   * already in hand by the time the play button is pressed — which turns the
-   * remaining few seconds of wait into none at all.
-   *
-   * Deliberately opening-only. Opening a story is a strong enough signal to
-   * spend two sentences on, and cheap: the remainder is the part that costs
-   * real money, and it still waits until someone actually presses play.
+   * This is what replaces the split. Rather than starting playback before the
+   * audio exists, it starts the work before the person asks — which buys the
+   * same few seconds without ever producing a gap mid-track.
    */
-  const prepareOpening = useCallback(
+  const prepare = useCallback(
     async (voice = "sarah") => {
-      if (!storyId || !body.trim() || opening) return;
+      if (!storyId || !body.trim() || audioUrl) return;
       try {
-        const head = await request(voice, "opening");
-        if (head) {
-          setSingle(false);
-          setOpening(head);
-          trail("narration", "opening:prefetched");
-        }
+        await request(voice);
+        trail("narration", "prefetched");
       } catch {
-        // Pressing play will try again and show a message if it fails.
+        // Pressing play tries again and shows a message if it fails.
       }
     },
-    [body, opening, request, storyId],
+    [audioUrl, body, request, storyId],
   );
 
   const play = useCallback((fromSentence = 0) => {
-    const audio = openingRef.current;
+    const audio = audioRef.current;
     if (!audio) return;
-    const target = marksRef.current?.[fromSentence];
-    if (typeof target === "number") audio.currentTime = target;
+
+    // Fall back to zero rather than leaving the position alone. Without this,
+    // a track with no sentence marks — which happens whenever the alignment
+    // didn't come back — would "replay" from wherever it stopped, i.e. from
+    // the very end, and appear to hang.
+    const target = marksRef.current?.[fromSentence] ?? 0;
+    audio.currentTime = target;
+
     void audio.play();
     setIsPlaying(true);
   }, []);
 
   const stop = useCallback(() => {
-    openingRef.current?.pause();
-    restRef.current?.pause();
+    audioRef.current?.pause();
     setIsPlaying(false);
   }, []);
 
   const toggle = useCallback(() => {
-    const audio = current.current;
+    const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
       void audio.play();
@@ -415,62 +280,35 @@ export function useStudioNarration(
       audio.pause();
       setIsPlaying(false);
     }
-  }, [current]);
+  }, []);
 
-  /** Seek across both files as though they were one. */
-  const seekTo = useCallback(
-    (seconds: number) => {
-      const head = openingSecondsRef.current;
-      const tail = restRef.current;
+  const skip = useCallback((seconds: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + seconds));
+  }, []);
 
-      if (tail && seconds >= head) {
-        if (stage !== "rest") {
-          openingRef.current?.pause();
-          setStage("rest");
-        }
-        tail.currentTime = Math.max(0, Math.min(tail.duration || 0, seconds - head));
-        if (isPlaying) void tail.play();
-        return;
-      }
+  const seekToSentence = useCallback((index: number) => {
+    const audio = audioRef.current;
+    const target = marksRef.current?.[index];
+    if (!audio || typeof target !== "number") return;
+    audio.currentTime = target;
+  }, []);
 
-      const start = openingRef.current;
-      if (!start) return;
-      if (stage !== "opening") {
-        tail?.pause();
-        setStage("opening");
-      }
-      start.currentTime = Math.max(0, Math.min(start.duration || 0, seconds));
-      if (isPlaying) void start.play();
-    },
-    [isPlaying, stage],
-  );
-
-  const skip = useCallback(
-    (seconds: number) => seekTo(elapsedSeconds + seconds),
-    [elapsedSeconds, seekTo],
-  );
-
-  const seekToSentence = useCallback(
-    (index: number) => {
-      const target = marksRef.current?.[index];
-      if (typeof target === "number") seekTo(target);
-    },
-    [seekTo],
-  );
-
-  const seekToRatio = useCallback(
-    (ratio: number) => seekTo(Math.max(0, Math.min(1, ratio)) * duration),
-    [duration, seekTo],
-  );
+  const seekToRatio = useCallback((ratio: number) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    audio.currentTime = Math.max(0, Math.min(1, ratio)) * audio.duration;
+  }, []);
 
   const toggleLoop = useCallback(() => setLooping((l) => !l), []);
 
   return {
-    available: Boolean(opening),
+    available: Boolean(audioUrl),
     isGenerating,
     error,
     generate,
-    prepareOpening,
+    prepare,
     unlock,
     isPlaying,
     currentIndex,
