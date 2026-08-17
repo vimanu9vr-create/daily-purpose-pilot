@@ -248,6 +248,19 @@ function HomeFeed() {
         </DraggableRow>
       )}
 
+      {/* Affirmations, above the practice and the action.
+          
+          Reported as "if I type what do you want to manifest it should
+          generate affirmations and manifestation, why does it go to today's
+          action". The answer was the running order: what you typed produced
+          affirmations and stories, but the first thing that changed on screen
+          was a to-do item, several sections above them.
+          
+          The practice and the action are habits — they're the same every day
+          and they aren't a response to anything. What you just asked for
+          should be what you see first. */}
+      {hasDesires && <AffirmationRow isGenerating={createDesire.isPending || generate.isPending} />}
+
       {/* The practice, which is the daily loop. Above the actions because it
           ends by offering them, so doing it first is the shorter path. */}
       <PracticeCard />
@@ -280,10 +293,6 @@ function HomeFeed() {
           and the loading spinner below only appeared when the *whole* feed was
           empty — so selecting a desire with no stories, while other desires
           had some, rendered literally nothing. That was the blank screen. */}
-      {/* The affirmations written from what you typed. These existed but lived
-          only on another tab, so typing a desire looked like it produced
-          stories and nothing else. */}
-      {hasDesires && <AffirmationRow isGenerating={createDesire.isPending} />}
 
       {selectedDesire && filteredStories.length === 0 && (
         <section className="mt-8 rounded-3xl glass-panel px-7 py-10 text-center">

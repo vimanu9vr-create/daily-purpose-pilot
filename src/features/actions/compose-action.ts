@@ -115,8 +115,46 @@ const UNIVERSAL = [
   "Spend ten minutes on the part you've been avoiding.",
 ];
 
+/**
+ * Two vocabularies had to be reconciled here.
+ *
+ * A desire's `category` is set by `themeFor()`, which was written to pick a
+ * PHOTOGRAPH. Its values are wealth, love, career, calm, health, confidence,
+ * travel, home. The actions above were written against a different list —
+ * wealth, career, business, health, relationships, learning, creativity,
+ * wellbeing. Three words overlap. Five don't.
+ *
+ * So five of the eight categories fell straight through to the generic pool,
+ * and because `themeFor()` returns "confidence" for anything it can't place,
+ * MOST desires landed there. That's the reported "today's action shows spend
+ * ten minutes on the part you've been avoiding" — it wasn't a bad action, it
+ * was the fallback, arriving nearly every time.
+ *
+ * Mapping rather than renaming, because the image themes are used by the cover
+ * art and the action names are used by the affirmation library. Changing
+ * either would break the other; a translation between them breaks neither.
+ */
+const CATEGORY_ALIASES: Record<string, string> = {
+  // Image themes → action pools.
+  love: "relationships",
+  calm: "wellbeing",
+  confidence: "wellbeing",
+  travel: "learning",
+  home: "wealth",
+  // Affirmation-library categories that mean the same as an existing pool.
+  money: "wealth",
+  abundance: "wealth",
+  "dream-home": "wealth",
+  "dream-job": "career",
+  success: "career",
+  peace: "wellbeing",
+  "self-love": "wellbeing",
+  growth: "learning",
+};
+
 function poolFor(seed: ActionSeed): string[] {
-  const key = seed.category?.trim().toLowerCase() ?? "";
+  const raw = seed.category?.trim().toLowerCase() ?? "";
+  const key = BY_CATEGORY[raw] ? raw : (CATEGORY_ALIASES[raw] ?? raw);
   return BY_CATEGORY[key] ?? UNIVERSAL;
 }
 
