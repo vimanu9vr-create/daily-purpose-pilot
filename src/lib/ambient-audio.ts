@@ -91,6 +91,10 @@ export function unlockAudioSession(): void {
  * actually needs.
  */
 class LoopingLayer {
+  /** Shared across every layer — see `play()`. */
+  private static shared: AudioContext | null = null;
+  private static watchingVisibility = false;
+
   private context: AudioContext | null = null;
   private source: AudioBufferSourceNode | null = null;
   private gain: GainNode | null = null;
@@ -129,9 +133,25 @@ class LoopingLayer {
       (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
 
-    this.context ??= new Ctor();
-    const context = this.context;
+    // One context for every layer. Browsers cap how many a page may have, and
+    // a frequency session alone wants three — tone, air, and the pad.
+    LoopingLayer.shared ??= new Ctor();
+    const context = LoopingLayer.shared;
     void context.resume().catch(() => undefined);
+    this.context = context;
+
+    /**
+     * Phones suspend an AudioContext when the screen locks or the tab drops
+     * into the background, and it does not come back on its own. A sleep
+     * track that goes silent the moment the screen dims is the whole feature
+     * failing at exactly the point it matters.
+     */
+    if (!LoopingLayer.watchingVisibility) {
+      LoopingLayer.watchingVisibility = true;
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) void LoopingLayer.shared?.resume().catch(() => undefined);
+      });
+    }
 
     const gain = context.createGain();
     gain.gain.value = clamp(volume);

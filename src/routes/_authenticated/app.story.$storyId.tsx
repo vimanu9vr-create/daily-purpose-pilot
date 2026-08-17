@@ -322,6 +322,13 @@ function StoryPlayer() {
             </p>
           )}
 
+          {/* A stall is not a crash, and it should not look like one. */}
+          {studio.isBuffering && !studio.isGenerating && (
+            <p className="text-center text-[12px] leading-relaxed text-white/70">
+              Still loading&hellip; the connection is slow, not the app.
+            </p>
+          )}
+
           {studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>}
 
           <div className="flex items-center justify-between gap-4">
@@ -454,7 +461,7 @@ function StoryPlayer() {
                   it feels like it got hanged". It did: the button only dimmed.
                   A dimmed play icon and a broken app look identical, and the
                   wait can be twenty seconds. */}
-              {studio.isGenerating ? (
+              {studio.isGenerating || studio.isBuffering ? (
                 <Loader2 className="h-7 w-7 animate-spin" />
               ) : (isSession ? bed.isRunning : narration.isPlaying) ? (
                 <Pause className="h-7 w-7 fill-current" />

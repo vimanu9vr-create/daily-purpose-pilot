@@ -56,6 +56,8 @@ export function useStudioNarration(
   const [error, setError] = useState<string | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
+  /** True while the browser has run out of downloaded audio mid-track. */
+  const [isBuffering, setIsBuffering] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [duration, setDuration] = useState(0);
   const [looping, setLooping] = useState(false);
@@ -107,10 +109,32 @@ export function useStudioNarration(
       setIsPlaying(false);
     };
 
+    /**
+     * Running out of downloaded audio part-way through.
+     *
+     * "In frequency I played abundance, it got stuck at 19 sec." The file for
+     * that track is fine — 47 sentences, 179 seconds, all present. What ran
+     * out was the download, not the audio.
+     *
+     * Until now nothing listened for this, so a stall was indistinguishable
+     * from a crash: the clock froze, the voice stopped, and the app looked
+     * dead. Saying "still loading" is the difference between a slow connection
+     * and a broken app.
+     */
+    const onWaiting = () => {
+      setIsBuffering(true);
+      trail("narration", "buffering", { at: Math.round(audio.currentTime) });
+    };
+    const onPlaying = () => setIsBuffering(false);
+
     audio.addEventListener("loadedmetadata", onLoaded);
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("ended", onEnded);
     audio.addEventListener("error", onError);
+    audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("stalled", onWaiting);
+    audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("canplaythrough", onPlaying);
 
     return () => {
       audio.pause();
@@ -118,6 +142,10 @@ export function useStudioNarration(
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("ended", onEnded);
       audio.removeEventListener("error", onError);
+      audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("stalled", onWaiting);
+      audio.removeEventListener("playing", onPlaying);
+      audio.removeEventListener("canplaythrough", onPlaying);
       audioRef.current = null;
     };
   }, []);
@@ -314,6 +342,7 @@ export function useStudioNarration(
   return {
     available: Boolean(audioUrl),
     isGenerating,
+    isBuffering,
     error,
     generate,
     prepare,

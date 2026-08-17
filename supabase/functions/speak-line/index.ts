@@ -29,10 +29,28 @@ const VOICES: Record<string, string> = {
 };
 
 const DEFAULT_VOICE = "sarah";
+/**
+ * Output format.
+ *
+ * Was `mp3_44100_128`. Reported as "it got stuck at 19 sec" on a frequency
+ * track whose file is demonstrably complete — 47 sentences, 179 seconds, all
+ * of it in storage. What ran out was the download, not the audio.
+ *
+ * 128kbps is a music bitrate. This is one voice, slowly, over a soft pad;
+ * 64kbps is transparent for speech and halves the file. A three-minute track
+ * goes from about 2.9MB to 1.4MB, which halves both the time before playback
+ * can start and the chance of stalling part-way through on a phone connection.
+ *
+ * This is also the honest answer to "I need it to be fast". Generation time is
+ * fixed by how much text there is, but transfer time is ours to choose, and we
+ * had been paying double for a fidelity nobody can hear on a voice track.
+ */
+const OUTPUT_FORMAT = "mp3_44100_64";
+
 const MODEL = "eleven_multilingual_v2";
 
 /** Bump to invalidate every cached line at once. Mirrors narrate-story. */
-const RENDER_VERSION = "v2";
+const RENDER_VERSION = "v3";
 
 /**
  * Deliberately identical to narrate-story's settings.
@@ -151,15 +169,18 @@ Deno.serve(async (req: Request) => {
     );
 
     const speak = (settings: Record<string, number | boolean>) =>
-      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
-        method: "POST",
-        headers: {
-          "xi-api-key": apiKey,
-          "Content-Type": "application/json",
-          Accept: "audio/mpeg",
+      fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=${OUTPUT_FORMAT}`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": apiKey,
+            "Content-Type": "application/json",
+            Accept: "audio/mpeg",
+          },
+          body: JSON.stringify({ text: script, model_id: MODEL, voice_settings: settings }),
         },
-        body: JSON.stringify({ text: script, model_id: MODEL, voice_settings: settings }),
-      });
+      );
 
     const settings = { ...VOICE_SETTINGS, speed: chosenSpeed };
     let ttsRes = await speak(settings);

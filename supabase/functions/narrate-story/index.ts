@@ -41,6 +41,24 @@ const DEFAULT_VOICE = "sarah";
  * their eyes closed, and neither is felt after the first play because the
  * result is cached forever.
  */
+/**
+ * Output format.
+ *
+ * Was `mp3_44100_128`. Reported as "it got stuck at 19 sec" on a frequency
+ * track whose file is demonstrably complete — 47 sentences, 179 seconds, all
+ * of it in storage. What ran out was the download, not the audio.
+ *
+ * 128kbps is a music bitrate. This is one voice, slowly, over a soft pad;
+ * 64kbps is transparent for speech and halves the file. A three-minute track
+ * goes from about 2.9MB to 1.4MB, which halves both the time before playback
+ * can start and the chance of stalling part-way through on a phone connection.
+ *
+ * This is also the honest answer to "I need it to be fast". Generation time is
+ * fixed by how much text there is, but transfer time is ours to choose, and we
+ * had been paying double for a fidelity nobody can hear on a voice track.
+ */
+const OUTPUT_FORMAT = "mp3_44100_64";
+
 const MODEL = "eleven_multilingual_v2";
 
 /**
@@ -58,7 +76,7 @@ const MODEL = "eleven_multilingual_v2";
  * the change would keep its old narration and only new stories would sound
  * better — which would have looked like the fix not working.
  */
-const RENDER_VERSION = "v6";
+const RENDER_VERSION = "v7";
 
 /**
  * Settings tuned for calm rather than expressive.
@@ -331,7 +349,7 @@ Deno.serve(async (req: Request) => {
      */
     const speak = (settings: Record<string, number | boolean>) =>
       fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps?output_format=mp3_44100_128`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps?output_format=${OUTPUT_FORMAT}`,
         {
           method: "POST",
           headers: {
