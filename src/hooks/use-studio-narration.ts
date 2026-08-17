@@ -240,11 +240,19 @@ export function useStudioNarration(
   const prepare = useCallback(
     async (voice = "sarah") => {
       if (!storyId || !body.trim() || audioUrl) return;
+
+      // Reports as generating, so the play button shows a spinner from the
+      // moment the screen opens rather than only once it's pressed. Tapping
+      // into a button that looks idle but isn't is what "it feels like it got
+      // hanged" was — and the work had usually already started.
+      setIsGenerating(true);
       try {
         await request(voice);
         trail("narration", "prefetched");
       } catch {
         // Pressing play tries again and shows a message if it fails.
+      } finally {
+        setIsGenerating(false);
       }
     },
     [audioUrl, body, request, storyId],

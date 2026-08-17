@@ -315,6 +315,13 @@ function StoryPlayer() {
             </button>
           </div>
 
+          {studio.isGenerating && (
+            <p className="text-center text-[12px] leading-relaxed text-white/70">
+              Recording this in Sarah&rsquo;s voice. It only happens once &mdash; every play after
+              this one starts immediately.
+            </p>
+          )}
+
           {studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>}
 
           <div className="flex items-center justify-between gap-4">
@@ -419,13 +426,10 @@ function StoryPlayer() {
                   return;
                 }
 
-                // Sarah is the product; the browser voice is a fallback for
-                // when she can't be had. She used to be hidden behind a second
-                // "Studio voice" button, so pressing play gave you the robotic
-                // voice and most people would never find her. Now the first
-                // play generates her, and only for a story you actually chose
-                // to listen to — so the per-character bill still tracks real
-                // listening rather than browsing.
+                // First press on a track nobody has played yet: the audio has
+                // to be made. Everything after that is instant, because it is
+                // cached — and library tracks are cached across every user, so
+                // only the first listener anywhere ever waits.
                 if (!studio.available) {
                   if (studio.isGenerating) return;
                   unlockAudioSession();
@@ -444,7 +448,15 @@ function StoryPlayer() {
               aria-label={(isSession ? bed.isRunning : narration.isPlaying) ? "Pause" : "Play"}
               className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white text-primary shadow-xl transition hover:scale-105 disabled:opacity-50"
             >
-              {(isSession ? bed.isRunning : narration.isPlaying) ? (
+              {/* A spinner while the audio is being made.
+                  
+                  Reported as "if I click play it doesn't show anything loading,
+                  it feels like it got hanged". It did: the button only dimmed.
+                  A dimmed play icon and a broken app look identical, and the
+                  wait can be twenty seconds. */}
+              {studio.isGenerating ? (
+                <Loader2 className="h-7 w-7 animate-spin" />
+              ) : (isSession ? bed.isRunning : narration.isPlaying) ? (
                 <Pause className="h-7 w-7 fill-current" />
               ) : (
                 <Play className="ml-1 h-7 w-7 fill-current" />
