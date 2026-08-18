@@ -70,7 +70,11 @@ NEVER — each of these produced hundreds of identical stories:
 - Never mention saving, budgeting, monthly targets, down payments, affording it, spreadsheets, or planning how to get it. The scene is set after they have it, so this is not part of it.
 - Never end with an instruction or a task. No "today, do X". End inside the scene.
 - Never use these: a warm mug, hands wrapped around a cup, a deep breath, "steady", "deliberate", "grounding", "unglamorous", "not waiting for luck", "quiet grit".
-- Never open with the weather or the light unless something is happening in the same sentence.
+
+THE FIRST LINE — it is the card preview, so it is the part that looks repeated:
+- Do NOT begin with "You're…", "You've…", "You sit…", "You wake…" or "It's…". Those are the default openings and they make every story read as one voice saying one thing, however different the scenes are.
+- Do not open by describing the weather or the light. "It's raining and the light is soft" is the single most common way these start and it says nothing.
+- Open on something happening, something concrete, or something absent. An object. A sound. A negation. Mid-action. A fragment. "The kettle has boiled twice and nobody has made the tea." "Nobody has needed anything from you for two hours." "Second gear, and the exhaust note changes."
 
 The one honesty rule: never claim the world will deliver it. No "it's on its way", no "the universe is arranging this", no timelines, no guarantees, no "this is already yours" as a promise about reality. Describing an imagined scene is fine — that is the whole exercise. Predicting events is not.
 

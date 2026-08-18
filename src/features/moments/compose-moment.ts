@@ -77,6 +77,21 @@ type Template = {
  * These are all domestic and unremarkable on purpose. The scene's job here is
  * no longer "somewhere to sit and think about your goal" — it is the ordinary
  * furniture of a life in which the thing is already true.
+ *
+ * ## They also had to stop starting the same way
+ *
+ * Reported as: "it's still showing you're on cold glass, you're outside, like
+ * that, everything." Every one of the previous fourteen opened with "It's…",
+ * "You're…", "You've…" or "Someone's…" — so however different the places were,
+ * the first line had one shape and the feed read as one voice saying one thing.
+ * The first line is also the card preview, which is why it is the part that
+ * looks repeated even when the story underneath isn't.
+ *
+ * So these vary by grammar, not just by furniture: some open on an object, some
+ * on a sound, some on a negation, some mid-action, one on a sentence fragment.
+ * Only one still begins with "You". A test asserts the spread, because the
+ * previous test asserted the opposite — it required every opening to match
+ * /^(you're|you've|it's…)/ and was therefore enforcing the monotony.
  */
 type Scene = {
   /** Establishes the place. Always the first line the user reads. */
@@ -87,60 +102,60 @@ type Scene = {
 
 const SCENES: Scene[] = [
   {
-    open: "It's late, and the kitchen is the only light on.",
+    open: "The kettle has boiled twice and you still haven't made the tea.",
     detail: "the hum of the fridge, loud now that everything else is quiet",
   },
   {
-    open: "You're up before you need to be, and the room is still blue.",
-    detail: "the weight of the duvet, nothing required of you yet",
-  },
-  {
-    open: "You're putting things away, and it's taking longer than it should.",
-    detail: "a cupboard door that never quite shuts",
-  },
-  {
-    open: "It's raining, properly, and you're not going anywhere.",
+    open: "Rain, hard, on a window somebody left open upstairs.",
     detail: "one drop overtaking another down the glass",
   },
   {
-    open: "You've stopped in the doorway with your keys still in your hand.",
-    detail: "the bag you haven't put down yet",
-  },
-  {
-    open: "It's Sunday and the day has no shape to it.",
-    detail: "the radiator ticking as it warms",
-  },
-  {
-    open: "You're eating standing up, which you always mean to stop doing.",
-    detail: "the plate balanced on the edge of the counter",
-  },
-  {
-    open: "Someone's asked you a question and you're taking your time answering.",
-    detail: "them waiting, unhurried, not minding",
-  },
-  {
-    open: "You're outside for a minute, in the first warm evening of the year.",
-    detail: "the wall still holding the day's heat",
-  },
-  {
-    open: "You're back after a few days away, and the flat smells shut up.",
-    detail: "the post you haven't picked up yet",
-  },
-  {
-    open: "It's the middle of the afternoon and nothing needs doing.",
+    open: "Nobody has needed anything from you for about two hours.",
     detail: "the light moving slowly across the floor",
   },
   {
-    open: "You're washing up, badly, thinking about nothing in particular.",
+    open: "The washing machine finishes, and nobody moves to deal with it.",
+    detail: "a cupboard door that never quite shuts",
+  },
+  {
+    open: "Keys still in your hand, bag on the floor where you dropped it.",
+    detail: "the coat you haven't hung up",
+  },
+  {
+    open: "Sunday, and the day has no shape to it at all.",
+    detail: "the radiator ticking as it warms",
+  },
+  {
+    open: "Halfway through the washing up, thinking about nothing.",
     detail: "the water going cold around your wrists",
   },
   {
-    open: "You've sat down on the stairs on the way up, for no reason.",
+    open: "Somebody asks you a question, and you take your time about it.",
+    detail: "them waiting, unhurried, not minding",
+  },
+  {
+    open: "First warm evening of the year, and the back door is propped open.",
+    detail: "the wall still holding the day's heat",
+  },
+  {
+    open: "Back after a few days away. The flat smells shut up.",
+    detail: "the post you haven't picked up yet",
+  },
+  {
+    open: "A car goes past outside, then a long gap, then another.",
+    detail: "the room lit only from the hallway",
+  },
+  {
+    open: "Too early to be awake, and the room is still blue.",
+    detail: "the weight of the duvet, nothing required of you yet",
+  },
+  {
+    open: "You sat down on the stairs on the way up and stayed there.",
     detail: "the carpet under your palm",
   },
   {
-    open: "It's the end of a long day and you haven't turned the big light on.",
-    detail: "the room lit only from the hallway",
+    open: "Eating standing up again, plate balanced on the counter.",
+    detail: "the crumbs you will find tomorrow",
   },
 ];
 

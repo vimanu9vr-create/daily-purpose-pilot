@@ -71,15 +71,44 @@ describe("composeMomentAt", () => {
     expect(bodies.some((body) => /keep starting over/i.test(body))).toBe(true);
   });
 
-  it("opens every story on a place, never on an argument", () => {
-    // Two of the six shapes used to open by naming who you're picturing, with
-    // the place on the second line. That made their first line identical every
-    // sixth story — and the first line is the preview in the feed, so those
-    // were the ones that looked repeated even when the story wasn't.
+  it("opens on something concrete, never on an abstraction", () => {
+    // The original intent, kept. Two shapes used to open by naming who you're
+    // picturing — "Forget the outcome for a minute. Picture the person for
+    // whom…" — with the actual scene on line two. The first line is the card
+    // preview, so those looked repeated even when the story wasn't.
     for (let i = 0; i < 20; i += 1) {
       const first = composeMomentAt(SEED, i).body.split("\n\n")[0]!;
-      expect(first).toMatch(/^(you're|you've|it's|you wake|you wrote|someone)/i);
+      expect(first).not.toMatch(/^(forget|picture|imagine|consider|think about|remember that)/i);
     }
+  });
+
+  it("does not open every story with the same construction", () => {
+    /**
+     * The test this replaces did the opposite, and that is the point.
+     *
+     * It asserted every opening matched /^(you're|you've|it's|…)/ — so it was
+     * actively enforcing the thing that got reported: "it's still showing
+     * you're on cold glass, you're outside, like that, everything." Fourteen
+     * different places, one grammatical shape, and the feed read as one voice
+     * saying one thing fourteen times.
+     *
+     * A test that pins the surface of the writing will eventually defend a
+     * habit rather than a standard. This asks for spread instead.
+     */
+    const firstWords = Array.from({ length: 14 }, (_, i) =>
+      composeMomentAt(SEED, i).body.split("\n\n")[0]!.split(/\s+/)[0]!.toLowerCase(),
+    );
+
+    // Plenty of distinct ways in, and no single one dominating.
+    expect(new Set(firstWords).size).toBeGreaterThanOrEqual(10);
+    const commonest = Math.max(
+      ...[...new Set(firstWords)].map((w) => firstWords.filter((x) => x === w).length),
+    );
+    expect(commonest).toBeLessThanOrEqual(3);
+
+    // And specifically not the second-person-locator habit every time.
+    const locators = firstWords.filter((w) => /^(you'?re?|you've|it's)$/.test(w));
+    expect(locators.length).toBeLessThanOrEqual(3);
   });
 
   /**
