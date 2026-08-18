@@ -234,6 +234,53 @@ export function useStudioNarration(
     [fetchNarration],
   );
 
+  /**
+   * While it's rendering, watch the row as well as the request.
+   *
+   * Caught by actually opening a story rather than by reading code. The
+   * narration finished, was written to storage, and the row got its
+   * `audio_url` — and the player sat on a spinner indefinitely. Reloading the
+   * page played it immediately.
+   *
+   * The reason is that the answer travels back along a single HTTP request
+   * that can take well over a minute. If anything interrupts that request — a
+   * gateway timeout, a phone changing network, a tab going to sleep — the
+   * audio has been made and paid for and is then never mentioned again. The
+   * one channel we relied on to hear about it is also the most fragile part of
+   * the operation.
+   *
+   * So the request is no longer the only way to find out. The row is the real
+   * record and it is cheap to look at. This also covers two cases nothing else
+   * did: another device rendering the same shared catalogue track, and a
+   * second tab that started first.
+   */
+  useEffect(() => {
+    if (!isGenerating || !storyId || audioUrl) return;
+
+    let live = true;
+    const id = setInterval(() => {
+      void (async () => {
+        const { data } = await supabase
+          .from("moments")
+          .select("audio_url,audio_marks")
+          .eq("id", storyId)
+          .maybeSingle();
+
+        if (!live || !data?.audio_url) return;
+
+        trail("narration", "recovered-from-row");
+        setAudioUrl(data.audio_url);
+        setMarks(Array.isArray(data.audio_marks) ? (data.audio_marks as number[]) : []);
+        setIsGenerating(false);
+      })();
+    }, 6000);
+
+    return () => {
+      live = false;
+      clearInterval(id);
+    };
+  }, [isGenerating, storyId, audioUrl]);
+
   const generate = useCallback(
     async (voice = "sarah", playWhenReady = false) => {
       if (!storyId || !body.trim()) return false;

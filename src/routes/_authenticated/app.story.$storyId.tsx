@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DreamCover, coverIndexFor } from "@/features/stories/dream-cover";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import {
   storyKeys,
@@ -236,6 +237,7 @@ function StoryPlayer() {
   }
 
   const image = story.image_url ?? coverImage(story.id, themeFor(story.category));
+  // See the <DreamCover> below — this stays only as the last-resort source.
 
   // Sessions report their own clock; stories report the voice's.
   const elapsed = isSession ? bed.elapsedSeconds : narration.elapsedSeconds;
@@ -245,7 +247,25 @@ function StoryPlayer() {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black">
-      <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      {/*
+        The same picture the card showed, not a different one.
+
+        This was a bare <img src={story.image_url}> — the shared stock photo
+        picked by theme — while the card that opened it went through DreamCover
+        and used one of the dream's own eighty photographs. So a story about a
+        Defender in a barn in the rain had a real Defender on the card and a
+        stock portrait of a stranger behind the player.
+
+        Full screen, with the words over it, is where the image matters most.
+        Every other surface in the app already used DreamCover; this one was
+        written before it existed and never revisited.
+      */}
+      <DreamCover
+        fallbackSrc={image}
+        desireId={story.desire_id}
+        index={coverIndexFor(story.id)}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/85" />
 
@@ -313,10 +333,18 @@ function StoryPlayer() {
             </p>
           )}
 
-          {/* A stall is not a crash, and it should not look like one. */}
+          {/*
+            A stall is not a crash, and it should not look like one.
+
+            No longer blames the connection. That line was showing while the
+            narration was still being rendered on our side — so the app was
+            telling someone their internet was slow when the truth was that we
+            hadn't finished making the thing yet. Saying so is fine; blaming
+            them for it is not.
+          */}
           {studio.isBuffering && !studio.isGenerating && (
             <p className="text-center text-[12px] leading-relaxed text-white/70">
-              Still loading&hellip; the connection is slow, not the app.
+              Catching up with the audio&hellip;
             </p>
           )}
 
