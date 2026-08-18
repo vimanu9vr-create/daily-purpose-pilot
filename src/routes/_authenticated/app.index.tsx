@@ -23,8 +23,6 @@ import {
   useToggleStoryFavorite,
 } from "@/features/stories/use-stories";
 import { useProfile } from "@/features/onboarding/use-profile";
-import { ActionEmptyState, TodaysAction } from "@/features/actions/todays-action";
-import { useEnsureTodaysActions, useTodaysActions } from "@/features/actions/use-actions";
 import { PracticeCard } from "@/features/practice/practice-card";
 import { AffirmationRow } from "@/features/affirmations/affirmation-row";
 
@@ -97,40 +95,22 @@ function HomeFeed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasDesires, isPending, storiesOnly.length, newestStoryAt]);
 
-  // Today's actions. Generated once a day per desire, on first open.
-  const { data: actions } = useTodaysActions();
-  const ensureActions = useEnsureTodaysActions();
-  useEffect(() => {
-    if (!desires || desires.length === 0 || ensureActions.isPending) return;
-    ensureActions.mutate(
-      desires.map((desire) => ({
-        id: desire.id,
-        title: desire.title,
-        category: desire.category,
-        description: desire.description,
-      })),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [desires?.length]);
-
   /**
-   * The one action to show. The selected desire's if a chip is active, the
-   * oldest incomplete one otherwise — oldest because the thing you've been
-   * avoiding longest is the thing worth surfacing.
+   * Today's Action is no longer on Home.
+   *
+   * Removed at Viggnesh's request after we established that every one of the
+   * eleven actions on screen was a canned template rather than anything
+   * written for him — and that this had been true all day, because the AI
+   * upgrade only ever got one attempt and that attempt happened while the
+   * provider was refusing every request.
+   *
+   * Deliberately removed from this screen only. The table, the edge function
+   * and the actions inside each goal are untouched, and the daily practice
+   * still offers them at the end. Deleting the feature outright would also
+   * delete the only part of the app that asks for effort rather than
+   * attention, which is a bigger decision than tidying up Home — and it is
+   * easy to put back and hard to rebuild.
    */
-  const todaysAction = useMemo(() => {
-    const rows = actions ?? [];
-    if (rows.length === 0 || !desires) return null;
-
-    const pick =
-      (selectedDesireId && rows.find((a) => a.desire_id === selectedDesireId)) ??
-      rows.find((a) => !a.completed_at) ??
-      rows[0];
-    if (!pick) return null;
-
-    const desire = desires.find((d) => d.id === pick.desire_id);
-    return desire ? { action: pick, desire } : null;
-  }, [actions, desires, selectedDesireId]);
 
   // Only personalised stories belong on Home; the catalogue lives in Library.
   const selectedDesire = desires?.find((d) => d.id === selectedDesireId) ?? null;
@@ -312,29 +292,6 @@ function HomeFeed() {
       {/* The practice, which is the daily loop. Above the actions because it
           ends by offering them, so doing it first is the shorter path. */}
       <PracticeCard />
-
-      {/* One action, not one per desire.
-          
-          This screen showed a card for every desire, so three desires meant
-          three things being asked of you before you had read anything. Being
-          handed a to-do list on opening an app about calm is the wrong feeling,
-          and three asks get ignored where one gets done. The rest are on the
-          goal itself. */}
-      {hasDesires && todaysAction && (
-        <section className="mt-6">
-          <TodaysAction
-            action={todaysAction.action}
-            desireTitle={todaysAction.desire.title}
-            category={todaysAction.desire.category}
-          />
-        </section>
-      )}
-
-      {!hasDesires && (
-        <section className="mt-6">
-          <ActionEmptyState />
-        </section>
-      )}
 
       {/* Always render something when a desire is selected but has nothing
           under it. This block used to be hidden while generation was running,
