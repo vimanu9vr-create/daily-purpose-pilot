@@ -351,10 +351,20 @@ export function useGenerateStories() {
        * The stock photographs are a perfectly good default while these arrive
        * over a few visits.
        */
-      const COVER_BATCH = 1;
-      for (const desire of active.slice(0, COVER_BATCH)) {
+      /**
+       * Find each dream its own photographs.
+       *
+       * Every active dream, not a capped batch, because this costs nothing per
+       * dream — it's one Pexels request returning eighty licensed photographs,
+       * against a free allowance of twenty thousand requests a month. The cap
+       * existed because the old route generated images at four cents each.
+       *
+       * Once per dream, ever: the function checks storage first and returns
+       * without calling out when the list already exists.
+       */
+      for (const desire of active) {
         void supabase.functions
-          .invoke("generate-desire-covers", { body: { desireId: desire.id } })
+          .invoke("find-dream-photos", { body: { desireId: desire.id } })
           .catch(() => undefined);
       }
 
