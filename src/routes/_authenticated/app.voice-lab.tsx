@@ -1,211 +1,192 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Loader2, Pause, Play } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Loader2, Volume2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { SILENT_WAV } from "@/lib/ambient-audio";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/voice-lab")({
-  head: () => ({ meta: [{ title: "Voice — ManifestAI" }] }),
-  component: VoiceLab,
+  head: () => ({ meta: [{ title: "Maintenance — ManifestAI" }] }),
+  component: Maintenance,
 });
 
 /**
- * A page for choosing the voice by ear, once, instead of by guesswork, five
- * times.
+ * A page for jobs that cost money, run rarely, and want a person watching.
  *
- * Every voice change so far has gone: change a number, deploy, wait to be told
- * it's still wrong. That loop cannot converge, because the person changing the
- * number has never heard the output. This puts the same passage in several
- * voices and paces on one screen so the decision takes five minutes and is made
- * by the person whose app it is.
+ * ## What this replaced
  *
- * Not linked from anywhere. It's a tool for settling a question, reachable at
- * /app/voice-lab, and it should be deleted once the question is settled.
+ * It was the voice lab — seven versions of the same passage side by side, to
+ * settle which voice and pace the app should use. That question is settled
+ * (Sarah, slow, wide gaps), and its own comment said it should be deleted once
+ * it was. A page that exists to answer a question nobody is asking any more is
+ * code that will rot quietly.
+ *
+ * ## Why the library needs a button at all
+ *
+ * Thirty of the thirty-five library tracks had no audio. Sleep was 0 of 3,
+ * meditation 0 of 4 — both named on the landing page and sold in the paid
+ * tier. Tapping "Falling Softly, 18 min" gave you silence, and had done since
+ * the day they were seeded.
+ *
+ * Narrating costs real money per character, so this is deliberately not
+ * automatic. Three tracks per press, with the characters shown before and
+ * after, so the spend is a decision somebody makes rather than something that
+ * happens overnight. Warming everything on a cron is how an API bill arrives
+ * without anyone choosing it, which has already happened to this project once.
+ *
+ * Not linked from anywhere. It stays at /app/voice-lab because that route
+ * already exists and nothing points at it.
  */
 
-/**
- * The passage.
- *
- * Deliberately two sentences of real content rather than "testing one two
- * three". A voice that sounds fine reading a test phrase can still sound wrong
- * reading something intimate, and the second sentence is where pacing shows.
- */
-const PASSAGE =
-  "You wake before the alarm, and for a second you can't place why the day feels different. Then you remember: this isn't something you're chasing anymore.";
+type Row = { kind: string; title: string; chars: number };
 
-type Candidate = {
-  id: string;
-  /** What the person picking sees. Deliberately not the voice's name. */
-  label: string;
-  voice: string;
-  speed: number;
-  gapSeconds: number;
-  /** Why this one is in the list, shown so the choice is informed. */
-  note: string;
+type BatchResult = {
+  narrated: number;
+  charsSpent: number;
+  remaining: number;
+  results: { title: string; kind: string; chars: number; ok: boolean; error?: string }[];
 };
 
-/**
- * The candidates.
- *
- * Two axes at once — which voice, and how fast. Testing them separately would
- * mean two rounds, and they interact: a warmer voice tolerates a quicker pace,
- * a brighter one needs slowing down.
- *
- * A is what's live now. It's included unlabelled so it competes on equal terms
- * rather than being defended.
- */
-const CANDIDATES: Candidate[] = [
-  { id: "a", label: "A", voice: "sarah", speed: 0.7, gapSeconds: 2.4, note: "Slow, wide gaps" },
-  { id: "b", label: "B", voice: "sarah", speed: 0.85, gapSeconds: 1.6, note: "Moderate" },
-  {
-    id: "c",
-    label: "C",
-    voice: "sarah",
-    speed: 1.0,
-    gapSeconds: 2.8,
-    note: "Natural pace, long silences",
-  },
-  { id: "d", label: "D", voice: "charlotte", speed: 0.8, gapSeconds: 2.4, note: "Different voice" },
-  { id: "e", label: "E", voice: "matilda", speed: 0.8, gapSeconds: 2.4, note: "Different voice" },
-  { id: "f", label: "F", voice: "laura", speed: 0.8, gapSeconds: 2.4, note: "Different voice" },
-  {
-    id: "g",
-    label: "G",
-    voice: "alice",
-    speed: 0.75,
-    gapSeconds: 2.8,
-    note: "Different voice, slower",
-  },
-];
-
-function VoiceLab() {
-  const [urls, setUrls] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState<string | null>(null);
-  const [playing, setPlaying] = useState<string | null>(null);
+function Maintenance() {
+  const [silent, setSilent] = useState<Row[] | null>(null);
+  const [running, setRunning] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const refresh = useCallback(async () => {
+    const { data, error: readError } = await supabase
+      .from("moments")
+      .select("kind,title,body")
+      .eq("source", "catalogue")
+      .is("audio_url", null)
+      .order("kind");
 
-  useEffect(() => {
-    const audio = new Audio();
-    audio.addEventListener("ended", () => setPlaying(null));
-    audioRef.current = audio;
-    return () => {
-      audio.pause();
-      audioRef.current = null;
-    };
+    if (readError) {
+      setError(readError.message);
+      return;
+    }
+    setSilent(
+      (data ?? []).map((row) => ({
+        kind: row.kind ?? "track",
+        title: row.title,
+        chars: (row.body ?? "").length,
+      })),
+    );
   }, []);
 
-  async function play(candidate: Candidate) {
-    const audio = audioRef.current;
-    if (!audio) return;
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
-    if (playing === candidate.id) {
-      audio.pause();
-      setPlaying(null);
-      return;
-    }
-
-    // Claim permission inside the tap, before any await — the same reason the
-    // story player needed two taps until this morning.
-    if (!audio.src) {
-      audio.src = SILENT_WAV;
-      void audio.play().catch(() => undefined);
-    }
-
-    const cached = urls[candidate.id];
-    if (cached) {
-      audio.src = cached;
-      void audio.play().then(() => setPlaying(candidate.id));
-      return;
-    }
-
-    setLoading(candidate.id);
+  async function warm(kinds: string[]) {
+    setRunning(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("speak-line", {
-        body: {
-          text: PASSAGE,
-          voice: candidate.voice,
-          speed: candidate.speed,
-          gapSeconds: candidate.gapSeconds,
-        },
+      const { data, error: fnError } = await supabase.functions.invoke("prewarm-catalogue", {
+        body: { kinds, batch: 3 },
       });
       if (fnError) throw fnError;
 
-      const url = (data as { audioUrl?: string } | null)?.audioUrl;
-      if (!url) throw new Error("No audio came back.");
-
-      setUrls((current) => ({ ...current, [candidate.id]: url }));
-      audio.src = url;
-      await audio.play();
-      setPlaying(candidate.id);
-    } catch {
-      setError("That one didn't generate. Try it again.");
+      const result = data as BatchResult;
+      setLog((current) => [
+        ...result.results.map(
+          (r) =>
+            `${r.ok ? "✓" : "✗"} ${r.kind} · ${r.title} · ${r.chars} chars${
+              r.error ? ` — ${r.error}` : ""
+            }`,
+        ),
+        `— ${result.narrated} narrated, ${result.charsSpent} characters, ${result.remaining} left`,
+        ...current,
+      ]);
+      await refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "That batch didn't run.");
     } finally {
-      setLoading(null);
+      setRunning(false);
     }
   }
 
+  // Grouped so sleep and meditation are visible as their own number rather
+  // than buried in a total dominated by the affirmation tracks.
+  const byKind = (silent ?? []).reduce<Record<string, { count: number; chars: number }>>(
+    (acc, row) => {
+      const entry = acc[row.kind] ?? { count: 0, chars: 0 };
+      entry.count += 1;
+      entry.chars += row.chars;
+      acc[row.kind] = entry;
+      return acc;
+    },
+    {},
+  );
+
+  const spoken = ["sleep", "meditation", "frequency"];
+  const spokenLeft = spoken.reduce((n, k) => n + (byKind[k]?.count ?? 0), 0);
+
   return (
     <PageTransition>
-      <h1 className="font-display text-[28px] font-medium leading-none">Pick a voice</h1>
+      <h1 className="font-display text-[28px] font-medium leading-none">Library narration</h1>
       <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-        Same two sentences, seven ways. Play them in order, with the sound you&rsquo;d actually use
-        &mdash; phone speaker or headphones, whichever is real. Then tell me the letter.
+        A track with no audio is silent when someone opens it. Narrating costs money per character,
+        so this runs three at a time and tells you what it spent.
       </p>
 
-      <blockquote className="mt-5 rounded-[24px] border border-glass-border bg-card/40 p-5 font-display text-[15px] italic leading-relaxed">
-        {PASSAGE}
-      </blockquote>
-
-      <div className="mt-6 space-y-2">
-        {CANDIDATES.map((candidate) => (
-          <button
-            key={candidate.id}
-            type="button"
-            onClick={() => void play(candidate)}
-            disabled={loading !== null}
-            className={cn(
-              "flex w-full items-center gap-4 rounded-[22px] border p-4 text-left transition",
-              playing === candidate.id
-                ? "border-primary bg-primary/10"
-                : "border-glass-border bg-card/40 hover:bg-card/60",
-              loading !== null && loading !== candidate.id && "opacity-50",
-            )}
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              {loading === candidate.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : playing === candidate.id ? (
-                <Pause className="h-4 w-4 fill-current" />
-              ) : (
-                <Play className="h-4 w-4 fill-current" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-lg">{candidate.label}</span>
-              <span className="block text-[13px] text-muted-foreground">{candidate.note}</span>
-            </span>
-            {urls[candidate.id] && (
-              <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                Ready
+      {silent === null ? (
+        <div className="mt-8 flex items-center gap-3 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Checking&hellip;
+        </div>
+      ) : silent.length === 0 ? (
+        <p className="mt-8 rounded-[24px] border border-glass-border bg-card/40 p-5 text-sm">
+          Every library track has audio.
+        </p>
+      ) : (
+        <div className="mt-6 space-y-2">
+          {Object.entries(byKind).map(([kind, { count, chars }]) => (
+            <div
+              key={kind}
+              className="flex items-center justify-between rounded-[20px] border border-glass-border bg-card/40 px-5 py-3.5"
+            >
+              <span className="font-display text-[15px] capitalize">{kind}</span>
+              <span className="text-[13px] tabular-nums text-muted-foreground">
+                {count} silent &middot; {chars.toLocaleString()} chars
               </span>
-            )}
-          </button>
-        ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-wrap gap-2">
+        <Button
+          variant="glass"
+          className="rounded-full"
+          disabled={running || spokenLeft === 0}
+          onClick={() => void warm(spoken)}
+        >
+          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
+          Narrate 3 sleep &amp; meditation tracks
+        </Button>
       </div>
 
-      {error && <p className="mt-4 text-[13px] text-muted-foreground">{error}</p>}
-
-      <p className="mt-8 text-[13px] leading-relaxed text-muted-foreground">
-        First play of each takes a few seconds while it&rsquo;s generated. After that they&rsquo;re
-        instant, so go back and compare the two or three you like properly &mdash; the first
-        impression and the second rarely agree.
+      {/*
+        Affirmations are deliberately not offered. Their bodies are a short set
+        of lines repeated to fill the stated runtime — 18 distinct lines
+        stretched past 200 — so narrating one verbatim pays roughly nine times
+        for the same words. All 22 would be about 69,000 characters against
+        roughly 5,000 for the lines that actually differ.
+      */}
+      <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
+        Affirmation tracks aren&rsquo;t offered here on purpose: their text is a short set of lines
+        repeated to fill the runtime, so narrating them as-is pays about nine times over for the
+        same words.
       </p>
+
+      {error && <p className="mt-4 text-[13px] text-destructive">{error}</p>}
+
+      {log.length > 0 && (
+        <pre className="mt-6 overflow-x-auto rounded-[20px] border border-glass-border bg-card/40 p-4 text-[12px] leading-relaxed text-muted-foreground">
+          {log.join("\n")}
+        </pre>
+      )}
     </PageTransition>
   );
 }
