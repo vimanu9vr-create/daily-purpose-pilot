@@ -85,13 +85,42 @@ export function useEnsureTodaysActions() {
 
       const { data: existing, error: readError } = await supabase
         .from("actions")
-        .select("desire_id")
+        .select("desire_id,source")
         .eq("for_date", today);
       if (readError) throw readError;
 
       const have = new Set((existing ?? []).map((row) => row.desire_id));
       const missing = desires.filter((desire) => !have.has(desire.id));
-      if (missing.length === 0) return 0;
+
+      /**
+       * Retry the AI upgrade on actions that are still templates.
+       *
+       * The upgrade used to get exactly one attempt, at the instant the
+       * template was written — and this function returned early whenever
+       * nothing was missing, so a failed upgrade could never be retried for
+       * the rest of the day.
+       *
+       * That is not a rare edge. Today every one of eleven actions was still a
+       * template, because the one attempt they each got happened while Gemini
+       * was returning 404 for this account. The provider was fixed hours ago
+       * and the screen would have stayed on templates until tomorrow.
+       *
+       * A one-shot upgrade is a bet that the provider is healthy at one
+       * arbitrary moment. Asking again costs a single call and is the
+       * difference between "the AI is broken" and "the AI was briefly busy".
+       */
+      const stale = new Set(
+        (existing ?? [])
+          .filter((row) => row.source === "template")
+          .map((row) => row.desire_id)
+          .filter((id): id is string => Boolean(id)),
+      );
+      const needsUpgrade = desires.filter((desire) => stale.has(desire.id));
+
+      if (missing.length === 0) {
+        if (needsUpgrade.length > 0) void upgradeWithAi(needsUpgrade, today);
+        return 0;
+      }
 
       const rows = missing.map((desire) => ({
         user_id: userId,
@@ -113,7 +142,8 @@ export function useEnsureTodaysActions() {
       if (error) throw error;
 
       trail("actions", "generated", { count: rows.length });
-      void upgradeWithAi(missing, today);
+      // Both the new ones and anything left on a template from earlier today.
+      void upgradeWithAi([...missing, ...needsUpgrade], today);
       return rows.length;
     },
     onSuccess: (count) => {
