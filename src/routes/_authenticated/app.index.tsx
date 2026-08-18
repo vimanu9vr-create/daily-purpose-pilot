@@ -452,7 +452,7 @@ function RefreshCountdown({ onRefresh, busy }: { onRefresh: () => void; busy: bo
     return () => clearInterval(id);
   }, []);
 
-  const { label, progress, due } = useMemo(() => {
+  const { label, progress } = useMemo(() => {
     const target = nextRefreshAt(now);
     const remaining = Math.max(0, target.getTime() - now.getTime());
     const h = Math.floor(remaining / 3_600_000);
@@ -461,8 +461,10 @@ function RefreshCountdown({ onRefresh, busy }: { onRefresh: () => void; busy: bo
     const pad = (n: number) => String(n).padStart(2, "0");
     return {
       label: `${pad(h)}:${pad(m)}:${pad(s)}`,
-      progress: 1 - remaining / (4 * 3_600_000),
-      due: remaining <= 0,
+      // Against the full window, not a hard-coded four hours — that number was
+      // left behind when the refresh moved from four-hourly to daily, so the
+      // bar sat at 100% almost all the time and told you nothing.
+      progress: 1 - remaining / (REFRESH_HOURS * 3_600_000),
     };
   }, [now]);
 
@@ -476,22 +478,33 @@ function RefreshCountdown({ onRefresh, busy }: { onRefresh: () => void; busy: bo
           style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
         />
       </div>
-      {due && (
-        <Button
-          variant="glass"
-          size="sm"
-          className="mt-5 rounded-full"
-          onClick={onRefresh}
-          disabled={busy}
-        >
-          {busy ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Sparkles className="h-3.5 w-3.5" />
-          )}
-          Refresh now
-        </Button>
-      )}
+      {/*
+        Always available, not only when the countdown hits zero.
+
+        It used to be hidden behind `due`, which meant that for twenty-three of
+        every twenty-four hours there was no way to ask for a new story at all
+        — you could only watch a clock. Wanting a different story now is the
+        most ordinary thing a person could want on this screen, and the app's
+        answer was to show them how long they had to wait.
+
+        Stella's reviewers complain about exactly this on their side: "the
+        story sometimes takes longer than 24 hours to produce a new one, and
+        sometimes it's the same as the previous day."
+      */}
+      <Button
+        variant="glass"
+        size="sm"
+        className="mt-5 rounded-full"
+        onClick={onRefresh}
+        disabled={busy}
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Sparkles className="h-3.5 w-3.5" />
+        )}
+        {busy ? "Writing…" : "Write new ones now"}
+      </Button>
     </section>
   );
 }
