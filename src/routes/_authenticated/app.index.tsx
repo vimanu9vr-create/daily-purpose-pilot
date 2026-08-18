@@ -12,6 +12,7 @@ import { coverImage, themeFor } from "@/features/stories/imagery";
 import { CarouselSection, DraggableRow, StoryCard } from "@/features/stories/story-card";
 import { TrendingMarquee } from "@/features/stories/trending-marquee";
 import {
+  REFRESH_HOURS,
   TRENDING_DESIRES,
   interleaveByDesire,
   nextRefreshAt,
@@ -53,22 +54,48 @@ function HomeFeed() {
   const storyList = stories ?? [];
 
   /**
-   * Refill the feed when there are no stories in it.
-   *
    * Counts `storiesOnly`, not everything fetched. The query returns the
-   * library tracks as well now, and those never expire — so a check against
-   * the whole list would see thirty-five rows, conclude the feed was fine, and
-   * leave Home showing nothing but sleep tracks forever once the day's stories
-   * aged out. The refill has to ask about the thing it refills.
+   * library tracks as well, and those never expire — so a check against the
+   * whole list would see thirty-five rows and conclude the feed was fine.
    */
   const storiesOnly = storyList.filter((s) => s.kind === "story");
 
-  useEffect(() => {
-    if (hasDesires && !isPending && storiesOnly.length === 0 && !generate.isPending) {
-      generate.mutate({ perDesire: 6 });
+  /** When the newest story in the feed was written. 0 if there are none. */
+  const newestStoryAt = useMemo(() => {
+    let newest = 0;
+    for (const story of storiesOnly) {
+      const at = new Date(story.created_at).getTime();
+      if (at > newest) newest = at;
     }
+    return newest;
+  }, [storiesOnly]);
+
+  /**
+   * Refill when the feed is EMPTY OR STALE — and the second half is the fix.
+   *
+   * This used to fire only on `length === 0`. That worked while stories
+   * expired and were filtered out, because the feed genuinely emptied itself
+   * once a day. Then I removed the expiry filter (to stop dreams with no
+   * replacement going blank), and in doing so removed the only thing that ever
+   * made this condition true.
+   *
+   * The result was an app that never wrote another story. Reported twice as
+   * the writing still being the old writing — and both times I assumed the new
+   * code hadn't shipped. It had. Home was simply showing the same twenty-two
+   * stories forever, because nothing was left to trigger a refresh, while a
+   * countdown on the same screen promised one every twenty-four hours.
+   *
+   * Asking how old the newest story is says what the countdown already says.
+   */
+  useEffect(() => {
+    if (!hasDesires || isPending || generate.isPending) return;
+
+    const ageHours = newestStoryAt === 0 ? Infinity : (Date.now() - newestStoryAt) / 3_600_000;
+    if (ageHours < REFRESH_HOURS) return;
+
+    generate.mutate({ perDesire: 6 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasDesires, isPending, storiesOnly.length]);
+  }, [hasDesires, isPending, storiesOnly.length, newestStoryAt]);
 
   // Today's actions. Generated once a day per desire, on first open.
   const { data: actions } = useTodaysActions();
