@@ -110,7 +110,7 @@ function resolveProvider(): { url: string; apiKey: string; model: string } | nul
     return {
       url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       apiKey: geminiKey,
-      model: Deno.env.get("GEMINI_MODEL") ?? "gemini-3.7-flash",
+      model: Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash",
     };
   }
 
@@ -127,6 +127,35 @@ function resolveProvider(): { url: string; apiKey: string; model: string } | nul
   if (lovableKey) return { url: GATEWAY_URL, apiKey: lovableKey, model: MODEL };
 
   return null;
+}
+
+/**
+ * One retry, waiting as long as the provider asks.
+ *
+ * Gemini's free tier allows five requests a minute, and it doesn't just refuse
+ * over that — it tells you exactly how long to wait ("Please retry in 15.4s").
+ * Ignoring that and failing was throwing away a request the provider was
+ * willing to serve fifteen seconds later.
+ *
+ * Deliberately one retry, capped. Retrying forever turns a rate limit into a
+ * queue that grows faster than it drains, and an edge function has a wall-clock
+ * budget of its own.
+ */
+async function askWithRetry(send: () => Promise<Response>, maxWaitMs = 20_000): Promise<Response> {
+  const first = await send();
+  if (first.status !== 429) return first;
+
+  const body = await first
+    .clone()
+    .text()
+    .catch(() => "");
+  const suggested = /retry in ([\d.]+)s/i.exec(body)?.[1];
+  const waitMs = suggested ? Math.ceil(Number(suggested) * 1000) + 500 : 5_000;
+  if (waitMs > maxWaitMs) return first;
+
+  console.warn(`rate limited; waiting ${waitMs}ms as instructed`);
+  await new Promise((resolve) => setTimeout(resolve, waitMs));
+  return send();
 }
 
 Deno.serve(async (req: Request) => {
@@ -209,19 +238,21 @@ Deno.serve(async (req: Request) => {
       .filter(Boolean)
       .join("\n");
 
-    const upstream = await fetch(provider!.url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: provider!.model,
-        // Higher temperature: repetition across days is the #1 complaint about apps like this.
-        temperature: 1.0,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: context },
-        ],
+    const upstream = await askWithRetry(() =>
+      fetch(provider!.url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: provider!.model,
+          // Higher temperature: repetition across days is the #1 complaint about apps like this.
+          temperature: 1.0,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: context },
+          ],
+        }),
       }),
-    });
+    );
 
     /**
      * Log why, not just that.

@@ -439,9 +439,13 @@ export function useGenerateStories() {
        * rather than several seconds of queue — without asking a provider to
        * accept a spike it has every right to refuse.
        */
-      const WAVE = 6;
+      const WAVE = 3;
       const responses: PromiseSettledResult<Response | null>[] = [];
       for (let start = 0; start < pending.length; start += WAVE) {
+        // A beat between waves. Gemini's free tier allows five requests a
+        // minute; the edge function retries when it's told to wait, but not
+        // spending the allowance in one burst means it mostly doesn't have to.
+        if (start > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
         const wave = pending.slice(start, start + WAVE);
         responses.push(...(await Promise.allSettled(wave.map((item) => item.request))));
       }
