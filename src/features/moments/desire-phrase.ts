@@ -84,6 +84,30 @@ const VERBS = new Set([
   "write",
 ]);
 
+/**
+ * Verbs where the desire is the OBJECT, not the activity.
+ *
+ * "I want to buy defender car" became "buying defender car", which then went
+ * into sentences as "buying defender car is yours now" and "you haven't
+ * thought about wanting buying defender car in weeks". Reported, correctly, as
+ * not feeling real — mangling someone's own words is the fastest way to break
+ * the spell.
+ *
+ * The gerund is right for things you DO: earning 20000cr, launching my app,
+ * travelling more. It is wrong for things you HAVE. Nobody wants the activity
+ * of buying a Defender; they want the Defender.
+ *
+ * Split into strong and weak because of "get". "get a new job" is an
+ * acquisition and "get fit" is not, and the difference isn't in the verb — so
+ * a weak verb only counts as acquisition when a determiner follows it and
+ * makes the object unambiguous. Strong verbs take an object either way.
+ */
+const ACQUIRE_STRONG = new Set(["buy", "purchase", "own", "afford"]);
+const ACQUIRE_WEAK = new Set(["get", "have", "attract", "land", "receive", "obtain"]);
+
+/** Words that mark what follows as a thing rather than a state. */
+const DETERMINERS = new Set(["a", "an", "the", "my", "our", "your", "his", "her", "their"]);
+
 const IRREGULAR: Record<string, string> = {
   be: "being",
   begin: "beginning",
@@ -159,6 +183,27 @@ export function desirePhrase(rawTitle: string): string | null {
 
   const first = words[0]!.toLowerCase().replace(/[^a-z']/g, "");
   const rest = words.slice(1).join(" ");
+
+  /**
+   * Acquisition first: the object is the desire, so drop the verb entirely.
+   *
+   * "buy defender car" → "your defender car", not "buying defender car".
+   * Every caller splices this into a noun slot — "X is yours now", "for whom X
+   * is ordinary", "X is simply part of your life" — so a noun is what they all
+   * need. The gerund reads as an activity and turns the sentence into nonsense.
+   */
+  if (rest) {
+    const nextWord = rest
+      .split(/\s+/)[0]!
+      .toLowerCase()
+      .replace(/[^a-z']/g, "");
+    const hasDeterminer = DETERMINERS.has(nextWord);
+    if (ACQUIRE_STRONG.has(first) || (ACQUIRE_WEAK.has(first) && hasDeterminer)) {
+      // A determiner already settles whose it is. Without one, "your" does,
+      // and it reads better than the bare noun in every slot this feeds.
+      return hasDeterminer ? rest.toLowerCase() : `your ${rest}`.toLowerCase();
+    }
+  }
 
   if (VERBS.has(first)) {
     return rest ? `${gerund(first)} ${rest}`.toLowerCase() : gerund(first);

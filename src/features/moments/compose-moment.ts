@@ -1,14 +1,49 @@
 /**
- * Composes a daily "moment" — a short second-person, present-tense scene built
- * from what the user actually wrote about their goal.
+ * Composes a "moment" on the device — a short second-person, present-tense
+ * scene set in a life where what the person wants is already true.
  *
  * This runs entirely on the device, so the feature works with no AI key, no
- * per-request cost, and offline. When the `ai-moment` edge function is
- * deployed it produces something better; this is the floor, not the ceiling.
+ * per-request cost, and offline. When `ai-moment` answers it produces something
+ * better; this is the floor, not the ceiling.
  *
- * A deliberate line: these are written as rehearsal and focus exercises. They
- * describe you *doing the work* and how that feels — never a scene in which
- * the outcome arrives on its own.
+ * ## Why this was rewritten
+ *
+ * Reported as: "it shows you're on the bus, you're walking back, you're in the
+ * corridor outside, you're on the step outside." Every one of those is an
+ * opening line from this file.
+ *
+ * I had just rewritten the AI prompt to fix exactly this — stories that put you
+ * somewhere quiet to think ABOUT a thing you don't have, and then ended by
+ * handing you a task. I fixed the version that runs on the server and left its
+ * twin on the device untouched, so the same flaw kept shipping from the other
+ * half of the system. That is the same mistake I have now made several times:
+ * fixing the instance in front of me rather than the pattern.
+ *
+ * ## What changed
+ *
+ * THE SCENE IS SET AFTER THEY HAVE IT. Not the day they got it — later, when it
+ * has become ordinary. "The day you finally get it" is a daydream everyone has
+ * already had alone, and it is the version that feels like a lie. An ordinary
+ * Tuesday months in is stranger, more specific, and asks you to imagine being
+ * the person rather than imagine the prize.
+ *
+ * NOTHING ENDS WITH HOMEWORK. Every template used to close on an instruction —
+ * "then come back and do today's small piece of it", "keep walking, keep
+ * going". Across the stories this produced, 334 of 359 ended that way. A piece
+ * you listen to with your eyes shut should not finish by giving you a job.
+ *
+ * The honesty line is unchanged in spirit but narrower in target. Describing an
+ * imagined scene is the whole exercise and is fine. Claiming the world will
+ * deliver it — "it's on its way", "the universe is arranging this" — is not,
+ * and appears nowhere here.
+ *
+ * ## What it deliberately does not attempt
+ *
+ * It cannot know that a Land Rover Defender has a heavy door or that a flat has
+ * a boiler that needs bleeding. Only the AI version has that. So this leans on
+ * what a template genuinely can do — the shape of ordinariness, the person's
+ * own words for the thing, and a real detail of the room rather than of the
+ * prize. It never invents specifics about an object it hasn't been told about.
  */
 
 import { desirePhrase, GENERIC_DESIRE } from "./desire-phrase";
@@ -30,17 +65,18 @@ type Template = {
 /**
  * A place, and the sentence that puts you in it.
  *
- * Six templates were producing 315 stories, so the feed read the same six
- * scenes over and over — "it shows you sit at your desk for everything, every
- * track". Writing thirty more templates would have delayed the problem rather
- * than fixed it, because the repetition is structural: a fixed list of whole
- * stories repeats as soon as you generate more stories than you have entries.
+ * Six whole-story templates produced 315 stories, so the feed read the same six
+ * scenes over and over. Writing thirty more templates would have delayed that
+ * rather than fixed it: a fixed list of whole stories repeats as soon as you
+ * generate more stories than you have entries.
  *
- * Splitting the scene from the argument fixes the ratio. The template supplies
- * the shape — what the piece is doing — and the scene supplies where you are.
- * Six shapes and fourteen places give eighty-four openings from roughly the
- * same amount of writing, and adding one more of either multiplies rather than
- * adds.
+ * Splitting the scene from the shape fixes the ratio instead. Six shapes and
+ * fourteen places give eighty-four openings from roughly the same amount of
+ * writing, and adding one more of either multiplies rather than adds.
+ *
+ * These are all domestic and unremarkable on purpose. The scene's job here is
+ * no longer "somewhere to sit and think about your goal" — it is the ordinary
+ * furniture of a life in which the thing is already true.
  */
 type Scene = {
   /** Establishes the place. Always the first line the user reads. */
@@ -51,66 +87,66 @@ type Scene = {
 
 const SCENES: Scene[] = [
   {
-    open: "It's late, and the kitchen is the only light on in the flat.",
+    open: "It's late, and the kitchen is the only light on.",
     detail: "the hum of the fridge, loud now that everything else is quiet",
   },
   {
-    open: "You're on a bus, halfway to somewhere ordinary.",
-    detail: "the window cold against your temple",
+    open: "You're up before you need to be, and the room is still blue.",
+    detail: "the weight of the duvet, nothing required of you yet",
   },
   {
-    open: "You've stopped on a bench you had no plans to sit on.",
-    detail: "someone's dog, somewhere behind you, delighted about nothing",
+    open: "You're putting things away, and it's taking longer than it should.",
+    detail: "a cupboard door that never quite shuts",
   },
   {
-    open: "You're walking back, and it's cold enough to notice.",
-    detail: "your hands pushed into your sleeves",
+    open: "It's raining, properly, and you're not going anywhere.",
+    detail: "one drop overtaking another down the glass",
   },
   {
-    open: "You're in the doorway with your keys still in your hand.",
+    open: "You've stopped in the doorway with your keys still in your hand.",
     detail: "the bag you haven't put down yet",
+  },
+  {
+    open: "It's Sunday and the day has no shape to it.",
+    detail: "the radiator ticking as it warms",
+  },
+  {
+    open: "You're eating standing up, which you always mean to stop doing.",
+    detail: "the plate balanced on the edge of the counter",
+  },
+  {
+    open: "Someone's asked you a question and you're taking your time answering.",
+    detail: "them waiting, unhurried, not minding",
+  },
+  {
+    open: "You're outside for a minute, in the first warm evening of the year.",
+    detail: "the wall still holding the day's heat",
+  },
+  {
+    open: "You're back after a few days away, and the flat smells shut up.",
+    detail: "the post you haven't picked up yet",
+  },
+  {
+    open: "It's the middle of the afternoon and nothing needs doing.",
+    detail: "the light moving slowly across the floor",
+  },
+  {
+    open: "You're washing up, badly, thinking about nothing in particular.",
+    detail: "the water going cold around your wrists",
   },
   {
     open: "You've sat down on the stairs on the way up, for no reason.",
     detail: "the carpet under your palm",
   },
   {
-    open: "You're awake before the alarm, and the room is still blue.",
-    detail: "the weight of the duvet, the fact that nothing is required of you yet",
-  },
-  {
-    open: "You're in a queue that isn't moving, somewhere beige and fluorescent.",
-    detail: "the man ahead of you shifting his weight",
-  },
-  {
-    open: "You're on the step outside, in the first warm evening of the year.",
-    detail: "the wall still holding the day's heat",
-  },
-  {
-    open: "You're still in the driver's seat with the engine off, not going in yet.",
-    detail: "the ticking as it cools",
-  },
-  {
-    open: "It's Sunday and the day has no shape to it.",
-    detail: "a mug you keep meaning to finish",
-  },
-  {
-    open: "You're in the corridor outside a room you're about to walk into.",
-    detail: "the sound of the door, and the voices behind it",
-  },
-  {
-    open: "It's grey out, and rain has started on the window.",
-    detail: "one drop overtaking another down the glass",
-  },
-  {
-    open: "You're in a cafe where nobody knows you.",
-    detail: "the machine going somewhere behind you",
+    open: "It's the end of a long day and you haven't turned the big light on.",
+    detail: "the room lit only from the hallway",
   },
 ];
 
 function feelingPhrase(seed: MomentSeed): string {
   const f = seed.feeling?.trim();
-  if (!f) return "steady, and more like yourself than you expected";
+  if (!f) return "more like yourself than you expected";
   // Trim trailing punctuation so it slots into a sentence.
   return f.replace(/[.!?]+$/, "").toLowerCase();
 }
@@ -131,20 +167,30 @@ function goal(seed: MomentSeed): string {
   return desirePhrase(seed.title) ?? GENERIC_DESIRE;
 }
 
+/**
+ * The six shapes.
+ *
+ * Every one is set after the thing is true, and none of them ends by asking
+ * for anything. They differ by which face of ordinariness they turn toward:
+ * the unremarkableness itself, being seen, the small friction of ownership,
+ * having stopped wanting it, the boring use of it, and looking back.
+ */
 const TEMPLATES: Template[] = [
   {
-    key: "morning",
-    title: "The morning of",
+    key: "ordinary",
+    title: "An ordinary morning",
     build: (seed, scene) => {
       const why = whyPhrase(seed);
       return [
-        `${scene.open} This is months from now, though it doesn't announce itself. For a second you can't place why it feels different.`,
-        `Then you remember: ${goal(seed)} isn't something you're chasing anymore. It's just where you live now.`,
-        `You notice how normal it feels. Not dramatic. Not cinematic — ${scene.detail}, and you, ${feelingPhrase(seed)}. The way real things feel once you've been inside them a while.`,
+        `${scene.open} This is a long way from now, though nothing about it announces that.`,
+        // Deliberately doesn't name the old state. "X is not something you're
+        // chasing any more" was the first draft, and it drags the wanting back
+        // into a scene whose whole job is that the wanting is over.
+        `${capitalise(goal(seed))} is simply the ordinary condition of your life, and has been for long enough that you've stopped marking it.`,
+        `You notice how little ceremony there is to it. ${capitalise(scene.detail)}, and you, ${feelingPhrase(seed)}. This is what real things feel like once you've been inside them a while.`,
         why
-          ? `And underneath it, quietly, the reason you started: ${why.toLowerCase()}. That part turned out to be true.`
-          : `The version of you who started this had no idea it would feel this unremarkable. That's how you know it worked.`,
-        `Sit with that for a moment. Then come back and do today's small piece of it.`,
+          ? `Underneath it, quietly, the reason you wanted it: ${why.toLowerCase()}. That part turned out to be true as well.`
+          : `The version of you who wanted this had no idea it would feel this unremarkable.`,
       ];
     },
   },
@@ -152,70 +198,79 @@ const TEMPLATES: Template[] = [
     key: "witness",
     title: "Someone notices",
     build: (seed, scene) => [
-      `${scene.open} Now picture someone who knew you before — before you started working toward ${goal(seed)}.`,
-      `They're watching you here, in the middle of nothing in particular. Not a highlight. ${capitalise(scene.detail)}, and you.`,
-      `What they notice isn't the result. It's the ease. The way you don't hesitate at the part that used to stop you.`,
-      `They ask how you did it, and you find you don't have a dramatic answer. You just kept showing up on days that didn't feel special.`,
-      `You feel ${feelingPhrase(seed)}. Hold that, and then go add one more ordinary day to the pile.`,
+      `${scene.open} Someone who knew you before is here — before any of this, back when ${goal(seed)} was still a sentence you said carefully.`,
+      `They're watching you in the middle of nothing in particular. Not a highlight. ${capitalise(scene.detail)}, and you.`,
+      `What they notice isn't what you have. It's the ease. The way you don't brace at the part that used to stop you.`,
+      `They ask how it happened, and you find you don't have a dramatic answer, because it didn't happen dramatically. You feel ${feelingPhrase(seed)}, and slightly amused at being asked.`,
     ],
   },
   {
-    key: "obstacle",
-    title: "The thing that used to stop you",
+    key: "upkeep",
+    title: "The unglamorous part",
+    /**
+     * Has to hold a Defender and a calmer mind equally.
+     *
+     * The first draft was "the small dull problem that comes with X. It'll take
+     * a phone call, or twenty minutes, or a Saturday" — which is fine for a car
+     * and meaningless for a state of mind. Two things fixed it: "asks of you",
+     * which is grammatical after a possessive, a bare noun and a gerund alike;
+     * and cutting the concrete remedies, which were only ever concrete for
+     * objects.
+     *
+     * Also not "because X is yours now" — the phrase already reads as "your
+     * defender car", and "your defender car is yours" is the kind of small
+     * wrongness that breaks the spell faster than a dull sentence does.
+     */
+    build: (seed, scene) => [
+      `${scene.open} And there's the upkeep — the small, dull thing that ${goal(seed)} asks of you, which nobody pictures while they still want it.`,
+      `It isn't interesting and it isn't a reward. It's the part that keeps it true, and it comes round again whether you feel like it or not.`,
+      // The feeling they wrote down has to appear somewhere in every shape.
+      // A test catches this, and it caught it here — the first version of this
+      // template dropped it, which is the exact bug that test was written for.
+      `That's how you know it's real. The daydream never included this, and the actual thing always does. ${capitalise(scene.detail)}, and you, ${feelingPhrase(seed)}.`,
+      `You'll see to it. It doesn't take up much room in your head, which is its own kind of luxury.`,
+    ],
+  },
+  {
+    key: "forgotten",
+    title: "You stopped noticing",
     build: (seed, scene) => {
       const obstacle = seed.obstacles?.trim().replace(/[.!?]+$/, "");
       return [
+        `${scene.open} It occurs to you that you haven't thought about wanting ${goal(seed)} in weeks.`,
+        `Not because you gave it up. Because it stopped being a thing you want and became a thing you have, and the wanting quietly closed behind you.`,
         obstacle
-          ? `${scene.open} You wrote down what was in the way: ${obstacle.toLowerCase()}. Picture meeting it again, right here.`
-          : `${scene.open} And the doubt shows up — the familiar one, the one that has stopped you before.`,
-        `It arrives the way it always has. Same weight, same timing, same argument.`,
-        `And this time you notice it, and you keep moving anyway. Not because it disappeared. Because you stopped waiting for it to.`,
-        `That's the whole shift. Not the absence of the obstacle — the presence of you, continuing. ${capitalise(scene.detail)}. Nothing has changed in the room.`,
-        `You feel ${feelingPhrase(seed)}. Now do the next small thing, with the doubt still in the room.`,
+          ? `The old obstacle — ${obstacle.toLowerCase()} — is still around somewhere. It just doesn't get a vote any more.`
+          : `The doubt that used to run underneath all of this is still around somewhere. It just doesn't get a vote any more.`,
+        `${capitalise(scene.detail)}. You feel ${feelingPhrase(seed)}, and you go back to what you were doing.`,
       ];
     },
   },
   {
-    key: "evening",
+    key: "practical",
+    title: "Using it for nothing special",
+    build: (seed, scene) => [
+      `${scene.open} You're using ${goal(seed)} for something completely boring.`,
+      `Not the thing you pictured. Something practical and slightly beneath it, the way people actually use what they have.`,
+      `There's no occasion to it. ${capitalise(scene.detail)}. Nobody is watching, nothing is being marked.`,
+      `And it works. It just does what it does, and you feel ${feelingPhrase(seed)} in the flat, uneventful way you feel about things that are simply part of your life.`,
+    ],
+  },
+  {
+    key: "looking-back",
     title: "The evening you look back",
     build: (seed, scene) => {
       const why = whyPhrase(seed);
       return [
-        `${scene.open} This is a long way from here, and you're not working on anything.`,
-        `You think back to right now — this week, this stretch where ${goal(seed)} was still ahead of you and progress was hard to see.`,
-        `From where you're sitting, you can see what you couldn't see then: it was already working. It just hadn't shown up yet.`,
+        `${scene.open} You're not working on anything, and you haven't been for a while.`,
+        `You think back to the stretch where ${goal(seed)} was still ahead of you and nothing seemed to be moving.`,
+        `From here you can see what you couldn't see then. It was already underway. It just hadn't surfaced yet, and there was no way to tell from the inside.`,
         why
           ? `You remember why it mattered — ${why.toLowerCase()} — and you're glad you didn't put it down.`
           : `You're glad you didn't put it down.`,
-        `What you feel, sitting here, is ${feelingPhrase(seed)}.`,
-        `Feel that gratitude backwards, toward the version of you reading this. Then give them one more good day.`,
+        `${capitalise(scene.detail)}. What you feel, sitting here, is ${feelingPhrase(seed)}.`,
       ];
     },
-  },
-  {
-    key: "identity",
-    title: "Who you're being",
-    build: (seed, scene) => [
-      // Worded so it works whether the goal is a thing ("a calmer mind") or an
-      // action ("earning 20000cr"). "who already has earning 20000cr" doesn't.
-      `${scene.open} Forget the outcome for a minute, and put someone here for whom ${goal(seed)} is already ordinary.`,
-      `Not anywhere impressive — here. ${capitalise(scene.detail)}.`,
-      `Not what they have — what they do. How they start their morning. What they say yes to. What they've stopped negotiating with themselves about.`,
-      `You know more about this person than you think. You've been watching them from a distance for a while.`,
-      `Here's the useful part: you don't have to become them first. You can borrow one of their habits today and be them for an hour.`,
-      `Pick the smallest one. Do that. Feeling ${feelingPhrase(seed)} follows the action, not the other way round.`,
-    ],
-  },
-  {
-    key: "walk",
-    title: "The walk home",
-    build: (seed, scene) => [
-      `${scene.open} Nothing important has happened today.`,
-      `But something has shifted, and you only register it now: you're no longer bracing. The thing you were afraid of — ${goal(seed)} being out of reach — stopped being the background hum of your life.`,
-      `It happened so gradually you missed the moment it changed. ${capitalise(scene.detail)} — and none of it feels like an occasion.`,
-      `That's what progress actually looks like from the inside. Boring, incremental, and only visible in the rear-view.`,
-      `You feel ${feelingPhrase(seed)}. Keep walking. Keep going.`,
-    ],
   },
 ];
 

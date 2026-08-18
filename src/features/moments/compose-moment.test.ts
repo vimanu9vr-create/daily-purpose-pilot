@@ -78,7 +78,49 @@ describe("composeMomentAt", () => {
     // were the ones that looked repeated even when the story wasn't.
     for (let i = 0; i < 20; i += 1) {
       const first = composeMomentAt(SEED, i).body.split("\n\n")[0]!;
-      expect(first).toMatch(/^(you're|you've|it's|you wake|you wrote)/i);
+      expect(first).toMatch(/^(you're|you've|it's|you wake|you wrote|someone)/i);
+    }
+  });
+
+  /**
+   * The two that matter most, and the reason this file grew.
+   *
+   * Reported as "it shows you're on the bus, you're walking back, you're in
+   * the corridor outside" — all opening lines from here — and, separately,
+   * that the stories didn't feel real. Both came from the same two habits, and
+   * neither was caught by any test, because every existing test asked whether
+   * the stories DIFFERED and none asked what they were actually like.
+   */
+  it("never ends by giving the listener a task", () => {
+    // Every template used to close on an instruction. Across the stories that
+    // produced, 334 of 359 ended that way. Something you listen to with your
+    // eyes shut should not finish by handing you a job.
+    for (let i = 0; i < 40; i += 1) {
+      const paragraphs = composeMomentAt(SEED, i).body.split("\n\n");
+      const last = paragraphs[paragraphs.length - 1]!;
+      expect(last).not.toMatch(
+        /\b(then (come back|go)|keep (walking|going)|do (today's|the next|that)|pick the smallest|go add|sit with that)\b/i,
+      );
+    }
+  });
+
+  it("is set in a life where the thing is already true", () => {
+    // The old frame put you somewhere quiet to think ABOUT something you were
+    // still chasing. That is what made them feel like planning rather than
+    // manifestation, and it is what "doesn't feel real" meant.
+    for (let i = 0; i < 40; i += 1) {
+      const body = composeMomentAt(SEED, i).body;
+      expect(body).not.toMatch(/\b(chasing|working toward|still ahead of you and progress)\b/i);
+    }
+  });
+
+  it("never promises the world will deliver it", () => {
+    // The line that separates a visualisation from a lie. Imagining a scene is
+    // the exercise; claiming it is being arranged for you is not.
+    for (let i = 0; i < 40; i += 1) {
+      expect(composeMomentAt(SEED, i).body).not.toMatch(
+        /\b(on its way|the universe|manifest(ing)? into|meant to be|guaranteed|will come to you)\b/i,
+      );
     }
   });
 });
