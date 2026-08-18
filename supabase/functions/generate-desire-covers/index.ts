@@ -65,8 +65,33 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
   try {
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) return json({ error: "not_configured" }, 503);
+    /**
+     * Gemini first, same as the text functions.
+     *
+     * Its OpenAI-compatible endpoint serves `/images/generations` too, so this
+     * is a URL and a model name. That matters because images were what emptied
+     * the OpenAI balance, and an empty balance took the story writer, the
+     * affirmations, the daily action and the milestones down with it.
+     */
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+
+    const image = geminiKey
+      ? {
+          url: "https://generativelanguage.googleapis.com/v1beta/openai/images/generations",
+          apiKey: geminiKey,
+          model: Deno.env.get("GEMINI_IMAGE_MODEL") ?? "gemini-2.5-flash-image",
+        }
+      : openaiKey
+        ? {
+            url: "https://api.openai.com/v1/images/generations",
+            apiKey: openaiKey,
+            model: "gpt-image-1",
+          }
+        : null;
+
+    if (!image) return json({ error: "not_configured" }, 503);
+    const apiKey = image.apiKey;
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
@@ -119,15 +144,17 @@ Deno.serve(async (req: Request) => {
 
       const prompt = promptFor(desire.title, desire.description, SCENES[index]!);
 
-      const imageRes = await fetch("https://api.openai.com/v1/images/generations", {
+      const imageRes = await fetch(image.url, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "gpt-image-1",
+          model: image.model,
           prompt,
-          size: "1024x1024",
-          quality: "medium",
           n: 1,
+          // Both providers return base64 when asked; Gemini ignores `size` and
+          // `quality`, and asking for them anyway is harmless.
+          response_format: "b64_json",
+          size: "1024x1024",
         }),
       });
 

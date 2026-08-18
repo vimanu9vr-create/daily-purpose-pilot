@@ -63,7 +63,8 @@ Deno.serve(async (req: Request) => {
       return json(
         {
           error: "not_configured",
-          message: "Set VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY for web, or FCM_SERVICE_ACCOUNT for the phone apps.",
+          message:
+            "Set VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY for web, or FCM_SERVICE_ACCOUNT for the phone apps.",
         },
         503,
       );
@@ -135,7 +136,9 @@ Deno.serve(async (req: Request) => {
 
       for (const sub of subs) {
         const isNativeSub =
-          sub.endpoint.startsWith("native:") || sub.platform === "ios" || sub.platform === "android";
+          sub.endpoint.startsWith("native:") ||
+          sub.platform === "ios" ||
+          sub.platform === "android";
 
         try {
           if (isNativeSub) {

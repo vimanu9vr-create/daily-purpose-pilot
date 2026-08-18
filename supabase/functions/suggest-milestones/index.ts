@@ -36,7 +36,35 @@ Hard constraints:
 
 Return ONLY JSON: {"milestones":["...","...","...","...","..."]}. Exactly 5. No markdown fence.`;
 
+/**
+ * Which AI provider to call.
+ *
+ * GEMINI FIRST, and that ordering is the point.
+ *
+ * Every text feature in this app — stories, affirmations, the daily action,
+ * milestones — was sharing one OpenAI account. When its balance ran out, all
+ * four stopped at once and each silently fell back to a local template. The
+ * app didn't look broken; it looked bland, in four different places, which is
+ * far harder to diagnose and exactly what happened.
+ *
+ * Google exposes Gemini through an OpenAI-compatible endpoint, so switching is
+ * a URL and a model name — the request and response shapes are identical. It
+ * has a free tier that comfortably covers this app's text volume, which means
+ * the writing keeps working whether or not there is money in the account.
+ *
+ * OpenAI stays as the second choice for anyone who prefers it, and the Lovable
+ * gateway as the third, so nothing that worked before stops working.
+ */
 function resolveProvider(): { url: string; apiKey: string; model: string } | null {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (geminiKey) {
+    return {
+      url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      apiKey: geminiKey,
+      model: Deno.env.get("GEMINI_MODEL") ?? "gemini-3.7-flash",
+    };
+  }
+
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
   if (openaiKey) {
     return {
@@ -45,8 +73,10 @@ function resolveProvider(): { url: string; apiKey: string; model: string } | nul
       model: Deno.env.get("OPENAI_MODEL") ?? "gpt-4o-mini",
     };
   }
+
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   if (lovableKey) return { url: GATEWAY_URL, apiKey: lovableKey, model: FALLBACK_MODEL };
+
   return null;
 }
 

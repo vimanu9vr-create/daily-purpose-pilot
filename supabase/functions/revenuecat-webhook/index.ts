@@ -125,8 +125,7 @@ Deno.serve(async (req: Request) => {
           status: "active",
           store: event.store?.toLowerCase() ?? "apple",
           store_transaction_id: `${event.original_app_user_id ?? userId}:${event.product_id ?? plan}`,
-          price_display:
-            event.price && event.currency ? `${event.currency} ${event.price}` : null,
+          price_display: event.price && event.currency ? `${event.currency} ${event.price}` : null,
           current_period_end: periodEnd,
           cancel_at_period_end: false,
           updated_at: new Date().toISOString(),

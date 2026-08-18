@@ -94,7 +94,9 @@ Deno.serve(async (req: Request) => {
     const rest = (path: string) => fetch(`${supabaseUrl}/rest/v1/${path}`, { headers: asUser });
 
     const [goalsRes, habitsRes, journalRes] = await Promise.all([
-      rest("goals?select=title,why,feeling,obstacles,category,target_date,progress,status&status=eq.active&order=created_at.desc&limit=3"),
+      rest(
+        "goals?select=title,why,feeling,obstacles,category,target_date,progress,status&status=eq.active&order=created_at.desc&limit=3",
+      ),
       rest("habits?select=name,target_per_week&active=is.true&limit=10"),
       rest("journals?select=entry_date,mood,content&order=entry_date.desc&limit=5"),
     ]);
@@ -120,7 +122,10 @@ Deno.serve(async (req: Request) => {
     });
 
     if (upstream.status === 429) {
-      return json({ error: "rate_limited", message: "Too many requests — try again shortly." }, 429);
+      return json(
+        { error: "rate_limited", message: "Too many requests — try again shortly." },
+        429,
+      );
     }
     if (upstream.status === 402) {
       return json(
