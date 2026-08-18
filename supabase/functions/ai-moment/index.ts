@@ -160,7 +160,20 @@ function resolveProvider(): { url: string; apiKey: string; model: string } | nul
  * into a queue that grows faster than it drains, and an edge function has a
  * wall-clock budget of its own.
  */
-const MODEL_LADDER = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+/**
+ * Fallbacks, in order, each with its own daily allowance.
+ *
+ * Every entry is a CURRENT STABLE model. The first draft of this list had
+ * gemini-2.0-flash on the end, which Google has already shut down — a fallback
+ * that 404s is worse than no fallback, because it looks like it's covering you.
+ * Checked against the model list rather than remembered.
+ */
+const MODEL_LADDER = [
+  "gemini-2.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
+];
 
 async function askWithRetry(
   send: (model: string) => Promise<Response>,
