@@ -481,9 +481,25 @@ export function useGenerateStories() {
        * An explicit request is not a budget decision. If someone points at a
        * dream, that dream gets written for.
        */
+      /**
+       * Rotate which dreams the unprompted refresh writes for.
+       *
+       * It always took the newest two. With eleven dreams that meant nine of
+       * them never got a story again, and the two newest happened to be the
+       * two Defender ones — so twelve stories arrived and every single one was
+       * about a Land Rover. A feed that only ever discusses your most recent
+       * thought is not a feed.
+       *
+       * Offsetting by the day walks the whole list over time, so each dream
+       * comes round every few days without any one refresh costing more.
+       */
+      const day = Math.floor(Date.now() / 86_400_000);
+      const offset = active.length > 0 ? (day * DESIRE_BATCH) % active.length : 0;
+      const rotated = [...active.slice(offset), ...active.slice(0, offset)];
+
       const targets = desireIds?.length
         ? active.filter((desire) => desireIds.includes(desire.id))
-        : active.slice(0, DESIRE_BATCH);
+        : rotated.slice(0, DESIRE_BATCH);
 
       for (const desire of targets) {
         const seed = {

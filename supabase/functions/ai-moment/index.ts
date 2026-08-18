@@ -61,7 +61,7 @@ THE SCENE IS SET AFTER THEY HAVE IT — and not on the day they got it. Later. M
 
 Form:
 - Second person, present tense. 4 to 6 short paragraphs, 150-220 words.
-- Sensory detail SPECIFIC TO THIS THING, not to nice things in general. A Land Rover Defender: the weight of the door, diesel clatter at idle, mud dried along the sills, a heater that takes half the journey to work, wind noise at anything over sixty. Never "your car".
+- Sensory detail SPECIFIC TO THIS THING, not to nice things in general. Never "your car", never "your new place". Work out what this particular thing is actually like to live with and use that.
 - Use their exact words for it. If they wrote "defender car", the story says defender car.
 - Include one small imperfection: a scratch, a rattle, a bill, something that needs doing. The real experience of having something includes these, and that detail is what makes the rest believable.
 - Quiet and ordinary. No triumph, no music swelling, nobody applauding.
@@ -138,6 +138,47 @@ function sceneFor(variant: number | undefined, subjectTitle: string): string {
   for (const char of subjectTitle) hash = (hash * 31 + char.charCodeAt(0)) | 0;
   const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
   return MOMENTS[index % MOMENTS.length]!;
+}
+
+/**
+ * Which sense each story is built out of.
+ *
+ * ## Why this had to be assigned too
+ *
+ * The prompt used to name three concrete Defender details as an illustration
+ * of what "specific" means: the weight of the door, diesel clatter at idle,
+ * mud dried along the sills. Across the first twelve stories written with it,
+ * nine mentioned diesel clatter, nine had a heavy door and eight had mud on
+ * the sills.
+ *
+ * An example in a prompt is not an illustration. It is an instruction, and it
+ * is the strongest one in the file. I replaced "warm mug" with "diesel
+ * clatter" and called it a fix — the same failure one level up, and I would
+ * have kept making it, because the examples were the part that felt most
+ * obviously helpful.
+ *
+ * So the examples are gone and the variation is structural instead. Each story
+ * is handed one sense to build from, the same way it is handed a moment. Two
+ * stories about the same object now differ because one is about how it sounds
+ * and the other about how cold it is, rather than because a model was asked
+ * nicely to be different from stories it cannot see.
+ */
+const REGISTERS = [
+  "sound — what you hear, and what you stop hearing",
+  "weight and resistance — what takes effort to move, push, lift or hold",
+  "smell — including the unglamorous ones",
+  "temperature — cold hands, slow heat, the moment it turns",
+  "texture under the hands — worn, gritty, smooth, sticky",
+  "light — where it falls and what it misses, without describing the weather",
+  "space and scale — height, width, what fits and what doesn't",
+  "the small sounds and movements of other people nearby",
+];
+
+function registerFor(variant: number | undefined, subjectTitle: string): string {
+  let hash = 0;
+  for (const char of subjectTitle) hash = (hash * 17 + char.charCodeAt(0)) | 0;
+  const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
+  return REGISTERS[index % REGISTERS.length]!;
 }
 
 /**
@@ -372,6 +413,7 @@ Deno.serve(async (req: Request) => {
       subject.obstacles ? `WHAT'S IN THE WAY: ${subject.obstacles}` : "",
       subject.progress != null ? `MILESTONE PROGRESS: ${subject.progress}%` : "",
       `THE MOMENT THIS IS SET IN: ${sceneFor(variant, subject.title)}`,
+      `LEAD WITH THIS SENSE, and do not lean on any other: ${registerFor(variant, subject.title)}`,
     ]
       .filter(Boolean)
       .join("\n");
