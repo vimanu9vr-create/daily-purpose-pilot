@@ -67,6 +67,12 @@ export function useStudioNarration(
   const loopingRef = useRef(looping);
   /** In flight, so a prefetch and a tap don't both pay for the same audio. */
   const inFlightRef = useRef<Promise<void> | null>(null);
+  /**
+   * Whether playback has ever actually been asked for.
+   *
+   * Buffering events before this are meaningless — see `onWaiting`.
+   */
+  const hasPlayedRef = useRef(false);
 
   useEffect(() => {
     loopingRef.current = looping;
@@ -110,18 +116,33 @@ export function useStudioNarration(
     };
 
     /**
-     * Running out of downloaded audio part-way through.
+     * Running out of downloaded audio part-way through — but ONLY ONCE
+     * PLAYBACK HAS BEEN ASKED FOR — and that guard is the fix.
      *
-     * "In frequency I played abundance, it got stuck at 19 sec." The file for
-     * that track is fine — 47 sentences, 179 seconds, all present. What ran
-     * out was the download, not the audio.
+     * Caught by opening a story and watching it: the play button was a
+     * spinner, the caption read "still loading, the connection is slow", and
+     * it stayed that way forever. The audio was finished, 752KB of it, sitting
+     * in a public bucket. Nothing was wrong at all.
      *
-     * Until now nothing listened for this, so a stall was indistinguishable
-     * from a crash: the clock froze, the voice stopped, and the app looked
-     * dead. Saying "still loading" is the difference between a slow connection
-     * and a broken app.
+     * `stalled` fires when the browser isn't fetching media — which is exactly
+     * what every browser does before the page has been interacted with, since
+     * it won't spend someone's data preloading audio they may never play. So
+     * on arrival we read a completely normal event as a fault, and dressed the
+     * screen up as broken at the precise moment somebody first sees it. Then,
+     * because the play button was already showing a spinner, pressing it
+     * looked pointless.
+     *
+     * A stall only means something after playback has started. Before that,
+     * not downloading is the correct behaviour, not a symptom.
+     *
+     * The original reason this listener exists still stands: "in frequency I
+     * played abundance, it got stuck at 19 sec", where the file was complete
+     * and the download wasn't. Mid-track, saying "still loading" is the
+     * difference between a slow connection and a dead app. On arrival it was
+     * the difference between a working app and a dead-looking one.
      */
     const onWaiting = () => {
+      if (!hasPlayedRef.current) return;
       setIsBuffering(true);
       trail("narration", "buffering", { at: Math.round(audio.currentTime) });
     };
@@ -159,6 +180,7 @@ export function useStudioNarration(
 
     if (playWhenReadyRef.current) {
       playWhenReadyRef.current = false;
+      hasPlayedRef.current = true;
       void audio
         .play()
         .then(() => setIsPlaying(true))
@@ -344,6 +366,7 @@ export function useStudioNarration(
     const target = marksRef.current?.[fromSentence] ?? 0;
     audio.currentTime = target;
 
+    hasPlayedRef.current = true;
     void audio.play();
     setIsPlaying(true);
   }, []);
