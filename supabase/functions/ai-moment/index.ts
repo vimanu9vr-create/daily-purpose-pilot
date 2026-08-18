@@ -11,78 +11,129 @@ const CORS_HEADERS = {
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
 
-const SYSTEM_PROMPT = `You write a short daily visualization for a personal-growth app.
+/**
+ * ## Why this was rewritten: "the stories don't feel real"
+ *
+ * They didn't, and the prompt was the reason. Four Defender stories in a row
+ * were the same story — sit somewhere quiet, hold a warm mug, work out your
+ * monthly savings target. Across all 359 AI stories: 334 ended with a homework
+ * instruction, 83 were about budgeting, 80 involved a warm mug.
+ *
+ * Three lines I wrote did that.
+ *
+ * "End with one small concrete action they could take today" — 334 of 359.
+ * A story that finishes by assigning you a task is not a story, and it forced
+ * every single one to land in the same place.
+ *
+ * "Describe the user DOING the work" plus "never describe the outcome" — I was
+ * so wary of promising things that I banned the only content a manifestation
+ * story has. If you cannot write about having it, the model's only remaining
+ * move is planning to get it, and planning to get a car is arithmetic. Hence
+ * eighty-three spreadsheets.
+ *
+ * "The place is where they are; the thing they want is what they're thinking
+ * about" — this put the dream permanently at arm's length. The person is never
+ * in it. They are always in a kitchen, thinking about it.
+ *
+ * ## The distinction I had collapsed
+ *
+ * Describing an imagined future is not the same as promising one.
+ *
+ *   "You're driving it on a wet road at six in the morning"  — imagination.
+ *     That is what the exercise IS, and everyone reading knows it.
+ *   "It's on its way to you"                                 — a claim about
+ *     the world, and the thing that makes these apps dishonest.
+ *
+ * The old prompt banned both. So the honesty rule now targets causal claims
+ * only, and the scene is allowed to be set in a life where it's already true.
+ *
+ * ## And why it's set LATER rather than on the day
+ *
+ * "The day you finally get the keys" is a daydream everyone has already had by
+ * themselves, and it's the version that feels like a lie. "A wet Tuesday eight
+ * months in, when you've stopped noticing it" is stranger, more specific, and
+ * far more affecting — it asks you to imagine being the person rather than
+ * imagine the prize.
+ */
+const SYSTEM_PROMPT = `You write a short visualization for a manifestation app. It is listened to with eyes closed. Its job is to let someone spend two minutes inside a life where the thing they want is already true.
+
+THE SCENE IS SET AFTER THEY HAVE IT — and not on the day they got it. Later. Months later, once it has become ordinary. This is the most important instruction here. The day-you-get-it version is a daydream they have already had on their own; the ordinary-Tuesday version is the one that does something.
 
 Form:
-- Second person, present tense. 4 to 6 short paragraphs, roughly 150-220 words total.
-- Build it entirely from what they said they want, plus any reason, desired feeling or obstacle given. Reuse their exact vocabulary — if they wrote "my own apartment", the scene is about an apartment, not about money in general.
-- Quiet and specific rather than grand. Ordinary sensory detail beats triumphant imagery. No stock phrases like "close your eyes and imagine".
-- End with one small concrete action they could take today.
+- Second person, present tense. 4 to 6 short paragraphs, 150-220 words.
+- Sensory detail SPECIFIC TO THIS THING, not to nice things in general. A Land Rover Defender: the weight of the door, diesel clatter at idle, mud dried along the sills, a heater that takes half the journey to work, wind noise at anything over sixty. Never "your car".
+- Use their exact words for it. If they wrote "defender car", the story says defender car.
+- Include one small imperfection: a scratch, a rattle, a bill, something that needs doing. The real experience of having something includes these, and that detail is what makes the rest believable.
+- Quiet and ordinary. No triumph, no music swelling, nobody applauding.
 
-SETTING — you will be given a place. Obey it:
-- The scene happens THERE. Open with something physical about that place: a sound, the temperature, the light, what's in your hands.
-- Do not relocate to an office, a desk, a laptop, a screen or a meeting. Those are the default images and they are the reason every one of these reads the same. If the given setting is not a workplace, no workplace may appear.
-- The place is where they are; the thing they want is what they're thinking about. Don't make the place a metaphor for the goal.
+NEVER — each of these produced hundreds of identical stories:
+- Never mention saving, budgeting, monthly targets, down payments, affording it, spreadsheets, or planning how to get it. The scene is set after they have it, so this is not part of it.
+- Never end with an instruction or a task. No "today, do X". End inside the scene.
+- Never use these: a warm mug, hands wrapped around a cup, a deep breath, "steady", "deliberate", "grounding", "unglamorous", "not waiting for luck", "quiet grit".
+- Never open with the weather or the light unless something is happening in the same sentence.
 
-Hard constraint — this is the difference between a useful exercise and a false promise:
-- Describe the user DOING the work and how that feels. Never describe the outcome arriving by itself, being given to them, or the universe/fate/energy delivering it.
-- Never imply that visualizing causes external events. The honest mechanism is attention and follow-through: picturing it clearly helps you notice and take chances to act.
-- No guarantees, no timelines, no "it's already yours".
+The one honesty rule: never claim the world will deliver it. No "it's on its way", no "the universe is arranging this", no timelines, no guarantees, no "this is already yours" as a promise about reality. Describing an imagined scene is fine — that is the whole exercise. Predicting events is not.
 
-Return ONLY JSON: {"title": "...", "body": "..."} where body uses \\n\\n between paragraphs. Title is 2-5 words. No markdown fence.`;
+Return ONLY JSON: {"title": "...", "body": "..."} where body uses \\n\\n between paragraphs. Title is 2-5 words and contains no colon. No markdown fence.`;
 
 /**
- * Where each visualization takes place.
+ * Which moment of already having it each story is set in.
  *
- * This list exists because of a real complaint: "in more for you and trending
- * for you it shows you sit at your desk for everything, every track." That was
- * accurate — 135 of 590 stories mentioned a desk. Left to itself the model
- * writes an office every time, because a desk is what "working toward a goal"
- * looks like in its training data.
+ * ## Why this replaced a list of places
  *
- * The old defence was a line telling it to AVOID REPEATING recent titles. That
- * cannot work here. Forty stories are generated in parallel in about three
- * seconds, so every one of them reads the same "five most recent" list — none
- * of the others exist yet. Each request independently decides to be different
- * from the same five stories, and independently lands on a desk.
+ * The old list was sixteen places to sit quietly — a kitchen at night, a park
+ * bench, a stairwell, a train. It fixed the original complaint ("you sit at
+ * your desk for everything") by rotating the furniture, and it was still the
+ * wrong axis. Every story remained a person somewhere calm, thinking about a
+ * thing they don't have. Change the room and you get the same story in a
+ * different room, which is precisely what the Defender feed looked like:
+ * kitchen table, cafe, window seat, a walk — and four identical budgeting
+ * sessions inside them.
  *
- * So the setting is assigned rather than discouraged. It's derived from the
- * variant index, which the caller already varies per story, so forty parallel
- * requests get forty different places without any of them needing to know what
- * the others are doing. A constraint beats an instruction.
+ * So the assigned variable is no longer WHERE they are. It's WHICH MOMENT of
+ * a life that already contains this thing they're inside. That single change
+ * makes the stories differ in substance rather than in scenery.
+ *
+ * Assigned rather than discouraged, for the same reason as before: forty
+ * stories are written in parallel, so none of them can see the others, and an
+ * instruction to "be different from what you've written" has nothing to read.
+ * A constraint beats an instruction.
+ *
+ * Deliberately phrased to work for a thing OR a state — "long after it stopped
+ * being new" fits a Defender and a calmer mind equally.
  */
-const SCENES = [
-  "a kitchen at night, everyone else asleep",
-  "a bus or train, halfway through a journey",
-  "a park bench, mid-afternoon, nothing scheduled",
-  "the walk back from somewhere ordinary, in the cold",
-  "a doorway, keys still in hand, having just got in",
-  "a stairwell, sitting down for a second on the way up",
-  "the shower, or just after it",
-  "a bed, awake earlier than the alarm",
-  "a queue somewhere dull — a bank, a pharmacy, a checkout",
-  "a balcony or a step outside, in the first warm week of the year",
-  "a car in a car park, engine off, not going in yet",
-  "a kitchen table on a Sunday, the day unstructured",
-  "a corridor outside a room you're about to walk into",
-  "a window seat on a grey afternoon, rain on the glass",
-  "the last ten minutes of a long walk with no destination",
-  "a quiet cafe where nobody knows you",
+const MOMENTS = [
+  "an ordinary weekday morning, long after this stopped being new",
+  "a day when nothing in particular is happening and this is simply true",
+  "someone who knew you before noticing, and you not making much of it",
+  "a small practical problem that only exists because this is yours now",
+  "bad weather, and this making the difference",
+  "arriving somewhere, in no hurry to move",
+  "the quiet hour of a day this made possible",
+  "looking after it, unhurried, on a free afternoon",
+  "an early start that would once have been miserable",
+  "coming back to it after a few days away",
+  "night, and nowhere you have to be",
+  "realising you haven't thought about wanting this in weeks",
+  "using it for something completely boring and practical",
+  "sharing it with someone, without ceremony",
+  "a moment where the old version of you would have flinched",
+  "the end of a long day, and it is still true",
 ];
 
 /**
- * Pick a setting. Deterministic, so the same request always gets the same place.
+ * Pick a moment. Deterministic, so the same request always gets the same one.
  *
- * Both inputs matter. Variant alone would give every desire the same sequence
- * of places, so a user with four desires would see the kitchen scene four
- * times in one feed. Subject alone would give one desire one place forever.
- * Combined, the feed varies across both axes.
+ * Both inputs matter. Variant alone would give every desire the same sequence,
+ * so a user with four desires would see the same moment four times in one
+ * feed. Subject alone would give one desire one moment forever. Combined, the
+ * feed varies across both axes.
  */
 function sceneFor(variant: number | undefined, subjectTitle: string): string {
   let hash = 0;
   for (const char of subjectTitle) hash = (hash * 31 + char.charCodeAt(0)) | 0;
   const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
-  return SCENES[index % SCENES.length]!;
+  return MOMENTS[index % MOMENTS.length]!;
 }
 
 /**
@@ -316,7 +367,7 @@ Deno.serve(async (req: Request) => {
       subject.feeling ? `HOW THEY WANT IT TO FEEL: ${subject.feeling}` : "",
       subject.obstacles ? `WHAT'S IN THE WAY: ${subject.obstacles}` : "",
       subject.progress != null ? `MILESTONE PROGRESS: ${subject.progress}%` : "",
-      `SETTING: ${sceneFor(variant, subject.title)}`,
+      `THE MOMENT THIS IS SET IN: ${sceneFor(variant, subject.title)}`,
     ]
       .filter(Boolean)
       .join("\n");
