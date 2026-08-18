@@ -57,7 +57,8 @@ function resolveProvider(): { url: string; apiKey: string; model: string } | nul
     return {
       url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       apiKey: geminiKey,
-      model: Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash",
+      // 2.5-flash 404s for accounts that never used it. See MODEL_LADDER.
+      model: Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash",
     };
   }
 
@@ -86,48 +87,39 @@ type Desire = {
 /**
  * Ask, and keep asking sensibly when the provider says no.
  *
- * ## Two kinds of 429, needing opposite responses
+ * Three failure modes, three different right answers.
  *
- * Gemini refuses for two completely different reasons and the reply looks
- * almost the same. Telling them apart is the difference between an app that
- * recovers and one that quietly turns bland for the rest of the day.
+ * PER MINUTE — 429 with "Please retry in 15.4s". A queue, not a wall. The
+ * provider is telling you exactly when it will serve you. Wait that long and
+ * ask again; giving up throws away a request that was available.
  *
- * PER MINUTE — "Please retry in 15.4s". A queue, not a wall. The provider is
- * telling you exactly when it will serve you. Waiting that long and asking
- * again works, and giving up instead throws away a request that was available.
+ * PER DAY — 429 with "You exceeded your current quota", no retry time, because
+ * there isn't one: the allowance is gone until midnight Pacific. Waiting is
+ * useless, so move to a different model.
  *
- * PER DAY — "You exceeded your current quota, please check your plan and
- * billing details." No retry time, because there isn't one: the allowance is
- * gone until midnight Pacific. Waiting is useless. This is what actually
- * happened — every text feature in the app fell back to its local template at
- * 02:02 and stayed there, which reads as the writing getting worse rather than
- * as a quota being spent.
+ * MODEL GONE — 404. Not ours to call: retired, renamed, or closed to new
+ * accounts. Move to a different model immediately.
  *
- * ## Why a ladder of models
- *
- * Requests-per-day is metered PER MODEL, so a second model is a second day's
- * allowance. Dropping from flash to flash-lite when the first is exhausted
- * costs a little fluency and keeps the app writing, which is a trade worth
- * making every time — a slightly plainer sentence beats a template.
- *
- * Deliberately one wait per model, capped. Retrying forever turns a rate limit
- * into a queue that grows faster than it drains, and an edge function has a
- * wall-clock budget of its own.
+ * Requests-per-day is metered PER MODEL, so each rung is another day's
+ * allowance. Deliberately one wait per model, capped — retrying forever turns
+ * a rate limit into a queue that grows faster than it drains.
  */
 /**
  * Fallbacks, in order, each with its own daily allowance.
  *
- * Every entry is a CURRENT STABLE model. The first draft of this list had
- * gemini-2.0-flash on the end, which Google has already shut down — a fallback
- * that 404s is worse than no fallback, because it looks like it's covering you.
- * Checked against the model list rather than remembered.
+ * ## Why none of these are 2.5
+ *
+ * gemini-2.5-flash returns 404 on this account: "This model is no longer
+ * available to new users. Please update your code to use models/gemini-3.6-flash."
+ * Not deprecated-and-still-serving — closed to accounts that hadn't already
+ * used it. So every text call in the app was 404ing, which is why the writing
+ * stayed on templates even after the quota reset. I'd fixed the quota and the
+ * real error underneath it was a different number entirely.
+ *
+ * gemini-3.6-flash is the model Google's own error message names. The rest are
+ * current stable lites, each metered separately.
  */
-const MODEL_LADDER = [
-  "gemini-2.5-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3.1-flash-lite",
-  "gemini-2.5-flash-lite",
-];
+const MODEL_LADDER = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 
 async function askWithRetry(
   send: (model: string) => Promise<Response>,
@@ -135,18 +127,33 @@ async function askWithRetry(
   maxWaitMs = 20_000,
 ): Promise<Response> {
   const start = MODEL_LADDER.indexOf(model);
-  const ladder = start === -1 ? [model] : MODEL_LADDER.slice(start);
+  const ladder = start === -1 ? [model, ...MODEL_LADDER] : MODEL_LADDER.slice(start);
 
   let last: Response | null = null;
 
   for (const candidate of ladder) {
     let response = await send(candidate);
-    if (response.status !== 429) return response;
+    if (response.status !== 429 && response.status !== 404) return response;
 
     const body = await response
       .clone()
       .text()
       .catch(() => "");
+
+    /**
+     * 404 means this model isn't ours to call — retired, renamed, or closed to
+     * new accounts. Try the next one rather than failing.
+     *
+     * The first version of this ladder only caught 429, and the actual error
+     * was 404. A fallback chain that handles one failure mode and passes the
+     * other straight through is barely a fallback chain at all.
+     */
+    if (response.status === 404) {
+      console.warn(`${candidate}: unavailable (404), dropping to the next model`);
+      last = response;
+      continue;
+    }
+
     const suggested = /retry in ([\d.]+)s/i.exec(body)?.[1];
 
     if (suggested) {
