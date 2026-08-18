@@ -13,6 +13,7 @@ import { CarouselSection, DraggableRow, StoryCard } from "@/features/stories/sto
 import { TrendingMarquee } from "@/features/stories/trending-marquee";
 import {
   TRENDING_DESIRES,
+  interleaveByDesire,
   nextRefreshAt,
   useCreateDesire,
   useDesires,
@@ -108,7 +109,24 @@ function HomeFeed() {
   const selectedDesire = desires?.find((d) => d.id === selectedDesireId) ?? null;
   const filteredStories = selectedDesireId
     ? storiesOnly.filter((s) => s.desire_id === selectedDesireId)
-    : storiesOnly;
+    : // Newest-first would show sixteen cards from whichever dream was written
+      // for last. One from each, in turn, so every dream is on the screen.
+      interleaveByDesire(storiesOnly);
+
+  /**
+   * Write for a dream the moment someone selects one with nothing under it.
+   *
+   * The empty state offered a button, and pressing it wrote stories for two
+   * other dreams — so the honest reading of the screen was that the app had
+   * lost what you typed. Now selecting the chip does the work, and the button
+   * below is only there for a retry.
+   */
+  useEffect(() => {
+    if (!selectedDesireId || isPending || generate.isPending) return;
+    if (storiesOnly.some((s) => s.desire_id === selectedDesireId)) return;
+    generate.mutate({ perDesire: 6, desireIds: [selectedDesireId] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDesireId, isPending, storiesOnly.length]);
   // The two rows must never show the same story. Before, "trending" started
   // at index 8 whether or not eight existed — with three stories the slice was
   // empty, and with more it silently repeated the top of the list as the feed
@@ -154,7 +172,10 @@ function HomeFeed() {
           setInput("");
           // Point the feed at what was just asked for.
           setSelectedDesireId(desire.id);
-          generate.mutate({ perDesire: 6 });
+          // Named explicitly. Otherwise the batch cap decides, and with several
+          // dreams already saved the brand new one can lose to two older ones —
+          // which is exactly what happened to "I want to buy defender car".
+          generate.mutate({ perDesire: 6, desireIds: [desire.id] });
         },
       },
     );
@@ -312,7 +333,7 @@ function HomeFeed() {
                 variant="glass"
                 size="sm"
                 className="mt-4 rounded-full"
-                onClick={() => generate.mutate({ perDesire: 6 })}
+                onClick={() => generate.mutate({ perDesire: 6, desireIds: [selectedDesire.id] })}
               >
                 <Sparkles className="h-3.5 w-3.5" /> Write some now
               </Button>

@@ -203,6 +203,22 @@ export function useDeleteDesire() {
  * Splitting them means a flood of one kind can never hide the other, whatever
  * happens to the volume of either. A shared limit across two things that grow
  * at wildly different rates is a bug waiting for a big enough number.
+ *
+ * ## Why expiry is no longer a filter
+ *
+ * "I typed 'I want to buy defender car' and I still don't see it." That dream
+ * had thirty-six stories written for it and every one was hidden, because they
+ * had all passed `expires_at` and this query asked for unexpired rows only.
+ *
+ * Expiry was meant to stop yesterday's feed showing up today. It only works if
+ * something replaces what it hides, and nothing did: the refresh writes for the
+ * two newest dreams, so the third dream down and everything below it expired
+ * once and was never written for again. Seven of nine dreams were permanently
+ * blank, which is not a subtle degradation — it's the app losing what you typed.
+ *
+ * A day-old story is worth vastly more than an empty screen, so expiry now only
+ * decides SORT ORDER: fresh stories come first, older ones stay underneath.
+ * Nothing the user asked for disappears because a timestamp passed.
  */
 export function useStories() {
   const userId = useUserId();
@@ -211,15 +227,15 @@ export function useStories() {
     enabled: Boolean(userId),
     queryFn: async () => {
       const [personal, catalogue] = await Promise.all([
-        // Today's feed. Expired ones are replaced on the next refresh, and
-        // showing them meanwhile means yesterday's stories in today's feed.
+        // Every dream's stories, newest first. Deliberately no expiry filter —
+        // see above. The limit is generous because it's now shared across all
+        // of a person's dreams rather than just today's.
         supabase
           .from("moments")
           .select("*")
           .in("source", ["composed", "ai"])
-          .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
           .order("created_at", { ascending: false })
-          .limit(60),
+          .limit(240),
         // The library. Small, fixed, and grows by a handful a week, so it is
         // fetched whole rather than competing for a slot.
         supabase
@@ -236,6 +252,43 @@ export function useStories() {
       return [...(personal.data ?? []), ...(catalogue.data ?? [])];
     },
   });
+}
+
+/**
+ * A feed that gives every dream a turn.
+ *
+ * Without the expiry filter the list is simply newest-first, and the newest
+ * dream is the one that was written for most recently — so all sixteen cards on
+ * Home would come from one dream and the other eight would be invisible below a
+ * limit again, which is the bug this file just stopped having.
+ *
+ * Round-robin instead: one story from each dream, then a second from each, and
+ * so on. The first row of Home becomes a row of different dreams, which is also
+ * what someone with several of them would expect to see.
+ */
+export function interleaveByDesire<T extends { desire_id: string | null }>(stories: T[]): T[] {
+  const byDesire = new Map<string, T[]>();
+  for (const story of stories) {
+    const key = story.desire_id ?? "none";
+    const list = byDesire.get(key);
+    if (list) list.push(story);
+    else byDesire.set(key, [story]);
+  }
+
+  const queues = [...byDesire.values()];
+  const out: T[] = [];
+  for (let round = 0; out.length < stories.length; round += 1) {
+    let added = false;
+    for (const queue of queues) {
+      const next = queue[round];
+      if (next) {
+        out.push(next);
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+  return out;
 }
 
 export function useStory(id: string) {
@@ -294,7 +347,10 @@ export function useGenerateStories() {
      * dreams, six times a day, the feed was generating more in a morning than
      * anyone would read in a month.
      */
-    mutationFn: async ({ perDesire = 3 }: { perDesire?: number } = {}) => {
+    mutationFn: async ({
+      perDesire = 3,
+      desireIds,
+    }: { perDesire?: number; desireIds?: string[] } = {}) => {
       if (!userId) throw new Error("Not signed in");
 
       /**
@@ -411,7 +467,25 @@ export function useGenerateStories() {
        */
       const DESIRE_BATCH = 2;
 
-      for (const desire of active.slice(0, DESIRE_BATCH)) {
+      /**
+       * Write for the dream that was asked for, or the newest two if none was.
+       *
+       * The batch is a budget for the UNPROMPTED refresh — the one that runs
+       * because Home opened. It should never apply to a dream the person is
+       * looking at, and it did: selecting "I want to buy defender car" and
+       * pressing "Write some now" wrote stories for the two newest dreams
+       * instead, so the button appeared to do nothing at all. Twice over, since
+       * the empty state that offered the button was itself caused by the same
+       * cap starving that dream in the first place.
+       *
+       * An explicit request is not a budget decision. If someone points at a
+       * dream, that dream gets written for.
+       */
+      const targets = desireIds?.length
+        ? active.filter((desire) => desireIds.includes(desire.id))
+        : active.slice(0, DESIRE_BATCH);
+
+      for (const desire of targets) {
         const seed = {
           title: desire.title,
           why: desire.description,

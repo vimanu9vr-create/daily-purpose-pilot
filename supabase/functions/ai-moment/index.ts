@@ -130,32 +130,76 @@ function resolveProvider(): { url: string; apiKey: string; model: string } | nul
 }
 
 /**
- * One retry, waiting as long as the provider asks.
+ * Ask, and keep asking sensibly when the provider says no.
  *
- * Gemini's free tier allows five requests a minute, and it doesn't just refuse
- * over that — it tells you exactly how long to wait ("Please retry in 15.4s").
- * Ignoring that and failing was throwing away a request the provider was
- * willing to serve fifteen seconds later.
+ * ## Two kinds of 429, needing opposite responses
  *
- * Deliberately one retry, capped. Retrying forever turns a rate limit into a
- * queue that grows faster than it drains, and an edge function has a wall-clock
- * budget of its own.
+ * Gemini refuses for two completely different reasons and the reply looks
+ * almost the same. Telling them apart is the difference between an app that
+ * recovers and one that quietly turns bland for the rest of the day.
+ *
+ * PER MINUTE — "Please retry in 15.4s". A queue, not a wall. The provider is
+ * telling you exactly when it will serve you. Waiting that long and asking
+ * again works, and giving up instead throws away a request that was available.
+ *
+ * PER DAY — "You exceeded your current quota, please check your plan and
+ * billing details." No retry time, because there isn't one: the allowance is
+ * gone until midnight Pacific. Waiting is useless. This is what actually
+ * happened — every text feature in the app fell back to its local template at
+ * 02:02 and stayed there, which reads as the writing getting worse rather than
+ * as a quota being spent.
+ *
+ * ## Why a ladder of models
+ *
+ * Requests-per-day is metered PER MODEL, so a second model is a second day's
+ * allowance. Dropping from flash to flash-lite when the first is exhausted
+ * costs a little fluency and keeps the app writing, which is a trade worth
+ * making every time — a slightly plainer sentence beats a template.
+ *
+ * Deliberately one wait per model, capped. Retrying forever turns a rate limit
+ * into a queue that grows faster than it drains, and an edge function has a
+ * wall-clock budget of its own.
  */
-async function askWithRetry(send: () => Promise<Response>, maxWaitMs = 20_000): Promise<Response> {
-  const first = await send();
-  if (first.status !== 429) return first;
+const MODEL_LADDER = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
 
-  const body = await first
-    .clone()
-    .text()
-    .catch(() => "");
-  const suggested = /retry in ([\d.]+)s/i.exec(body)?.[1];
-  const waitMs = suggested ? Math.ceil(Number(suggested) * 1000) + 500 : 5_000;
-  if (waitMs > maxWaitMs) return first;
+async function askWithRetry(
+  send: (model: string) => Promise<Response>,
+  model: string,
+  maxWaitMs = 20_000,
+): Promise<Response> {
+  const start = MODEL_LADDER.indexOf(model);
+  const ladder = start === -1 ? [model] : MODEL_LADDER.slice(start);
 
-  console.warn(`rate limited; waiting ${waitMs}ms as instructed`);
-  await new Promise((resolve) => setTimeout(resolve, waitMs));
-  return send();
+  let last: Response | null = null;
+
+  for (const candidate of ladder) {
+    let response = await send(candidate);
+    if (response.status !== 429) return response;
+
+    const body = await response
+      .clone()
+      .text()
+      .catch(() => "");
+    const suggested = /retry in ([\d.]+)s/i.exec(body)?.[1];
+
+    if (suggested) {
+      // Per-minute. Waiting is the whole fix — the same model will serve it.
+      const waitMs = Math.ceil(Number(suggested) * 1000) + 500;
+      if (waitMs <= maxWaitMs) {
+        console.warn(`${candidate}: per-minute limit, waiting ${waitMs}ms as instructed`);
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        response = await send(candidate);
+        if (response.status !== 429) return response;
+      }
+    } else {
+      // Per-day. Waiting is pointless; the allowance is gone until midnight.
+      console.warn(`${candidate}: daily quota exhausted, dropping to the next model`);
+    }
+
+    last = response;
+  }
+
+  return last!;
 }
 
 Deno.serve(async (req: Request) => {
@@ -238,20 +282,22 @@ Deno.serve(async (req: Request) => {
       .filter(Boolean)
       .join("\n");
 
-    const upstream = await askWithRetry(() =>
-      fetch(provider!.url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: provider!.model,
-          // Higher temperature: repetition across days is the #1 complaint about apps like this.
-          temperature: 1.0,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: context },
-          ],
+    const upstream = await askWithRetry(
+      (model) =>
+        fetch(provider!.url, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            // Higher temperature: repetition across days is the #1 complaint about apps like this.
+            temperature: 1.0,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: context },
+            ],
+          }),
         }),
-      }),
+      provider!.model,
     );
 
     /**
