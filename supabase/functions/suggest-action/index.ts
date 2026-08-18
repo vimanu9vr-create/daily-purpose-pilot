@@ -87,22 +87,34 @@ type Desire = {
 /**
  * Ask, and keep asking sensibly when the provider says no.
  *
- * Three failure modes, three different right answers.
+ * ## Why this asks "could another model help?" rather than listing error codes
+ *
+ * I have now written this function three times, and each time I handled
+ * exactly the failure I had just seen in the logs and called it fixed. First
+ * 429 only — and the real error turned out to be 404. Then 429 and 404 — and
+ * the real error turned out to be 503. Each version looked complete, and each
+ * left the app on templates for a reason I hadn't thought of yet.
+ *
+ * So the rule is inverted. Instead of enumerating what to survive, it asks
+ * whether a different model could possibly help — and the answer is yes for
+ * everything except a request that is wrong in itself. That way the next
+ * unfamiliar status code is already handled.
+ *
+ * The failures seen so far, and why each lands where it does:
  *
  * PER MINUTE — 429 with "Please retry in 15.4s". A queue, not a wall. The
- * provider is telling you exactly when it will serve you. Wait that long and
- * ask again; giving up throws away a request that was available.
+ * provider is telling you exactly when it will serve you, so wait and re-ask
+ * the SAME model; giving up throws away a request that was available.
  *
- * PER DAY — 429 with "You exceeded your current quota", no retry time, because
- * there isn't one: the allowance is gone until midnight Pacific. Waiting is
- * useless, so move to a different model.
+ * PER DAY — 429 with "You exceeded your current quota" and no retry time,
+ * because there isn't one: gone until midnight Pacific. Waiting is useless, so
+ * move on. Requests-per-day is metered per model, so the next rung is a fresh
+ * allowance.
  *
- * MODEL GONE — 404. Not ours to call: retired, renamed, or closed to new
- * accounts. Move to a different model immediately.
+ * MODEL GONE — 404. Retired, renamed, or closed to new accounts. Move on.
  *
- * Requests-per-day is metered PER MODEL, so each rung is another day's
- * allowance. Deliberately one wait per model, capped — retrying forever turns
- * a rate limit into a queue that grows faster than it drains.
+ * OVERLOADED — 503, "experiencing high demand". Transient and specific to that
+ * model, so another one will usually answer immediately. Move on.
  */
 /**
  * Fallbacks, in order, each with its own daily allowance.
@@ -121,6 +133,19 @@ type Desire = {
  */
 const MODEL_LADDER = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 
+/**
+ * Is this worth trying a different model for?
+ *
+ * Yes for everything except a request that is wrong in itself. 400, 401 and
+ * 403 mean a malformed prompt or a bad key, which fail identically on every
+ * model in the ladder — walking the whole list would be four identical
+ * failures and four times the wait.
+ */
+function anotherModelMightHelp(status: number): boolean {
+  if (status < 400) return false;
+  return status !== 400 && status !== 401 && status !== 403;
+}
+
 async function askWithRetry(
   send: (model: string) => Promise<Response>,
   model: string,
@@ -133,23 +158,17 @@ async function askWithRetry(
 
   for (const candidate of ladder) {
     let response = await send(candidate);
-    if (response.status !== 429 && response.status !== 404) return response;
+    if (!anotherModelMightHelp(response.status)) return response;
 
     const body = await response
       .clone()
       .text()
       .catch(() => "");
 
-    /**
-     * 404 means this model isn't ours to call — retired, renamed, or closed to
-     * new accounts. Try the next one rather than failing.
-     *
-     * The first version of this ladder only caught 429, and the actual error
-     * was 404. A fallback chain that handles one failure mode and passes the
-     * other straight through is barely a fallback chain at all.
-     */
-    if (response.status === 404) {
-      console.warn(`${candidate}: unavailable (404), dropping to the next model`);
+    // Anything that isn't a per-minute limit: another model is the fix, and
+    // waiting on this one is not.
+    if (response.status !== 429) {
+      console.warn(`${candidate}: ${response.status}, dropping to the next model`);
       last = response;
       continue;
     }
