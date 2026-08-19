@@ -1,14 +1,18 @@
 {
-  "name": "ManifestAI — Turn your intentions into daily actions",
+  "name": "ManifestAI \u2014 Turn your intentions into daily actions",
   "short_name": "ManifestAI",
-  "description": "Personalised affirmations, a daily visualization written from your own goal, journaling and habit tracking.",
+  "description": "Manifestation stories written for your desire and narrated in a real human voice, plus affirmations in your own words, sleep sessions, meditations and healing frequencies.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1a1428",
-  "theme_color": "#1a1428",
-  "categories": ["health", "lifestyle", "productivity"],
+  "background_color": "#feeaed",
+  "theme_color": "#f7e9ec",
+  "categories": [
+    "health",
+    "lifestyle",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -23,7 +27,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -33,12 +37,22 @@
     {
       "name": "Today's affirmation",
       "url": "/app/affirmations",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Today's moment",
       "url": "/app/moments",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

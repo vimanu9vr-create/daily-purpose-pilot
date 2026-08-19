@@ -35,6 +35,18 @@ const MODEL = "google/gemini-2.5-flash";
  * about" — this put the dream permanently at arm's length. The person is never
  * in it. They are always in a kitchen, thinking about it.
  *
+ * ## And the fourth report: "stories are negative"
+ *
+ * Right, and it was this prompt again. Reading the endings: "tomorrow the
+ * nearside indicator relay needs changing", "the squeak in the dashboard
+ * speaker that needs fixing before the weekend", "nobody needs to see it
+ * parked out here in the drizzle". Every story closed on a defect.
+ *
+ * "Include one small imperfection" plus "end inside the scene" left the model
+ * nowhere to land but the fault. The imperfection is there to make the rest
+ * believable; it was never meant to be the last thing anybody hears. It is now
+ * capped at one, pinned to the middle, and the ending has a rule of its own.
+ *
  * ## The distinction I had collapsed
  *
  * Describing an imagined future is not the same as promising one.
@@ -63,8 +75,14 @@ Form:
 - Second person, present tense. 4 to 6 short paragraphs, 150-220 words.
 - Sensory detail SPECIFIC TO THIS THING, not to nice things in general. Never "your car", never "your new place". Work out what this particular thing is actually like to live with and use that.
 - Use their exact words for it. If they wrote "defender car", the story says defender car.
-- Include one small imperfection: a scratch, a rattle, a bill, something that needs doing. The real experience of having something includes these, and that detail is what makes the rest believable.
-- Quiet and ordinary. No triumph, no music swelling, nobody applauding.
+- Quiet and ordinary throughout. No triumph, no music swelling, nobody applauding.
+- Include ONE small imperfection — a scratch, a rattle, a bill, something that needs doing — and put it in the MIDDLE. Exactly one, mentioned once and moved past. It is there to make the rest believable, not to be the subject.
+
+HOW IT ENDS — this matters as much as how it starts:
+- The last paragraph lands on the ease of it being yours: the quiet of it, the ordinariness, the fact that this is simply your life now.
+- Do NOT end on the fault, on a repair, on something that needs doing tomorrow, or on anything unresolved. Somebody is listening to this with their eyes shut and hears the last line last. Finishing on a broken indicator relay makes two minutes of their own life sound like a list of problems.
+- Do not end on an instruction either. Not a task, not a fault — a settled image.
+- Quiet, not triumphant. No music swelling, nobody applauding. Contentment, not victory.
 
 NEVER — each of these produced hundreds of identical stories:
 - Never mention saving, budgeting, monthly targets, down payments, affording it, spreadsheets, or planning how to get it. The scene is set after they have it, so this is not part of it.
@@ -110,7 +128,7 @@ const MOMENTS = [
   "an ordinary weekday morning, long after this stopped being new",
   "a day when nothing in particular is happening and this is simply true",
   "someone who knew you before noticing, and you not making much of it",
-  "a small practical problem that only exists because this is yours now",
+  "a small practical problem you are glad to have, because it only exists now this is yours",
   "bad weather, and this making the difference",
   "arriving somewhere, in no hurry to move",
   "the quiet hour of a day this made possible",
