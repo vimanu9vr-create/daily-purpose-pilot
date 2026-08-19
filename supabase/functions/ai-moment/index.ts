@@ -42,10 +42,14 @@ const MODEL = "google/gemini-2.5-flash";
  * speaker that needs fixing before the weekend", "nobody needs to see it
  * parked out here in the drizzle". Every story closed on a defect.
  *
- * "Include one small imperfection" plus "end inside the scene" left the model
- * nowhere to land but the fault. The imperfection is there to make the rest
- * believable; it was never meant to be the last thing anybody hears. It is now
- * capped at one, pinned to the middle, and the ending has a rule of its own.
+ * My first fix was to cap the imperfection at one and pin it to the middle.
+ * Still wrong, and it took one question to see why: why does a new car have
+ * problems? It doesn't. I had imported a fiction-writing habit — specificity
+ * through flaw — into an app whose whole purpose is imagining the life you
+ * actually want. Nobody manifests a rattle.
+ *
+ * So imperfection is gone entirely, and "nothing is wrong with it" is a rule
+ * rather than a matter of degree. Believability is the assigned sense's job.
  *
  * ## The distinction I had collapsed
  *
@@ -76,13 +80,16 @@ Form:
 - Sensory detail SPECIFIC TO THIS THING, not to nice things in general. Never "your car", never "your new place". Work out what this particular thing is actually like to live with and use that.
 - Use their exact words for it. If they wrote "defender car", the story says defender car.
 - Quiet and ordinary throughout. No triumph, no music swelling, nobody applauding.
-- Include ONE small imperfection — a scratch, a rattle, a bill, something that needs doing — and put it in the MIDDLE. Exactly one, mentioned once and moved past. It is there to make the rest believable, not to be the subject.
+
+NOTHING IS WRONG WITH IT. A rule, not a preference:
+- No faults. Nothing broken, worn out, sticking, rattling, leaking, needing fixing, needing paying for, or needing doing at the weekend. Not at the end, not in the middle, nowhere.
+- The thing is in good condition and behaving. If it would be new, it is new.
+- Believability is the job of the specific sensory detail you have been given, NOT of a defect. A precise description of how something sounds convinces far better than a list of what is wrong with it, and it doesn't turn somebody's imagined life into a chore.
 
 HOW IT ENDS — this matters as much as how it starts:
 - The last paragraph lands on the ease of it being yours: the quiet of it, the ordinariness, the fact that this is simply your life now.
-- Do NOT end on the fault, on a repair, on something that needs doing tomorrow, or on anything unresolved. Somebody is listening to this with their eyes shut and hears the last line last. Finishing on a broken indicator relay makes two minutes of their own life sound like a list of problems.
-- Do not end on an instruction either. Not a task, not a fault — a settled image.
-- Quiet, not triumphant. No music swelling, nobody applauding. Contentment, not victory.
+- Do not end on an instruction. Not a task, not a problem — a settled image.
+- Contentment, not victory.
 
 NEVER — each of these produced hundreds of identical stories:
 - Never mention saving, budgeting, monthly targets, down payments, affording it, spreadsheets, or planning how to get it. The scene is set after they have it, so this is not part of it.
@@ -128,11 +135,11 @@ const MOMENTS = [
   "an ordinary weekday morning, long after this stopped being new",
   "a day when nothing in particular is happening and this is simply true",
   "someone who knew you before noticing, and you not making much of it",
-  "a small practical problem you are glad to have, because it only exists now this is yours",
+  "a small everyday use of it you would never have thought to picture",
   "bad weather, and this making the difference",
   "arriving somewhere, in no hurry to move",
   "the quiet hour of a day this made possible",
-  "looking after it, unhurried, on a free afternoon",
+  "an unhurried free afternoon with it, nothing that has to be done",
   "an early start that would once have been miserable",
   "coming back to it after a few days away",
   "night, and nowhere you have to be",
