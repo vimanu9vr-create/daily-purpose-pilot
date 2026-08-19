@@ -36,3 +36,10 @@ dist-native
 ios/App/App/public
 ios/App/Pods
 ios/.build
+
+# Android release signing. Losing these means never being able to update the
+# app under this package name again; committing them means anyone who can read
+# the repo can ship as you.
+*.keystore
+*.jks
+android/keystore.properties

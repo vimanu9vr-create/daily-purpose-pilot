@@ -23,6 +23,12 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: true,
   },
 
+  // Android had no section at all, so it launched on the WebView default —
+  // a white flash into a blush app, on the platform we are shipping first.
+  android: {
+    backgroundColor: "#f7e9ec",
+  },
+
   plugins: {
     SplashScreen: {
       launchShowDuration: 800,
