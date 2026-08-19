@@ -5,11 +5,16 @@ import { ANGEL_NUMBERS, numberForToday, reflectionFor } from "./angel-numbers";
 /**
  * The rule these enforce is the one the whole feature stands on: a number may
  * be read as meaning something, but it is never allowed to predict anything.
+ *
+ * The personalised question used to be a fixed sentence with the dream slotted
+ * into a gap, and these tests checked the slotting worked. It doesn't exist any
+ * more — the question is written by the model — so what is left to test here is
+ * the part that is fixed on purpose: the meanings themselves.
  */
 describe("angel numbers", () => {
   it("never asserts that a number causes or foretells an outcome", () => {
     for (const entry of ANGEL_NUMBERS) {
-      const text = `${entry.meaning} ${entry.prompt} ${entry.personal("earning 20000cr")}`;
+      const text = `${entry.digit} ${entry.meaning} ${entry.prompt}`;
       expect(text).not.toMatch(/will happen|means you will|is a sign that you will|guarantees/i);
       expect(text).not.toMatch(/the universe is|destiny|fated|meant to be/i);
     }
@@ -17,51 +22,64 @@ describe("angel numbers", () => {
 
   it("attributes the meaning rather than stating it as fact", () => {
     for (const entry of ANGEL_NUMBERS) {
-      expect(entry.meaning).toMatch(/read as|associated with|traditionally|people read/i);
+      expect(entry.meaning).toMatch(
+        /read as|associated with|traditionally|tradition|taken as|taken to/i,
+      );
     }
   });
 
   it("asks a question rather than giving an instruction", () => {
     for (const entry of ANGEL_NUMBERS) {
       expect(entry.prompt).toContain("?");
-      expect(entry.personal("financial freedom")).toContain("?");
     }
+  });
+
+  /**
+   * Each number has to say what THAT number means.
+   *
+   * "Angel number represent what the number represent" — the meanings were
+   * one-liners that could have been shuffled between numbers without anyone
+   * noticing, which is the same failure as a template. Every entry now
+   * explains the digit itself before explaining the repetition.
+   */
+  it("explains what the digit itself stands for", () => {
+    for (const entry of ANGEL_NUMBERS) {
+      expect(entry.digit.length).toBeGreaterThan(40);
+      expect(entry.meaning.length).toBeGreaterThan(80);
+    }
+  });
+
+  it("gives every number a distinct meaning", () => {
+    const digits = ANGEL_NUMBERS.map((entry) => entry.digit);
+    expect(new Set(digits).size).toBe(ANGEL_NUMBERS.length);
+    const meanings = ANGEL_NUMBERS.map((entry) => entry.meaning);
+    expect(new Set(meanings).size).toBe(ANGEL_NUMBERS.length);
+  });
+
+  it("covers 666 and corrects the usual misreading", () => {
+    // The most-seen and most-feared of the set. Leaving it out was a gap;
+    // including it without the correction would have been worse.
+    const six = ANGEL_NUMBERS.find((entry) => entry.number === "666");
+    expect(six).toBeDefined();
+    expect(six!.meaning).toMatch(/Revelation|misread/i);
   });
 });
 
 describe("reflectionFor", () => {
-  it("names the dream when there is one", () => {
-    for (const entry of ANGEL_NUMBERS) {
-      expect(reflectionFor(entry, "financial freedom")).toMatch(/financial freedom/);
+  it("falls back to the general question when there's no dream yet", async () => {
+    for (const entry of ANGEL_NUMBERS.slice(0, 3)) {
+      await expect(reflectionFor(entry, null)).resolves.toBe(entry.prompt);
+      await expect(reflectionFor(entry, "   ")).resolves.toBe(entry.prompt);
+      await expect(reflectionFor(entry, undefined)).resolves.toBe(entry.prompt);
     }
   });
 
-  it("falls back to the general question when there's no dream yet", () => {
-    for (const entry of ANGEL_NUMBERS) {
-      expect(reflectionFor(entry, null)).toBe(entry.prompt);
-      expect(reflectionFor(entry, "   ")).toBe(entry.prompt);
-      expect(reflectionFor(entry, undefined)).toBe(entry.prompt);
-    }
-  });
-
-  it("falls back rather than producing a mangled sentence", () => {
+  it("falls back rather than producing a mangled sentence", async () => {
     // The desire parser returns null when it can't shape the text. Splicing it
     // in anyway is exactly how "working toward my aim is to earn 20000cr"
-    // reached a user, so an unparseable dream takes the generic question.
+    // reached a user, so an unparseable dream takes the general question.
     const entry = ANGEL_NUMBERS[0]!;
-    expect(reflectionFor(entry, "!!!")).toBe(entry.prompt);
-  });
-
-  it("reads as one sentence, not a template with a slot in it", () => {
-    const text = reflectionFor(ANGEL_NUMBERS[7]!, "my own apartment");
-    expect(text).not.toMatch(/\bmy aim is to\b|\bi want to want\b|\s{2,}/);
-    expect(text).toMatch(/^[A-Z]/);
-  });
-
-  it("differs from the generic question, or it wasn't worth doing", () => {
-    for (const entry of ANGEL_NUMBERS) {
-      expect(reflectionFor(entry, "a calmer mind")).not.toBe(entry.prompt);
-    }
+    await expect(reflectionFor(entry, "!!!")).resolves.toBe(entry.prompt);
   });
 });
 

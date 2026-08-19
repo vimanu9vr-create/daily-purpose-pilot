@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,30 @@ export function NumberCard() {
   // The newest dream, so the question is about what they're working on now
   // rather than something they typed in April.
   const { data: desires } = useDesires();
-  const reflection = reflectionFor(today, desires?.[0]?.title);
+
+  /**
+   * The question is written rather than looked up, so it arrives a beat later.
+   *
+   * `entry.prompt` shows meanwhile — it is the honest general version of the
+   * same question, not a placeholder, so there is nothing to hide behind a
+   * spinner. If the writer can't be reached it simply stays.
+   *
+   * Only fetched once the card is opened. Writing a question nobody has asked
+   * to see would spend money on every Home render.
+   */
+  const [reflection, setReflection] = useState(today.prompt);
+  const dream = desires?.[0]?.title;
+
+  useEffect(() => {
+    if (!open || !dream) return;
+    let live = true;
+    void reflectionFor(today, dream).then((question) => {
+      if (live) setReflection(question);
+    });
+    return () => {
+      live = false;
+    };
+  }, [open, dream, today]);
 
   return (
     <section className="mt-6">
@@ -69,9 +92,11 @@ export function NumberCard() {
 /**
  * The full list, for the Library.
  *
- * Shows the general questions rather than the personalised ones. This is a
- * reference page — someone reading all ten at once is looking up what the
- * numbers mean, not being asked ten questions about their own life.
+ * Shows the general questions rather than the written ones. This is a
+ * reference page — someone reading all twelve at once is looking up what the
+ * numbers mean, not being asked twelve questions about their own life. It is
+ * also the only place the digit's own meaning is shown, which is the thing
+ * that makes each entry about THAT number rather than interchangeable.
  */
 export function NumberList() {
   return (
@@ -89,9 +114,10 @@ export function NumberList() {
           >
             <div className="flex items-baseline gap-3">
               <span className="font-display text-xl tabular-nums text-primary">{entry.number}</span>
-              <span className="text-sm leading-relaxed text-muted-foreground">{entry.meaning}</span>
+              <span className="text-sm leading-relaxed">{entry.digit}</span>
             </div>
-            <p className="mt-2 text-[15px] leading-relaxed">{entry.prompt}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{entry.meaning}</p>
+            <p className="mt-3 text-[15px] leading-relaxed">{entry.prompt}</p>
           </article>
         ))}
       </div>

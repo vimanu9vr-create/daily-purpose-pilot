@@ -35,120 +35,175 @@
  */
 
 import { desirePhrase, GENERIC_DESIRE } from "@/features/moments/desire-phrase";
+import { supabase } from "@/integrations/supabase/client";
 
 export type AngelNumber = {
   number: string;
+  /** What the digit itself stands for, before it is repeated. */
+  digit: string;
   /** The traditional reading, attributed rather than asserted. */
   meaning: string;
-  /** What to do with having noticed it, when we know nothing about them. */
+  /** The question to ask when we know nothing about the person yet. */
   prompt: string;
-  /** The same question, asked about the thing they're working toward. */
-  personal: (goal: string) => string;
   theme: "beginnings" | "alignment" | "trust" | "change" | "abundance" | "release";
 };
 
 export const ANGEL_NUMBERS: AngelNumber[] = [
   {
     number: "111",
-    meaning: "Traditionally read as a doorway — a moment when what you focus on takes shape.",
+    digit:
+      "One is the number of beginnings and of the self — the first mark, the thing that starts.",
+    meaning:
+      "Repeated ones are read as a doorway: a point where whatever you are dwelling on begins to take shape. In the tradition this is the number most associated with manifestation itself, which is why it is also the one most often reported.",
     prompt: "What have you been thinking about most this week? Is it what you'd choose?",
-    personal: (goal) =>
-      `You said you're working toward ${goal}. Is that where your attention actually went this week, or did something else take it?`,
     theme: "beginnings",
   },
   {
     number: "222",
-    meaning: "Read as balance, and as a sign to keep going with something already begun.",
+    digit: "Two is partnership, balance and patience — one thing set against another.",
+    meaning:
+      "Repeated twos are read as a sign that something is already in motion but not yet visible, and that the correct response is to keep going rather than to start again. Traditionally a number of trust rather than action.",
     prompt: "What are you close to abandoning that's actually working?",
-    personal: (goal) =>
-      `Which part of ${goal} are you closest to giving up on? Look at it again — quiet progress is the hardest kind to see.`,
     theme: "alignment",
   },
   {
     number: "333",
-    meaning: "Associated with support — the sense of not doing it alone.",
+    digit:
+      "Three is expression and creativity — the number of making something and saying it out loud.",
+    meaning:
+      "In the angel-number tradition, three is associated with the ascended masters and read as support: the sense of not doing this alone. Practically it points at communication, and at things that change when spoken.",
     prompt: "Who could you tell about this? Saying it out loud changes it.",
-    personal: (goal) =>
-      `Who in your life doesn't yet know you're working toward ${goal}? Telling one person makes it harder to quietly drop.`,
     theme: "trust",
   },
   {
     number: "444",
-    meaning: "Read as foundations, and as steadiness in a stretch that feels unsteady.",
+    digit: "Four is structure — four walls, four directions, the number of things that hold.",
+    meaning:
+      "Repeated fours are read as foundations and as protection, and usually arrive in a stretch that feels unsteady. The traditional reading is not that things are about to improve, but that what you have built is sounder than it feels.",
     prompt: "What's the least glamorous thing you could do today that would actually hold?",
-    personal: (goal) =>
-      `What's the dullest, most repeatable thing you could do toward ${goal} today? That's usually the one that holds.`,
     theme: "alignment",
   },
   {
     number: "555",
-    meaning: "Traditionally the number of change arriving.",
+    digit: "Five is the number of the senses, of freedom, and of movement.",
+    meaning:
+      "Repeated fives are read as change arriving — and specifically change that is already underway rather than change you must cause. The tradition treats it as upheaval, not as good news; whether it is good news depends on what you were holding onto.",
     prompt: "What are you resisting that you already know is coming?",
-    personal: (goal) =>
-      `What would have to change in your week for ${goal} to be realistic? You probably already know, and have been avoiding it.`,
     theme: "change",
   },
   {
+    number: "666",
+    digit: "Six is home, harmony and the material world — the number of domestic things.",
+    meaning:
+      "The most misread number in the set. Its association with evil comes from one line in the Book of Revelation and has nothing to do with numerology, where repeated sixes are read as a nudge to rebalance: too much attention on money, appearance or the state of the house, and not enough on anything else.",
+    prompt: "What have you been over-managing lately, and what has it cost the rest of your life?",
+    theme: "alignment",
+  },
+  {
     number: "777",
-    meaning: "Read as a sign you're on your own path rather than someone else's.",
+    digit: "Seven is the mystic's number — inner knowledge, and the one that resists explanation.",
+    meaning:
+      "Repeated sevens are read as being on your own path rather than someone else's, and as a kind of luck that is earned rather than given. Traditionally associated with knowing something before you can justify it.",
     prompt: "Where in your life are you following a plan you never actually chose?",
-    personal: (goal) =>
-      `Is ${goal} yours, or someone else's idea of what you should want? Worth checking honestly, once.`,
     theme: "trust",
   },
   {
     number: "888",
-    meaning: "Associated with abundance and with returns on effort already spent.",
-    prompt:
-      "What have you been putting work into that hasn't paid off yet? Give it one more month.",
-    personal: (goal) =>
-      `What have you already put into ${goal} that hasn't shown a return yet? Returns lag effort — that's not the same as it not working.`,
+    digit:
+      "Eight is the infinity symbol stood upright — cycles, return, and what comes back around.",
+    meaning:
+      "Repeated eights are read as abundance, and specifically as returns on effort already spent rather than windfalls. The shape is the point: what you put in comes back, on a delay.",
+    prompt: "What have you been putting work into that hasn't paid off yet?",
     theme: "abundance",
   },
   {
     number: "999",
-    meaning: "Read as completion — an ending that makes room.",
+    digit: "Nine is the last digit — nothing follows it without starting over.",
+    meaning:
+      "Repeated nines are read as completion: an ending that makes room, rather than a loss. The tradition is unusually blunt here — it is taken as a sign that something is finished whether or not you have admitted it.",
     prompt: "What are you finished with, that you haven't admitted you're finished with?",
-    personal: (goal) =>
-      `What's standing between you and ${goal} that you're finished with, but haven't said so yet?`,
     theme: "release",
   },
   {
+    number: "000",
+    digit: "Zero is the circle — no beginning, no end, and no content of its own.",
+    meaning:
+      "Read as a blank page and as potential before it has taken a shape. In the tradition zero amplifies whatever it sits beside, so on its own it is taken to mean a genuine open moment: nothing decided yet.",
+    prompt: "If nothing were already decided, what would you actually pick?",
+    theme: "beginnings",
+  },
+  {
     number: "1111",
-    meaning: "The most widely noticed of all. Read as a moment of alignment.",
+    digit: "Four ones — the beginning number, repeated to its fullest.",
+    meaning:
+      "The most widely noticed sequence of all, largely because clocks make it easy to see. Read as a gateway and a moment of alignment, and traditionally treated as the point at which attention matters most, because whatever is in your mind is taken to be what is taking shape.",
     prompt: "If this were a nudge, what would it be nudging you toward? Answer quickly.",
-    personal: (goal) =>
-      `First thing that comes to mind: what's the one move toward ${goal} you keep not making? Don't think about it.`,
     theme: "beginnings",
   },
   {
     number: "1212",
-    meaning: "Read as a step forward, and as a sign to move before feeling ready.",
+    digit: "One and two alternating — starting, then balancing, then starting again.",
+    meaning:
+      "Read as a step forward, and specifically as permission to move before you feel ready. The alternation is the meaning: it describes progress that isn't smooth.",
     prompt: "What would you do this week if you weren't waiting to feel prepared?",
-    personal: (goal) =>
-      `What would you do about ${goal} this week if you'd stopped waiting to feel ready for it?`,
     theme: "change",
   },
 ];
 
 /**
- * The question to show.
+ * The reflection to show, written for this person by the model.
  *
- * Falls back to the general version when there's no dream yet — someone on
- * their first day has nothing for it to be about, and a question with a hole
- * where their goal should be is worse than a generic one.
+ * ## Why the meaning is fixed and the question is not
+ *
+ * These are two different kinds of content and they were being treated the
+ * same, which is what made the feature feel fake.
+ *
+ * What 111 MEANS is a fact about a tradition. One is the number of beginnings;
+ * repeated, it is read as a doorway. Generating that per person would not make
+ * it more personal, it would make it invented — and inventing numerology at
+ * someone is worse than reporting it, not better.
+ *
+ * What you should DO with having noticed it is the part that has to be about
+ * you, and it used to be a fixed sentence with your dream slotted into a gap.
+ * Reported as "angel numbers doesn't seem to be true, it's just random words",
+ * which was fair: a sentence built to fit anybody fits nobody, and a template
+ * reads as one however well it is written.
+ *
+ * So the meaning stays fixed and true, and the question is written.
+ * `prompt` remains as the honest thing to show someone on their first day,
+ * when there is no dream for it to be about yet.
  */
-export function reflectionFor(entry: AngelNumber, desireTitle?: string | null): string {
+export async function reflectionFor(
+  entry: AngelNumber,
+  desireTitle?: string | null,
+): Promise<string> {
   const trimmed = desireTitle?.trim();
   if (!trimmed) return entry.prompt;
 
   const goal = desirePhrase(trimmed);
   // desirePhrase returns null when it can't shape the text into a sentence.
   // Using the raw title anyway is how "working toward my aim is to earn
-  // 20000cr" happened, so take the generic question instead.
+  // 20000cr" happened, so take the general question instead.
   if (!goal || goal === GENERIC_DESIRE) return entry.prompt;
 
-  return entry.personal(goal);
+  try {
+    const { data, error } = await supabase.functions.invoke("reflect-on-number", {
+      body: {
+        number: entry.number,
+        meaning: entry.meaning,
+        theme: entry.theme,
+        goal,
+      },
+    });
+    if (error) throw error;
+
+    const question = (data as { question?: string } | null)?.question?.trim();
+    if (question) return question;
+  } catch {
+    // Fall through. The general question is honest — it just isn't personal.
+  }
+
+  return entry.prompt;
 }
 
 /** The number for a given day, stable so it doesn't shuffle on re-render. */

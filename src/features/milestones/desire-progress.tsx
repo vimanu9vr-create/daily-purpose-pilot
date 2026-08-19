@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useActionHistory } from "@/features/actions/use-actions";
 import { cn } from "@/lib/utils";
 
-import { computeProgress } from "./compose-milestones";
+import { computeProgress } from "./progress";
 import { MilestoneList } from "./milestone-list";
 import { useAllMilestones, useSeedMilestones } from "./use-milestones";
 

@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { composeMomentAt } from "@/features/moments/compose-moment";
 import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -447,7 +446,6 @@ export function useGenerateStories() {
       type Pending = {
         desire: (typeof active)[number];
         variant: number;
-        seed: Parameters<typeof composeMomentAt>[0];
         request: Promise<Response> | null;
       };
 
@@ -502,19 +500,10 @@ export function useGenerateStories() {
         : rotated.slice(0, DESIRE_BATCH);
 
       for (const desire of targets) {
-        const seed = {
-          title: desire.title,
-          why: desire.description,
-          feeling: null,
-          category: desire.category,
-          obstacles: null,
-        };
-
         for (let variant = 0; variant < perDesire; variant += 1) {
           pending.push({
             desire,
             variant,
-            seed,
             request: token
               ? fetch(`${supabaseUrl}/functions/v1/ai-moment`, {
                   method: "POST",
@@ -550,51 +539,62 @@ export function useGenerateStories() {
         responses.push(...(await Promise.allSettled(wave.map((item) => item.request))));
       }
 
-      {
-        for (const [index, item] of pending.entries()) {
-          const { desire, variant, seed } = item;
-          let composed = composeMomentAt(seed, variant);
-          let source = "composed";
+      /**
+       * ONLY REAL WRITING GETS SAVED. No template fallback any more.
+       *
+       * Every story used to be composed on the device first and then upgraded
+       * if the AI answered. It never broke, and that was the problem: when the
+       * provider was returning 429 for a whole day, then 404 for another, the
+       * app carried on producing stories that looked exactly like working
+       * ones. Nobody could tell — including me. It took reading 359 rows in
+       * the database to find out that every single one was a template.
+       *
+       * A fallback that is indistinguishable from success is not resilience.
+       * It is a way of hiding an outage from the only people who could act on
+       * it, and it cost about a week.
+       *
+       * So a failed request now writes nothing, and the screen says so. Fewer
+       * stories, all of them real, and a visible problem when there is one.
+       */
+      for (const [index, item] of pending.entries()) {
+        const { desire, variant } = item;
 
-          const settled = responses[index];
-          const response = settled?.status === "fulfilled" ? settled.value : null;
+        const settled = responses[index];
+        const response = settled?.status === "fulfilled" ? settled.value : null;
+        if (!response?.ok) continue;
 
-          if (response?.ok) {
-            try {
-              const result = (await response.json()) as { title?: string; body?: string };
-              if (result.body?.trim()) {
-                composed = {
-                  key: "ai",
-                  title: result.title?.trim() || composed.title,
-                  body: result.body.trim(),
-                };
-                source = "ai";
-              }
-            } catch {
-              // Unparseable — the composed version stands.
-            }
-          }
-
-          const words = composed.body.split(/\s+/).length;
-          rows.push({
-            user_id: userId,
-            desire_id: desire.id,
-            title: composed.title,
-            hook: hookFrom(composed.body, composed.title),
-            body: composed.body,
-            category: desire.category,
-            image_url: coverImage(`${desire.id}-${variant}`, themeFor(desire.title)),
-            // A guess, and labelled as one. Sarah reads at roughly 140 words a
-            // minute. There used to be a 120-second floor here, which meant a
-            // 110-word story displayed "2 MIN" and played for 51 seconds —
-            // the floor was doing nothing except making the number wrong.
-            // Replaced by the real duration as soon as anyone plays it.
-            duration_seconds: Math.max(30, Math.round((words / 140) * 60)),
-            kind: "story",
-            source,
-            expires_at: nextRefreshAt().toISOString(),
-          });
+        let written: { title?: string; body?: string } | null = null;
+        try {
+          written = (await response.json()) as { title?: string; body?: string };
+        } catch {
+          continue;
         }
+
+        const body = written?.body?.trim();
+        if (!body) continue;
+
+        const words = body.split(/\s+/).length;
+        rows.push({
+          user_id: userId,
+          desire_id: desire.id,
+          title: written?.title?.trim() || "Today's moment",
+          hook: hookFrom(body, desire.title),
+          body,
+          category: desire.category,
+          image_url: coverImage(`${desire.id}-${variant}`, themeFor(desire.title)),
+          // A guess, and labelled as one. Sarah reads at roughly 140 words a
+          // minute. Replaced by the real duration the first time it's played.
+          duration_seconds: Math.max(30, Math.round((words / 140) * 60)),
+          kind: "story",
+          source: "ai",
+          expires_at: nextRefreshAt().toISOString(),
+        });
+      }
+
+      if (rows.length === 0) {
+        throw new Error(
+          "The writer didn't answer just now. Nothing was saved — try again in a moment.",
+        );
       }
 
       const { error } = await supabase.from("moments").insert(rows);

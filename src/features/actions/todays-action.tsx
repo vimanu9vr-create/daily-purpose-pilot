@@ -29,7 +29,6 @@ export function TodaysAction({
 }) {
   const toggle = useToggleAction();
   const shuffle = useShuffleAction();
-  const [attempt, setAttempt] = useState(1);
 
   const done = Boolean(action.completed_at);
 
@@ -53,13 +52,12 @@ export function TodaysAction({
             type="button"
             aria-label="Suggest a different action"
             onClick={() => {
+              if (!action.desire_id) return;
               shuffle.mutate({
-                id: action.id,
+                desireId: action.desire_id,
                 title: desireTitle,
                 category,
-                attempt,
               });
-              setAttempt((n) => n + 1);
             }}
             className="shrink-0 rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
           >

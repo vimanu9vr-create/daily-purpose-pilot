@@ -247,57 +247,85 @@ Deno.serve(async (req: Request) => {
     if (aiRes.status === 429) {
       const reason = await aiRes.text().catch(() => "");
       console.error("milestones refused: 429", reason.slice(0, 400));
-      return json({ error: "rate_limited" }, 429);
+      return json({ error: "rate_limited", written: 0 }, 429);
     }
     if (!aiRes.ok) {
       console.error("ai error", aiRes.status, await aiRes.text().catch(() => ""));
-      return json({ error: "upstream_error" }, 502);
+      return json({ error: "upstream_error", written: 0 }, 502);
     }
 
     const payload = (await aiRes.json()) as { choices?: { message?: { content?: string } }[] };
     const milestones = parseMilestones(payload.choices?.[0]?.message?.content ?? "");
-    if (milestones.length !== 5) return json({ error: "unparseable" }, 502);
+    if (milestones.length !== 5) return json({ error: "unparseable", written: 0 }, 502);
 
-    // Only replace steps nobody has ticked yet. Overwriting a completed step
-    // would erase evidence of work someone actually did, which is the single
-    // worst thing this function could do.
-    const query = new URLSearchParams({
-      user_id: `eq.${user.id}`,
-      desire_id: `eq.${desireId}`,
-      completed_at: "is.null",
-      select: "id,position",
-    });
+    /**
+     * THIS FUNCTION NOW WRITES THE MILESTONES. It used to only replace them.
+     *
+     * The client inserted five generic steps and asked this to overwrite them,
+     * so a failure here left a goal broken into five stages that had nothing
+     * to do with it — and nothing recorded whether a row was real, so there is
+     * no way to audit the 130 that already exist.
+     *
+     * Writing here means a goal either has milestones that were written for it
+     * or has none, and "none" is a visible, fixable state.
+     */
+    const existingRes = await fetch(
+      `${supabaseUrl}/rest/v1/milestones?user_id=eq.${user.id}` +
+        `&desire_id=eq.${encodeURIComponent(desireId)}&select=id,position,completed_at`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+    );
+    if (!existingRes.ok) return json({ error: "read_failed", written: 0 }, 502);
 
-    const existingRes = await fetch(`${supabaseUrl}/rest/v1/milestones?${query}`, {
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-    });
-    if (!existingRes.ok) return json({ error: "read_failed" }, 502);
+    const existing = (await existingRes.json()) as {
+      id: string;
+      position: number;
+      completed_at: string | null;
+    }[];
+    const byPosition = new Map(existing.map((row) => [row.position, row]));
+    let written = 0;
 
-    const existing = (await existingRes.json()) as { id: string; position: number }[];
-    let updated = 0;
+    // `step` rather than `title` — the request body already has a `title`
+    // (the goal's), and shadowing it here is how the wrong string gets
+    // written by whoever edits this next.
+    for (const [position, step] of milestones.entries()) {
+      const current = byPosition.get(position);
 
-    for (const row of existing) {
-      const replacement = milestones[row.position];
-      if (!replacement) continue;
+      // Never touch a step somebody has already ticked off.
+      if (current?.completed_at) continue;
 
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/milestones?id=eq.${encodeURIComponent(row.id)}`,
-        {
-          method: "PATCH",
-          headers: {
-            apikey: serviceKey,
-            Authorization: `Bearer ${serviceKey}`,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify({ title: replacement }),
-        },
-      );
-      if (res.ok) updated += 1;
+      const res = current
+        ? await fetch(`${supabaseUrl}/rest/v1/milestones?id=eq.${encodeURIComponent(current.id)}`, {
+            method: "PATCH",
+            headers: {
+              apikey: serviceKey,
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({ title: step }),
+          })
+        : await fetch(`${supabaseUrl}/rest/v1/milestones`, {
+            method: "POST",
+            headers: {
+              apikey: serviceKey,
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({
+              user_id: user.id,
+              desire_id: desireId,
+              title: step,
+              position,
+            }),
+          });
+
+      if (res.ok) written += 1;
+      else console.error("milestone write failed", await res.text().catch(() => ""));
     }
 
-    console.log(`milestones upgraded=${updated} desire=${desireId}`);
-    return json({ updated }, 200);
+    console.log(`milestones written=${written} desire=${desireId}`);
+    return json({ written }, 200);
   } catch (error) {
     console.error("suggest-milestones failed", error);
     return json({ error: "internal_error", message: String(error) }, 500);

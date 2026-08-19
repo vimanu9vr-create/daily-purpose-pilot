@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGoals } from "@/features/goals/use-goals";
 import {
-  momentTemplateCount,
   useCreateTodaysMoment,
   useDeleteMoment,
   useMarkListened,
@@ -162,7 +161,10 @@ function Moments() {
                     className="text-muted-foreground"
                     disabled={createMoment.isPending}
                     onClick={() => {
-                      const next = (variant + 1) % momentTemplateCount();
+                      // Sixteen assigned moments in ai-moment; walking the
+                      // variant walks that list. It used to walk a list of
+                      // local templates that no longer exists.
+                      const next = (variant + 1) % 16;
                       setVariant(next);
                       speech.stop();
                       createMoment.mutate({ variant: next });

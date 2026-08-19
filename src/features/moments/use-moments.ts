@@ -7,8 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toISODate } from "@/lib/dates";
 
-import { composeMoment, composeMomentAt, momentTemplateCount } from "./compose-moment";
-
 export type Moment = Database["public"]["Tables"]["moments"]["Row"];
 
 export const momentKeys = {
@@ -73,43 +71,34 @@ export function useCreateTodaysMoment() {
         );
       }
 
-      const seed = {
-        title: goal.title,
-        why: goal.why,
-        feeling: goal.feeling,
-        category: goal.category,
-        obstacles: goal.obstacles,
-      };
+      /**
+       * Written by the model, or not written. No local composer underneath.
+       *
+       * The template used to stand in whenever this failed, which is why the
+       * app produced hundreds of stories nobody could tell apart from the real
+       * thing during a day-long outage. A visible failure is worth more than
+       * an invisible substitute.
+       */
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (!token) throw new Error("Session expired — sign in again.");
 
-      let composed = variant === undefined ? composeMoment(seed) : composeMomentAt(seed, variant);
-      let source = "composed";
-
-      // Best effort: a real model writes a better scene than a template.
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session.session?.access_token;
-        if (token) {
-          const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] as string;
-          const response = await fetch(`${supabaseUrl}/functions/v1/ai-moment`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ goalId: goal.id, variant }),
-          });
-          if (response.ok) {
-            const result = (await response.json()) as { title?: string; body?: string };
-            if (result.body?.trim()) {
-              composed = {
-                key: "ai",
-                title: result.title?.trim() || composed.title,
-                body: result.body.trim(),
-              };
-              source = "ai";
-            }
-          }
-        }
-      } catch {
-        // Offline or not deployed — the composed version is already good to go.
+      const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] as string;
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-moment`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ goalId: goal.id, variant }),
+      });
+      if (!response.ok) {
+        throw new Error("The writer didn't answer just now. Try again in a moment.");
       }
+
+      const result = (await response.json()) as { title?: string; body?: string };
+      const body = result.body?.trim();
+      if (!body) throw new Error("The writer didn't answer just now. Try again in a moment.");
+
+      const composed = { key: "ai", title: result.title?.trim() || "Today's moment", body };
+      const source = "ai";
 
       const { data, error } = await supabase
         .from("moments")
@@ -181,5 +170,3 @@ export function useDeleteMoment() {
     onError: (error: Error) => toast.error(error.message || "Couldn't delete that"),
   });
 }
-
-export { momentTemplateCount };

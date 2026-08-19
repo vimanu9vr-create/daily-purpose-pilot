@@ -5,8 +5,6 @@ import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import { trail } from "@/lib/telemetry";
 
-import { composeMilestones } from "./compose-milestones";
-
 /**
  * Milestones — a desire broken into steps you can finish.
  *
@@ -102,40 +100,33 @@ export function useSeedMilestones() {
         .limit(1);
       if (existing && existing.length > 0) return 0;
 
-      const titles = composeMilestones({ title, category, why });
-      const { error } = await supabase.from("milestones").insert(
-        titles.map((milestoneTitle, index) => ({
-          user_id: userId,
-          desire_id: desireId,
-          title: milestoneTitle,
-          position: index,
-        })),
-      );
+      /**
+       * Written by the AI, or not written at all.
+       *
+       * Five generic steps used to be inserted first and then replaced if the
+       * writer answered. Same flaw as everywhere else in this app: the
+       * template was indistinguishable from the real thing, so a failure left
+       * a goal broken into five stages that had nothing to do with it and
+       * nobody could tell. There are 130 milestone rows in the database and no
+       * way to know which are real, because nothing recorded it.
+       *
+       * Now the function writes them. A goal with no milestones is obvious and
+       * fixable; a goal with five wrong ones looks finished.
+       */
+      const { data, error } = await supabase.functions.invoke("suggest-milestones", {
+        body: { desireId, title, category, why },
+      });
       if (error) throw error;
 
-      trail("milestones", "seeded", { count: titles.length });
-      void upgradeWithAi(desireId, { title, category, why });
-      return titles.length;
+      const written = (data as { written?: number } | null)?.written ?? 0;
+      trail("milestones", "written", { count: written });
+      return written;
     },
     onSuccess: (count) => {
       if (count > 0) void queryClient.invalidateQueries({ queryKey: milestoneKeys.all });
     },
+    onError: (error: Error) => trail("milestones", "write-failed", { message: error.message }),
   });
-}
-
-async function upgradeWithAi(
-  desireId: string,
-  seed: { title: string; category: string | null; why: string | null },
-): Promise<void> {
-  try {
-    const { error } = await supabase.functions.invoke("suggest-milestones", {
-      body: { desireId, ...seed },
-    });
-    if (error) throw error;
-    trail("milestones", "ai-upgraded");
-  } catch {
-    // Templates stand.
-  }
 }
 
 export function useToggleMilestone() {

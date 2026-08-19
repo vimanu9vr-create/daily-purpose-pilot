@@ -1,10 +1,14 @@
 // Writes today's action for each of the user's desires.
 //
-// The client has already written a template action and shown it, so this only
-// ever upgrades what's on screen. If it fails, nothing visible happens — the
-// same degradation shape as ai-moment.
+// This USED to only upgrade: the client inserted a canned action per dream and
+// asked this to replace it. A failure then left a template on screen that was
+// indistinguishable from a real one, which is how eleven of them sat on Home
+// for a full day while everyone believed the feature worked.
 //
-// Required secret: OPENAI_API_KEY (falls back to LOVABLE_API_KEY)
+// Now nothing else writes to `actions`. A day this can't answer has no action,
+// which is honest and visible.
+//
+// Required secret: GEMINI_API_KEY (falls back to OPENAI_API_KEY, then LOVABLE_API_KEY)
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -215,9 +219,15 @@ Deno.serve(async (req: Request) => {
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
     const user = (await userRes.json()) as { id: string };
 
-    const { desires = [], forDate } = (await req.json().catch(() => ({}))) as {
+    const {
+      desires = [],
+      forDate,
+      replace = false,
+    } = (await req.json().catch(() => ({}))) as {
       desires?: Desire[];
       forDate?: string;
+      /** True when someone pressed "give me a different one". */
+      replace?: boolean;
     };
     if (desires.length === 0 || !forDate) return json({ error: "bad_request" }, 400);
 
@@ -257,54 +267,88 @@ Deno.serve(async (req: Request) => {
     if (aiRes.status === 429) {
       const reason = await aiRes.text().catch(() => "");
       console.error("actions refused: 429", reason.slice(0, 400));
-      return json({ error: "rate_limited" }, 429);
+      return json({ error: "rate_limited", written: 0 }, 429);
     }
     if (!aiRes.ok) {
       console.error("ai error", aiRes.status, await aiRes.text().catch(() => ""));
-      return json({ error: "upstream_error" }, 502);
+      return json({ error: "upstream_error", written: 0 }, 502);
     }
 
     const payload = (await aiRes.json()) as {
       choices?: { message?: { content?: string } }[];
     };
-    const raw = payload.choices?.[0]?.message?.content ?? "";
-    const parsed = parseActions(raw);
-    if (parsed.length === 0) return json({ error: "unparseable" }, 502);
+    const parsed = parseActions(payload.choices?.[0]?.message?.content ?? "");
+    if (parsed.length === 0) return json({ error: "unparseable", written: 0 }, 502);
 
-    // Only touch rows that belong to this user, on this date, and that are
-    // still the template version. If someone has already edited or completed
-    // today's action, replacing it under them would be rude.
+    /**
+     * THIS FUNCTION NOW WRITES THE ACTIONS. It used to only upgrade them.
+     *
+     * The client inserted a canned action per dream and then asked this to
+     * replace it, which meant a failure here left a template on screen that
+     * was indistinguishable from a real one. Eleven of them sat on Home for a
+     * full day that way.
+     *
+     * Writing here instead means a day this can't answer simply has no action,
+     * which is honest and visible. Nothing else in the app writes to `actions`
+     * any more.
+     */
     const allowed = new Set(batch.map((desire) => desire.id));
-    let updated = 0;
+    let written = 0;
 
     for (const action of parsed) {
       if (!allowed.has(action.id)) continue;
       const body = action.body.trim();
       if (!body || body.length > 300) continue;
 
-      const query = new URLSearchParams({
-        user_id: `eq.${user.id}`,
-        desire_id: `eq.${action.id}`,
-        for_date: `eq.${forDate}`,
-        source: "eq.template",
-        completed_at: "is.null",
-      });
+      // Never overwrite something already ticked off — that would erase
+      // evidence of work somebody actually did.
+      const existingRes = await fetch(
+        `${supabaseUrl}/rest/v1/actions?user_id=eq.${user.id}&desire_id=eq.${action.id}` +
+          `&for_date=eq.${forDate}&select=id,completed_at`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+      );
+      const existing = existingRes.ok
+        ? ((await existingRes.json()) as { id: string; completed_at: string | null }[])
+        : [];
+      const current = existing[0];
+      if (current?.completed_at) continue;
+      // Only replace an existing, unfinished action when asked to.
+      if (current && !replace) continue;
 
-      const res = await fetch(`${supabaseUrl}/rest/v1/actions?${query}`, {
-        method: "PATCH",
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({ body, source: "ai" }),
-      });
-      if (res.ok) updated += 1;
+      const res = current
+        ? await fetch(`${supabaseUrl}/rest/v1/actions?id=eq.${encodeURIComponent(current.id)}`, {
+            method: "PATCH",
+            headers: {
+              apikey: serviceKey,
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({ body, source: "ai" }),
+          })
+        : await fetch(`${supabaseUrl}/rest/v1/actions`, {
+            method: "POST",
+            headers: {
+              apikey: serviceKey,
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal,resolution=merge-duplicates",
+            },
+            body: JSON.stringify({
+              user_id: user.id,
+              desire_id: action.id,
+              for_date: forDate,
+              body,
+              source: "ai",
+            }),
+          });
+
+      if (res.ok) written += 1;
+      else console.error("action write failed", await res.text().catch(() => ""));
     }
 
-    console.log(`actions upgraded=${updated} of=${batch.length}`);
-    return json({ updated }, 200);
+    console.log(`actions written=${written} of=${batch.length} replace=${replace}`);
+    return json({ written }, 200);
   } catch (error) {
     console.error("suggest-action failed", error);
     return json({ error: "internal_error", message: String(error) }, 500);

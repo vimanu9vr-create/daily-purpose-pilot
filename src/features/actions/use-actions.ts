@@ -5,8 +5,6 @@ import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import { trail } from "@/lib/telemetry";
 
-import { composeAction, actionVariantCount } from "./compose-action";
-
 /**
  * Today's actions.
  *
@@ -72,116 +70,65 @@ export function useTodaysActions() {
  * the edge function to write a better one. If the function is unreachable the
  * local action stands and nobody sees a failure — the same shape as stories.
  */
+/**
+ * Asks the writer for today's actions. Writes nothing if it can't get them.
+ *
+ * ## No template first any more
+ *
+ * This used to insert a canned action per dream and then quietly ask the AI to
+ * replace it. The replacement got exactly one attempt, and if it failed the
+ * canned line stayed all day looking exactly like a real one — which is how
+ * eleven templates sat on Home for a full day while I was certain the feature
+ * worked, and how "update one section of your CV" ended up on screen.
+ *
+ * A fallback you cannot distinguish from success hides the outage from the
+ * only person who could act on it. So there is no fallback: the edge function
+ * writes the actions itself, and a day it can't answer has no action rather
+ * than a fake one.
+ */
 export function useEnsureTodaysActions() {
   const queryClient = useQueryClient();
-  const userId = useUserId();
 
   return useMutation({
     mutationFn: async (
       desires: { id: string; title: string; category: string | null; description: string | null }[],
     ) => {
-      if (!userId || desires.length === 0) return 0;
+      if (desires.length === 0) return 0;
       const today = localDateKey();
 
       const { data: existing, error: readError } = await supabase
         .from("actions")
-        .select("desire_id,source")
+        .select("desire_id")
         .eq("for_date", today);
       if (readError) throw readError;
 
       const have = new Set((existing ?? []).map((row) => row.desire_id));
       const missing = desires.filter((desire) => !have.has(desire.id));
+      if (missing.length === 0) return 0;
 
-      /**
-       * Retry the AI upgrade on actions that are still templates.
-       *
-       * The upgrade used to get exactly one attempt, at the instant the
-       * template was written — and this function returned early whenever
-       * nothing was missing, so a failed upgrade could never be retried for
-       * the rest of the day.
-       *
-       * That is not a rare edge. Today every one of eleven actions was still a
-       * template, because the one attempt they each got happened while Gemini
-       * was returning 404 for this account. The provider was fixed hours ago
-       * and the screen would have stayed on templates until tomorrow.
-       *
-       * A one-shot upgrade is a bet that the provider is healthy at one
-       * arbitrary moment. Asking again costs a single call and is the
-       * difference between "the AI is broken" and "the AI was briefly busy".
-       */
-      const stale = new Set(
-        (existing ?? [])
-          .filter((row) => row.source === "template")
-          .map((row) => row.desire_id)
-          .filter((id): id is string => Boolean(id)),
-      );
-      const needsUpgrade = desires.filter((desire) => stale.has(desire.id));
-
-      if (missing.length === 0) {
-        if (needsUpgrade.length > 0) void upgradeWithAi(needsUpgrade, today);
-        return 0;
-      }
-
-      const rows = missing.map((desire) => ({
-        user_id: userId,
-        desire_id: desire.id,
-        for_date: today,
-        source: "template",
-        body: composeAction({
-          title: desire.title,
-          category: desire.category,
-          why: desire.description,
-        }),
-      }));
-
-      // Ignore duplicates rather than failing: another device may have won the
-      // race, and its action is just as good as ours.
-      const { error } = await supabase
-        .from("actions")
-        .upsert(rows, { onConflict: "user_id,desire_id,for_date", ignoreDuplicates: true });
+      const { data, error } = await supabase.functions.invoke("suggest-action", {
+        body: {
+          forDate: today,
+          desires: missing.map((desire) => ({
+            id: desire.id,
+            title: desire.title,
+            category: desire.category,
+            why: desire.description,
+          })),
+        },
+      });
       if (error) throw error;
 
-      trail("actions", "generated", { count: rows.length });
-      // Both the new ones and anything left on a template from earlier today.
-      void upgradeWithAi([...missing, ...needsUpgrade], today);
-      return rows.length;
+      const written = (data as { written?: number } | null)?.written ?? 0;
+      trail("actions", "written", { count: written, asked: missing.length });
+      return written;
     },
     onSuccess: (count) => {
       if (count > 0) void queryClient.invalidateQueries({ queryKey: actionKeys.today });
     },
-    onError: (error: Error) => trail("actions", "generate-failed", { message: error.message }),
+    onError: (error: Error) => trail("actions", "write-failed", { message: error.message }),
   });
 }
-
-/**
- * Asks the coach to replace today's template actions with better ones.
- *
- * Deliberately fire-and-forget and deliberately silent. The user already has a
- * usable action on screen; this either quietly improves it or changes nothing.
- */
-async function upgradeWithAi(
-  desires: { id: string; title: string; category: string | null; description: string | null }[],
-  forDate: string,
-): Promise<void> {
-  try {
-    const { error } = await supabase.functions.invoke("suggest-action", {
-      body: {
-        forDate,
-        desires: desires.map((desire) => ({
-          id: desire.id,
-          title: desire.title,
-          category: desire.category,
-          why: desire.description,
-        })),
-      },
-    });
-    if (error) throw error;
-    trail("actions", "ai-upgraded", { count: desires.length });
-  } catch {
-    // Template action stands. Nothing to tell anyone.
-  }
-}
-
 export function useToggleAction() {
   const queryClient = useQueryClient();
 
@@ -203,31 +150,42 @@ export function useToggleAction() {
   });
 }
 
-/** Swaps today's action for a different one, without touching the AI. */
+/**
+ * Asks for a different action for today.
+ *
+ * Used to rotate through a local list of canned lines, which is why pressing
+ * it produced the same handful of suggestions forever. It now asks the writer
+ * again, so a different action is a genuinely different one.
+ */
 export function useShuffleAction() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
-      id,
+      desireId,
       title,
       category,
-      attempt,
+      why,
     }: {
-      id: string;
+      desireId: string;
       title: string;
       category: string | null;
-      attempt: number;
+      why?: string | null;
     }) => {
-      const seed = { title, category };
-      const body = composeAction(seed, new Date(), attempt % actionVariantCount(seed));
-      const { error } = await supabase
-        .from("actions")
-        .update({ body, source: "template" })
-        .eq("id", id);
+      const { data, error } = await supabase.functions.invoke("suggest-action", {
+        body: {
+          forDate: localDateKey(),
+          replace: true,
+          desires: [{ id: desireId, title, category, why: why ?? null }],
+        },
+      });
       if (error) throw error;
+      if (((data as { written?: number } | null)?.written ?? 0) === 0) {
+        throw new Error("Couldn't think of a different one just now.");
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: actionKeys.today }),
+    onError: (error: Error) => toast.error(error.message),
   });
 }
 
