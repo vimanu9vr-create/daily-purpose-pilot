@@ -291,8 +291,10 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          desire_id: string | null
           goal_id: string | null
           id: string
+          is_anchor: boolean
           is_favorite: boolean
           last_shown_at: string | null
           source: string
@@ -302,8 +304,10 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          desire_id?: string | null
           goal_id?: string | null
           id?: string
+          is_anchor?: boolean
           is_favorite?: boolean
           last_shown_at?: string | null
           source?: string
@@ -313,8 +317,10 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          desire_id?: string | null
           goal_id?: string | null
           id?: string
+          is_anchor?: boolean
           is_favorite?: boolean
           last_shown_at?: string | null
           source?: string
@@ -322,6 +328,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "affirmations_desire_id_fkey"
+            columns: ["desire_id"]
+            isOneToOne: false
+            referencedRelation: "desires"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "affirmations_goal_id_fkey"
             columns: ["goal_id"]

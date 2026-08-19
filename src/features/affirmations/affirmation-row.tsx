@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { DraggableRow } from "@/features/stories/story-card";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 
-import { useSavedAffirmations } from "./use-affirmations";
+import { useAnchorAffirmation, useSavedAffirmations } from "./use-affirmations";
 
 /**
  * The user's own affirmations, on Home.
@@ -18,8 +18,16 @@ import { useSavedAffirmations } from "./use-affirmations";
  * A single swipeable row rather than a list, because Home has already been too
  * long once and this is meant to be a glance, not a reading session.
  */
-export function AffirmationRow({ isGenerating = false }: { isGenerating?: boolean }) {
+export function AffirmationRow({
+  isGenerating = false,
+  desireId,
+}: {
+  isGenerating?: boolean;
+  /** The dream in focus, if one is selected. Its anchor is shown above the row. */
+  desireId?: string | null;
+}) {
   const { data: affirmations, isPending } = useSavedAffirmations();
+  const { data: anchor } = useAnchorAffirmation(desireId);
 
   const mine = (affirmations ?? []).filter((row) => row.source === "ai").slice(0, 10);
 
@@ -42,6 +50,23 @@ export function AffirmationRow({ isGenerating = false }: { isGenerating?: boolea
 
   return (
     <section className="mt-8">
+      {/*
+        The anchor, when a dream is in focus.
+
+        Six affirmations in a swipeable row is a list, and a list is something
+        you scroll past. This is the one line written to be repeated — shortest
+        of the set, most concrete, no hedging — given the room to be read
+        rather than skimmed. The other six stay underneath as variation.
+      */}
+      {anchor && (
+        <div className="mb-5 rounded-[28px] surface-gradient p-[1px]">
+          <div className="rounded-[27px] bg-card/85 px-6 py-7 text-center">
+            <p className="eyebrow text-muted-foreground">Say this one</p>
+            <p className="mt-3 font-display text-[21px] italic leading-snug">{anchor.text}</p>
+          </div>
+        </div>
+      )}
+
       <div className="mb-3 flex items-baseline justify-between px-1">
         <h2 className="eyebrow">Your affirmations</h2>
         <Link

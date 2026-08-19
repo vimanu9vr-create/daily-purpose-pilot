@@ -35,6 +35,36 @@ export function useSavedAffirmations() {
 }
 
 /**
+ * The one line for a dream — the anchor.
+ *
+ * Six good affirmations is a list, and a list is something you scroll past.
+ * One line that is clearly THE line is something you can carry around all day,
+ * which is what somebody means when they ask for a powerful affirmation for a
+ * particular desire.
+ *
+ * The other five still exist and still matter — they are what stops the set
+ * going stale when you read it every morning for a month. They just are not
+ * the thing on the screen.
+ */
+export function useAnchorAffirmation(desireId: string | null | undefined) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: [...affirmationKeys.saved, "anchor", desireId ?? "none"],
+    enabled: Boolean(userId) && Boolean(desireId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("affirmations")
+        .select("*")
+        .eq("desire_id", desireId!)
+        .eq("is_anchor", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/**
  * The deck the user actually swipes through: their AI-generated and saved
  * affirmations first, then the curated library for the chosen category.
  */

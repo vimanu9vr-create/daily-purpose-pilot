@@ -19,7 +19,17 @@
 // Never predict what the world will hand them. That is how it can feel real
 // without being a lie.
 //
-// Required secret: OPENAI_API_KEY (falls back to LOVABLE_API_KEY)
+// ONE OF THE SIX IS THE ANCHOR.
+//
+// Asked for as "one powerful affirmation for certain desires". Six good lines
+// is a list, and a list is something you scroll past; one line that is clearly
+// THE line is something you can carry around all day. The other five stay as
+// variation, so the set does not go stale when it is read every morning.
+//
+// The anchor is written to a different brief: shortest, most physical, no
+// hedging, and it has to survive being said out loud in the car.
+//
+// Required secret: GEMINI_API_KEY (falls back to OPENAI_API_KEY, then LOVABLE_API_KEY)
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -65,7 +75,15 @@ Hard limits:
 - Nothing about curing illness, medical recovery, or money arriving without work.
 - Never imply thinking alone changes external events.
 
-Return ONLY a JSON array of 6 strings. No object, no markdown fence, no commentary.`;
+ONE OF THEM IS THE ANCHOR, and it is a different job from the other five.
+
+The five are variation — they stop the set going stale when someone reads it every morning for a month. The anchor is the one line they carry around all day. It has to survive being repeated hundreds of times without wearing out, so:
+- Shortest of the set. Under 12 words if you can.
+- The most concrete and the most physical. It should put them somewhere, doing something.
+- No hedging, no qualifiers, no "learning to", no "beginning to".
+- The one you would say out loud in the car. If it would be awkward said aloud, it is not the anchor.
+
+Return ONLY JSON: {"anchor":"<the one line>","affirmations":["...","...","...","...","..."]}. Exactly one anchor and exactly five others, all different. No markdown fence, no commentary.`;
 
 /**
  * Which AI provider to call.
@@ -396,18 +414,52 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload = (await upstream.json()) as { choices?: { message?: { content?: string } }[] };
-    const affirmations = parseList(payload.choices?.[0]?.message?.content ?? "");
+    const { anchor, rest } = parseSet(payload.choices?.[0]?.message?.content ?? "");
 
-    if (affirmations.length === 0) {
+    if (!anchor && rest.length === 0) {
       return json({ error: "empty", message: "Couldn't write those right now." }, 502);
     }
 
-    const rows = affirmations.map((text) => ({
+    /**
+     * Clear the old anchor before writing the new one.
+     *
+     * There is a unique index allowing one anchor per desire, so without this
+     * the insert below fails outright the second time somebody regenerates —
+     * and the failure would look like "affirmations stopped working" rather
+     * than like a constraint doing its job.
+     */
+    if (desireId && anchor) {
+      await fetch(
+        `${supabaseUrl}/rest/v1/affirmations?user_id=eq.${user.id}` +
+          `&desire_id=eq.${encodeURIComponent(desireId)}&is_anchor=is.true`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({ is_anchor: false }),
+        },
+      );
+    }
+
+    const shared = {
       user_id: user.id,
-      text,
+      // Written from one dream, so recorded against it. This column did not
+      // exist until now: the function was already being told which desire to
+      // write about and the answer was thrown away, which is why nothing in
+      // the app could show "the affirmations for this dream".
+      desire_id: desireId ?? null,
       category: category ?? sources[0]?.category ?? "growth",
       source: "ai",
-    }));
+    };
+
+    const rows = [
+      ...(anchor ? [{ ...shared, text: anchor, is_anchor: Boolean(desireId) }] : []),
+      ...rest.map((text) => ({ ...shared, text, is_anchor: false })),
+    ];
 
     const insertRes = await fetch(`${supabaseUrl}/rest/v1/affirmations`, {
       method: "POST",
@@ -422,34 +474,56 @@ Deno.serve(async (req: Request) => {
 
     if (!insertRes.ok) {
       console.error("insert failed", await insertRes.text().catch(() => ""));
+      return json({ error: "storage_error", message: "Couldn't save those." }, 500);
     }
 
     console.log(
-      `affirmations written=${affirmations.length} sources=${sources.length} focused=${Boolean(desireId)}`,
+      `affirmations written=${rows.length} anchor=${Boolean(anchor)} desire=${desireId ?? "none"}`,
     );
-    return json({ affirmations }, 200);
+    return json({ anchor, affirmations: rest }, 200);
   } catch (error) {
     console.error("ai-affirmations failed", error);
     return json({ error: "internal_error", message: String(error) }, 500);
   }
 });
 
-function parseList(raw: string): string[] {
+/**
+ * The anchor and the rest.
+ *
+ * Accepts the old bare-array shape as well, because a model that ignores the
+ * JSON instruction and returns six strings has still done the useful work —
+ * losing all six over a formatting quibble would be the wrong trade. In that
+ * case the first line becomes the anchor, which is a guess but a harmless one.
+ */
+function parseSet(raw: string): { anchor: string | null; rest: string[] } {
   const cleaned = raw
     .trim()
     .replace(/^```(?:json)?/i, "")
     .replace(/```$/, "")
     .trim();
+
+  const usable = (value: unknown): value is string =>
+    typeof value === "string" && value.trim().length > 5 && value.trim().length <= 200;
+
   try {
-    const parsed = JSON.parse(cleaned);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((entry): entry is string => typeof entry === "string")
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 5 && entry.length <= 200)
-      .slice(0, 8);
+    const parsed = JSON.parse(cleaned) as unknown;
+
+    if (Array.isArray(parsed)) {
+      const all = parsed.filter(usable).map((entry) => entry.trim());
+      return { anchor: all[0] ?? null, rest: all.slice(1, 8) };
+    }
+
+    const shaped = parsed as { anchor?: unknown; affirmations?: unknown };
+    const anchor = usable(shaped.anchor) ? shaped.anchor.trim() : null;
+    const rest = Array.isArray(shaped.affirmations)
+      ? shaped.affirmations
+          .filter(usable)
+          .map((entry) => entry.trim())
+          .slice(0, 8)
+      : [];
+    return { anchor, rest };
   } catch {
-    return [];
+    return { anchor: null, rest: [] };
   }
 }
 

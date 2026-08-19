@@ -287,7 +287,12 @@ function HomeFeed() {
           The practice and the action are habits — they're the same every day
           and they aren't a response to anything. What you just asked for
           should be what you see first. */}
-      {hasDesires && <AffirmationRow isGenerating={createDesire.isPending || generate.isPending} />}
+      {hasDesires && (
+        <AffirmationRow
+          isGenerating={createDesire.isPending || generate.isPending}
+          desireId={selectedDesireId ?? desires?.[0]?.id ?? null}
+        />
+      )}
 
       {/* The practice, which is the daily loop. Above the actions because it
           ends by offering them, so doing it first is the shorter path. */}
