@@ -75,3 +75,32 @@ select cron.schedule(
 --     from cron.job_run_details order by start_time desc limit 5;
 --
 -- A run that finds no secret logs a warning and returns; it does not post.
+--
+-- ---------------------------------------------------------------------------
+-- THIS ALONE WILL NOT MAKE A NOTIFICATION APPEAR.
+-- ---------------------------------------------------------------------------
+--
+-- The chain is broken in three independent places, and all three have to be
+-- true before anybody's phone lights up. Fixing one and testing would show
+-- nothing, conclude nothing, and cost another round of "it's still not
+-- working" — so all three are written down here.
+--
+--   1. THE CRON  — what this file fixes. 401 on every run.
+--
+--   2. THE SWITCH — `profiles.notifications_enabled` is false for the only
+--      profile that exists. The function selects people who are due; nobody
+--      is eligible. Turn it on in the app: Profile → Notifications → Turn on.
+--      That is also what registers the device, so it does 2 and 3 together.
+--
+--   3. THE DEVICE — `push_subscriptions` has zero rows. Even with a working
+--      cron and the switch on, there is nowhere to send. A browser only
+--      registers on a real permission grant, which has never been given.
+--
+-- Verify all three at once:
+--
+--   select
+--     (select count(*) from cron.job where active) as jobs,
+--     (select count(*) from profiles where notifications_enabled) as switched_on,
+--     (select count(*) from push_subscriptions) as devices;
+--
+-- All three greater than zero, or the morning stays quiet.

@@ -93,11 +93,24 @@ export const STANDARD_PLANS: Plan[] = [
     highlight: "Save 50%",
   },
   {
+    /**
+     * $59.99, and the number is set against a competitor rather than plucked.
+     *
+     * Stella's top in-app purchase is $79.99, and it includes their narration.
+     * This was $99.99 for a plan with NO voice — more money for less product,
+     * which is a price nobody picks once they have both tabs open.
+     *
+     * $59.99 is twice the yearly, comfortably under their headline, and it is
+     * close to pure margin: Standard costs almost nothing to serve, since the
+     * text runs on Gemini's free tier and narration is what actually bills.
+     * Break-even against the yearly plan is two years, and anybody still here
+     * in two years was never going to churn anyway.
+     */
     id: "standard_lifetime",
     tier: "standard",
     name: "Lifetime",
     productId: "com.manifestai.standard.lifetime",
-    priceDisplay: "$99.99",
+    priceDisplay: "$59.99",
     cadence: "one payment",
     blurb: "Pay once. Yours permanently, including everything added later.",
   },

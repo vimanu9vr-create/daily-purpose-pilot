@@ -234,7 +234,7 @@ each before this goes to real testers.
   | --- | --- | --- |
   | `com.manifestai.standard.monthly` | Subscription | $4.99 / month |
   | `com.manifestai.standard.yearly` | Subscription | $29.99 / year |
-  | `com.manifestai.standard.lifetime` | One-time | $99.99 |
+  | `com.manifestai.standard.lifetime` | One-time | $59.99 |
   | `com.manifestai.voice.monthly` | Subscription | $14.99 / month |
   | `com.manifestai.voice.yearly` | Subscription | $119.99 / year |
 
