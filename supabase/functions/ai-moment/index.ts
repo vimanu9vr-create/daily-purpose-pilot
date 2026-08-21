@@ -512,10 +512,23 @@ Deno.serve(async (req: Request) => {
     });
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
 
-    const { goalId, desireId, variant } = (await req.json().catch(() => ({}))) as {
+    const { goalId, desireId, variant, tweak, previous } = (await req.json().catch(() => ({}))) as {
       goalId?: string;
       desireId?: string;
       variant?: number;
+      /**
+       * A change the reader asked for in their own words: "make it my sister",
+       * "less about the office", "put my dog in it".
+       *
+       * Stella's reviewers ask for exactly this and report that it doesn't
+       * work — "when I try to modify the story, it doesn't change" — which
+       * makes it the clearest open ground in the category. A story you can
+       * correct is the difference between a generator and something that
+       * belongs to you.
+       */
+      tweak?: string;
+      /** The story being changed, so the rewrite keeps what was already right. */
+      previous?: string;
     };
 
     // Two callers, two different tables.
@@ -627,6 +640,25 @@ Deno.serve(async (req: Request) => {
       profile?.tone ? `TONE THEY ASKED FOR: ${profile.tone}` : "",
     ].filter(Boolean);
 
+    /**
+     * A rewrite is a different job from a first draft, so it gets its own block
+     * and it goes LAST — the thing nearest the end of a prompt is the thing a
+     * model weights most, and this one has to beat every assigned angle above
+     * it. Somebody who has typed a correction has been clearer about what they
+     * want than any rotation of mine.
+     */
+    const rewriteBlock =
+      tweak && previous
+        ? [
+            "THIS IS A REWRITE, NOT A NEW STORY. Keep everything that already worked and change only what they asked for.",
+            `WHAT THEY ASKED FOR, in their words: ${tweak}`,
+            "If their request conflicts with any assigned angle above, THEIR REQUEST WINS. Ignore the angle.",
+            "",
+            "THE STORY AS IT STANDS:",
+            previous.slice(0, 2400),
+          ].join("\n")
+        : null;
+
     const context = [
       subjectBlock.join("\n"),
       ...(aboutThem.length > 0 ? [aboutThem.join("\n")] : []),
@@ -641,6 +673,7 @@ Deno.serve(async (req: Request) => {
         `1. Is what they want unmistakably present in the first paragraph, SHOWN as part of the scene?`,
         `2. Does the text contain "I", "I'm", "my", or the phrase "${subject.title}" copied out anywhere at all — including in quotation marks, in speech, on a screen, or after a colon? If so, rewrite it. You are describing their life back to them as "you", using your own sentences.`,
       ].join("\n"),
+      ...(rewriteBlock ? [rewriteBlock] : []),
     ].join("\n\n");
 
     const upstream = await askWithRetry(

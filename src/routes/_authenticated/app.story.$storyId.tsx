@@ -26,6 +26,7 @@ import {
   storyKeys,
   useRecordStoryDuration,
   useStory,
+  useRewriteStory,
   useToggleStoryFavorite,
 } from "@/features/stories/use-stories";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,9 @@ function StoryPlayer() {
   const toggleFavorite = useToggleStoryFavorite();
 
   const [showFullStory, setShowFullStory] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
+  const [tweak, setTweak] = useState("");
+  const rewrite = useRewriteStory();
   // Background sound is on by default now — it is part of how this is meant
   // to sound, not an extra.
   const [music, setMusic] = useState(true);
@@ -399,6 +403,69 @@ function StoryPlayer() {
             </div>
           ) : (
             studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>
+          )}
+
+          {/*
+            Change something about this story.
+
+            The clearest open ground in the category: Stella's reviewers ask
+            for this by name and report that it doesn't work — "when I try to
+            modify the story, it doesn't change". A story you can correct stops
+            being something a machine produced at you. Nobody types a
+            correction unless they already care about what they're correcting.
+          */}
+          {rewriting ? (
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                rewrite.mutate(
+                  { story, tweak },
+                  {
+                    onSuccess: () => {
+                      setTweak("");
+                      setRewriting(false);
+                    },
+                  },
+                );
+              }}
+            >
+              <input
+                autoFocus
+                value={tweak}
+                onChange={(event) => setTweak(event.target.value)}
+                placeholder="Make it my sister, not a friend…"
+                aria-label="What would you like changed?"
+                className="min-w-0 flex-1 rounded-full bg-white/15 px-4 py-2.5 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/40"
+              />
+              <button
+                type="submit"
+                disabled={!tweak.trim() || rewrite.isPending}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-primary disabled:opacity-40"
+                aria-label="Rewrite it"
+              >
+                {rewrite.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRewriting(false)}
+                className="shrink-0 px-1 text-xs text-white/60"
+              >
+                Cancel
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setRewriting(true)}
+              className="self-start rounded-full bg-white/12 px-3.5 py-1.5 text-[12px] font-medium text-white/85 transition hover:bg-white/20"
+            >
+              Change something
+            </button>
           )}
 
           <div className="flex items-center justify-between gap-4">

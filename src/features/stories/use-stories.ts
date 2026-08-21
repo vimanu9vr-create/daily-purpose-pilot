@@ -373,6 +373,64 @@ export function hookFrom(body: string, fallback: string): string {
  * upgrades each one if it's deployed. Batching means one refresh fills the
  * whole feed rather than the user tapping generate per card.
  */
+/**
+ * Rewrite one story from a correction the reader typed.
+ *
+ * The single clearest gap in this category. Stella's reviewers ask for it and
+ * report it broken — "when I try to modify the story, it doesn't change" — so
+ * the feature exists in their app, doesn't work, and is the thing people say
+ * out loud that they want.
+ *
+ * It matters more than it looks. A story you can correct stops being something
+ * a machine produced at you and becomes yours: "make it my sister", "less
+ * about the office", "put the dog in it". Nobody types a correction unless they
+ * already care about the thing they're correcting.
+ *
+ * The audio is cleared, deliberately. Keeping the old narration against new
+ * words would mean pressing play and hearing the version you just changed —
+ * which is a worse bug than having to wait for a re-render.
+ */
+export function useRewriteStory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ story, tweak }: { story: Story; tweak: string }) => {
+      const note = tweak.trim();
+      if (!note) throw new Error("Say what you'd like changed.");
+
+      const { data, error } = await supabase.functions.invoke("ai-moment", {
+        body: {
+          desireId: story.desire_id,
+          tweak: note,
+          previous: story.body,
+        },
+      });
+      if (error) throw error;
+
+      const rewritten = data as { title?: string; body?: string } | null;
+      if (!rewritten?.body?.trim()) throw new Error("Couldn't rewrite that one. Try again.");
+
+      const { error: saveError } = await supabase
+        .from("moments")
+        .update({
+          title: rewritten.title ?? story.title,
+          body: rewritten.body,
+          hook: hookFrom(rewritten.body, story.title),
+          audio_url: null,
+          audio_voice: null,
+          audio_marks: null,
+        })
+        .eq("id", story.id);
+      if (saveError) throw saveError;
+    },
+    onSuccess: () => {
+      toast.success("Rewritten.");
+      void queryClient.invalidateQueries({ queryKey: storyKeys.stories });
+    },
+    onError: (error: Error) => toast.error(error.message || "Couldn't rewrite that one"),
+  });
+}
+
 export function useGenerateStories() {
   const userId = useUserId();
   const queryClient = useQueryClient();
