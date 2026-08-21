@@ -379,10 +379,38 @@ Deno.serve(async (req: Request) => {
       ttsRes = await speak(withoutSpeed);
     }
 
-    if (ttsRes.status === 401) {
-      return json({ error: "bad_key", message: "The ElevenLabs key was rejected." }, 502);
+    /**
+     * SAY WHY. This returned a bare 502 and logged nothing.
+     *
+     * Every narration request failed for a day and the only trace was
+     * "POST | 502" in the edge log — no reason, nowhere. That is the same
+     * mistake that cost a day on the Gemini side: the most common failure was
+     * the one that recorded the least.
+     *
+     * It matters here because 401 from ElevenLabs is two different problems
+     * wearing the same status. A revoked or rotated key needs a new key; a
+     * spent monthly quota needs either waiting or a bigger plan. Telling them
+     * apart is the difference between a two-minute fix and an afternoon.
+     */
+    if (ttsRes.status === 401 || ttsRes.status === 403) {
+      const reason = await ttsRes.text().catch(() => "");
+      console.error(`elevenlabs rejected us: ${ttsRes.status}`, reason.slice(0, 500));
+
+      const spent = /quota|exceeded|credit|limit/i.test(reason);
+      return json(
+        {
+          error: spent ? "quota" : "bad_key",
+          message: spent
+            ? "The narration allowance for this month is used up."
+            : "The ElevenLabs key was rejected.",
+          detail: reason.slice(0, 200),
+        },
+        spent ? 429 : 502,
+      );
     }
     if (ttsRes.status === 429) {
+      const reason = await ttsRes.text().catch(() => "");
+      console.error("elevenlabs 429", reason.slice(0, 500));
       return json({ error: "quota", message: "Narration quota reached for this month." }, 429);
     }
     if (!ttsRes.ok) {
