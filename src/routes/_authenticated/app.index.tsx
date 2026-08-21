@@ -15,6 +15,7 @@ import {
   REFRESH_HOURS,
   TRENDING_DESIRES,
   interleaveByDesire,
+  displayHook,
   nextRefreshAt,
   useCreateDesire,
   useDesires,
@@ -361,7 +362,7 @@ function HomeFeed() {
               key={story.id}
               story={{
                 id: story.id,
-                hook: story.hook ?? story.title,
+                hook: displayHook(story),
                 imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
                 desireId: story.desire_id,
                 coverIndex: coverIndexFor(story.id),
@@ -382,7 +383,7 @@ function HomeFeed() {
               size="sm"
               story={{
                 id: story.id,
-                hook: story.hook ?? story.title,
+                hook: displayHook(story),
                 imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
                 desireId: story.desire_id,
                 coverIndex: coverIndexFor(story.id),

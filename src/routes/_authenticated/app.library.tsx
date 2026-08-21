@@ -13,7 +13,12 @@ import {
   KIND_ORDER,
   sectionFor,
 } from "@/features/stories/track-catalogue";
-import { useStories, useToggleStoryFavorite, type Story } from "@/features/stories/use-stories";
+import {
+  displayHook,
+  useStories,
+  useToggleStoryFavorite,
+  type Story,
+} from "@/features/stories/use-stories";
 import { useHasTracks, useSeedTracks } from "@/features/stories/use-tracks";
 import {
   useHasAffirmationTracks,
@@ -37,7 +42,7 @@ const FILTERS = [
 function toCard(story: Story) {
   return {
     id: story.id,
-    hook: story.hook ?? story.title,
+    hook: displayHook(story),
     imageUrl: story.image_url ?? coverImage(story.id, themeFor(story.category)),
     desireId: story.desire_id,
     coverIndex: coverIndexFor(story.id),

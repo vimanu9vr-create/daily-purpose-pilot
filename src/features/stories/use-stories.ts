@@ -321,6 +321,29 @@ export function useStory(id: string) {
  * Long openings are cut at a word boundary, short ones borrow the sentence
  * after them, and the title is used only if there is no prose at all.
  */
+/**
+ * The line to print on a card, worked out at DISPLAY time.
+ *
+ * `hook` is also stored on the row when a story is written, and for a while
+ * that was the only place it was decided. Fixing the writer therefore fixed
+ * nothing that already existed: eleven rows had the user's own dream saved as
+ * their hook, and they kept showing it after the bug was gone.
+ *
+ * Deriving it from the body on the way to the screen repairs those rows
+ * without touching the database, and means a stored hook can never be worse
+ * than the prose it came from. The stored value survives only for catalogue
+ * tracks, which are written with a real hand-authored hook.
+ */
+export function displayHook(story: {
+  body: string;
+  hook: string | null;
+  title: string;
+  source: string | null;
+}): string {
+  if (story.source === "catalogue" && story.hook) return story.hook;
+  return hookFrom(story.body, story.hook ?? story.title);
+}
+
 export function hookFrom(body: string, fallback: string): string {
   const MAX = 110;
 

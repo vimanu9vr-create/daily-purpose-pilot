@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hookFrom, interleaveByDesire } from "./use-stories";
+import { displayHook, hookFrom, interleaveByDesire } from "./use-stories";
 
 /**
  * The bug these are here for.
@@ -113,5 +113,37 @@ describe("hookFrom", () => {
 
   it("uses the dream only when there is no prose at all", () => {
     expect(hookFrom("", "My own defender car")).toBe("My own defender car");
+  });
+});
+
+describe("displayHook", () => {
+  /**
+   * The miss that made the first fix invisible.
+   *
+   * `hook` is stored on the row when a story is written, so repairing the
+   * writer repaired nothing that already existed — eleven rows had the user's
+   * own dream saved as their hook and carried on showing it. Deriving at
+   * display time fixes the rows already in the database.
+   */
+  it("ignores a stored hook that is really the user's typed dream", () => {
+    expect(
+      displayHook({
+        body: "The gravel crunch stops under four heavy tires, and the cabin falls quiet. More.",
+        hook: "I want to buy defender car",
+        title: "I want to buy defender car",
+        source: null,
+      }),
+    ).toBe("The gravel crunch stops under four heavy tires, and the cabin falls quiet.");
+  });
+
+  it("keeps a catalogue track's hand-written hook", () => {
+    expect(
+      displayHook({
+        body: "Some long body text that would otherwise be used instead of the hook.",
+        hook: "Put the day down",
+        title: "Put the day down",
+        source: "catalogue",
+      }),
+    ).toBe("Put the day down");
   });
 });
