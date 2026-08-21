@@ -183,8 +183,31 @@ describe("the prompt keeps the desire in charge", () => {
     expect(CODE).toMatch(/swap in a completely different desire/);
   });
 
-  it("requires the desire to appear early, and to be shown rather than announced", () => {
-    expect(CODE).toMatch(/SHOWN AS PART OF THE SCENE, never announced/);
+  it("requires the subject to be inferable from detail rather than stated", () => {
+    expect(CODE).toMatch(/FROM THE CONCRETE DETAILS ALONE, without it ever being stated/);
+  });
+
+  /**
+   * Banning a construction just moves it.
+   *
+   * Causal clauses went to zero after they were banned by name. The next batch
+   * put the same pasted sentence after a colon instead — "what is now
+   * completely ordinary: I am making $10k a week" — in four of twelve stories,
+   * and a fifth said it out loud in dialogue, which an earlier version of the
+   * rule had explicitly allowed.
+   *
+   * So the requirement that produces the tic is gone. There must be no
+   * instruction anywhere telling the model to STATE the subject, only to make
+   * it inferable.
+   */
+  it("no longer asks the model to state the subject at all", () => {
+    expect(CODE).not.toMatch(/UNMISTAKABLY PRESENT/);
+    expect(CODE).not.toMatch(/by the second sentence/);
+  });
+
+  it("closes the dialogue and colon loopholes explicitly", () => {
+    expect(CODE).toMatch(/not spoken aloud, not printed on a screen, not after a colon/);
+    expect(CODE).toMatch(/Anywhere, including inside quotation marks/);
   });
 
   /**
@@ -199,7 +222,8 @@ describe("the prompt keeps the desire in charge", () => {
    * Ten of twenty-four stories carried "I" or "my" into a "you" story.
    */
   it("asks for the user's nouns and numbers, never their sentence", () => {
-    expect(CODE).toMatch(/TAKE THEIR NOUNS AND NUMBERS\. NEVER THEIR SENTENCE/);
+    expect(CODE).toMatch(/THE SENTENCE THEY TYPED MUST NEVER APPEAR IN THE STORY/);
+    expect(CODE).toMatch(/Take their NOUNS AND NUMBERS instead/);
     expect(CODE).not.toMatch(/Use their exact words/);
   });
 

@@ -99,18 +99,44 @@ const MODEL = "google/gemini-2.5-flash";
  *
  * And: "mention this by sentence two" is a requirement a model can satisfy
  * cheaply by bolting on a clause. Requirements get met in the laziest way that
- * technically complies. So the rule is now to SHOW it — a figure on a screen,
- * a stranger using the app — and the cheap constructions are banned by name.
+ * technically complies.
+ *
+ * ## Banning the cheap construction just moves it
+ *
+ * I banned "Because…", "Now that…", "Ever since…". The causal clauses went to
+ * zero. In the next batch four stories of twelve did this instead:
+ *
+ *   "The summary confirms what is now completely ordinary: I am making $10k a week."
+ *   "the weekly payout line is sitting right there, clear as day: I am making $10k a week."
+ *
+ * Same tic, moved to a colon. A fifth put it in dialogue, which my own rule had
+ * explicitly permitted by saying "no first person OUTSIDE quoted speech".
+ *
+ * Whack-a-mole, and I was the mole. The lesson is that banning a CONSTRUCTION
+ * never works, because the requirement that produces it is still there and
+ * there is always another construction. "State this early" will always be
+ * satisfied by whatever cheap device has not yet been forbidden.
+ *
+ * So the requirement itself is gone. There is no longer any instruction to
+ * state the subject. There is an instruction to make it INFERABLE from
+ * physical detail, plus a test — delete every abstract statement from the
+ * draft and see whether the remaining details still give it away.
+ *
+ * The stories that were already working needed none of this. "Three thick
+ * bricks of banded fifties sit on the hall table." "The weekly payout line is
+ * sitting right there." "Your defender car rests at the edge of the overlook."
+ * Those tell you what the dream is without a word of announcement, and they
+ * were being written before any of my rules were added.
  */
 const SYSTEM_PROMPT = `You write a short visualization for a manifestation app. It is listened to with eyes closed. Its job is to let someone spend two minutes inside a life where the thing they want is already true.
 
 THE STORY IS ABOUT THE THING THEY WANT. This overrides everything else in this prompt.
 
-- What they want must be UNMISTAKABLY PRESENT in the first paragraph — SHOWN AS PART OF THE SCENE, never announced.
-- TAKE THEIR NOUNS AND NUMBERS. NEVER THEIR SENTENCE. If they wrote "I am earning $10k per week", the story uses "$10k", "ten thousand", "every week" — it does NOT contain the string "I am earning $10k per week". Their sentence is written in first person about a wish; your story is written in second person about a life. Pasting one into the other produces gibberish like "Now that I am earning $10k per week, your afternoons are calm."
-- NEVER write "I", "I'm", "I am" or "my" outside of quoted dialogue. The story is "you", the whole way through, with no exceptions.
-- NEVER bolt it on as a causal clause. Banned openings for any sentence: "Because…", "Now that…", "Ever since…", "X means that…", "Thanks to…". These are what a model reaches for when it has been told to mention something and cannot be bothered to dramatise it, and they make every story identical.
-- SHOW IT INSTEAD. The money is a figure on a screen nobody is worried about. The app is a stranger two tables over using it. The car is what you are sitting in. If it can only be conveyed by stating it, you have not found the scene yet.
+- A reader must be able to tell what this story is about FROM THE CONCRETE DETAILS ALONE, without it ever being stated. A figure somewhere it can be read. An object being used. A consequence visible in the room.
+- THE SENTENCE THEY TYPED MUST NEVER APPEAR IN THE STORY. Not as narration, not spoken aloud, not printed on a screen, not after a colon, not in quotation marks, nowhere. Take their NOUNS AND NUMBERS instead and write your own sentences around those.
+- NEVER write "I", "I'm", "I am" or "my". Anywhere, including inside quotation marks. The story is "you", the whole way through.
+- DO NOT ANNOUNCE IT AND THEN DESCRIBE IT. Every device for stating the thing and moving on is banned: a causal clause ("Because…", "Now that…", "Ever since…", "Thanks to…"), an appositive after a colon ("…what has become your life: …"), and a line of dialogue that says it out loud. If you find yourself reaching for one of these, you have not found the scene yet — go and find it.
+- The test for whether you have found it: delete every abstract statement from your draft. If the remaining physical details still make the subject obvious, it works. If they don't, the details are wrong and no amount of stating it will fix them.
 - The scene has to be one that only makes sense BECAUSE they have it. It should be materially responsible for what is happening.
 - THE TEST, and apply it before you answer: if you could swap in a completely different desire and the story would still work unchanged, you have written the wrong story. Start again.
 - If what they want is an amount of money, a state, or an achievement rather than an object, it still has to be physically visible — what it pays for, what it removed, what it changed about the room, the day, or the decision. A figure appearing somewhere it can be read is in the scene. A person feeling calm near a window is not.
@@ -525,7 +551,7 @@ Deno.serve(async (req: Request) => {
       [
         `Before you answer, check both of these.`,
         `1. Is what they want unmistakably present in the first paragraph, SHOWN as part of the scene?`,
-        `2. Does the text contain the words "I", "I'm", "my", "Because", "Now that", "Ever since", or the phrase "${subject.title}" copied out? If any of those appear, rewrite it. You are describing their life back to them as "you".`,
+        `2. Does the text contain "I", "I'm", "my", or the phrase "${subject.title}" copied out anywhere at all — including in quotation marks, in speech, on a screen, or after a colon? If so, rewrite it. You are describing their life back to them as "you", using your own sentences.`,
       ].join("\n"),
     ].join("\n\n");
 
