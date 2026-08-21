@@ -242,5 +242,58 @@ each before this goes to real testers.
   three Standard ones do not — but the app doesn't trust that anyway. The
   webhook writes the plan id onto the `subscriptions` row and `narrate-story`
   reads it there, so entitlement configuration is a convenience, not the gate.
-- **The coach.** Three replies ever. Have a conversation with it first.
-- **Notifications.** Never fired once. Either fix or don't mention them.
+- **The coach.** Three replies ever. It now reads your dreams rather than the
+  goals table, which it never should have been reading — but have a real
+  conversation with it before a stranger does.
+- **Notifications.** Never fired once, and now we know exactly why: the cron
+  job's Authorization header was the literal string
+  `Bearer PASTE_SERVICE_ROLE_KEY_HERE`. It was rejected 401 every fifteen
+  minutes — 96 times in one day — and said nothing, because a cron job has
+  nobody to tell. Fix is written and waiting in
+  `supabase/migrations/20260821170000_morning_notification_cron_from_vault.sql`;
+  it needs the key put into Vault first.
+
+---
+
+## Status, as of 21 August
+
+Written down because "nearly ready" has meant four different things this week.
+
+### Done and verified on the live app
+
+- Every story is written from the dream it belongs to, and the feed shows one
+  dream at a time with its name in the heading.
+- Affirmations, photographs and milestones are all written per dream, from the
+  screen the dream was typed on.
+- The coach reads what you typed.
+- Release signing is configured; `android/app/build.gradle` reads
+  `keystore.properties`.
+- Icons, feature graphic, listing copy, data-safety answers, content rating.
+
+### Blocking, and only you can do these
+
+1. **The $25 and the signing key.** Nothing ships without them.
+2. **Twelve testers who actually opt in.** The clock starts on their installs,
+   not on your upload. This is the long pole — fourteen continuous days.
+3. **Screenshots.** Play wants portrait, 9:16, minimum 320px on the short side.
+   I can drive the app but the browser captures landscape, so these need a real
+   phone or Chrome DevTools in device mode. Four shots, in this order: Home with
+   a dream selected, a story open in the player, the affirmations row, the
+   library.
+4. **ElevenLabs credits.** The account is at zero of 40,000. Every narration
+   request fails until it's topped up, which makes "a real human voice" the
+   loudest untrue sentence in the listing.
+
+### Blocking, and a decision rather than a task
+
+5. **Payment.** There is no purchase path on any platform. Either wire Google
+   Play Billing through RevenueCat, or cut the pricing paragraph and run the
+   closed test free. For a fourteen-day test with twelve people, **free is the
+   right answer** — you learn whether the writing lands, which is the thing you
+   actually don't know yet. Billing can wait for production.
+
+### The honest read
+
+The app is in good shape and the listing is not lying about anything except
+the voice. Points 1 and 2 are irreducible time — start them today, because
+fourteen days of waiting runs in parallel with everything else on this list.
