@@ -17,6 +17,26 @@ export const affirmationKeys = {
   saved: ["affirmations"] as const,
 };
 
+/**
+ * Capitalise the first letter, and nothing else.
+ *
+ * Seven of a hundred and eighteen affirmations arrived lowercase — "i reply to
+ * tech journalists…", "i publish the update…" — sitting directly under
+ * correctly-capitalised ones. Small, and it makes the whole screen look
+ * unfinished in a way that is hard to point at.
+ *
+ * Applied on READ rather than fixed in the database, because that covers the
+ * rows that already exist as well as the ones written from now on. A prompt
+ * rule alone would only fix the future and leave the seven on screen.
+ *
+ * Deliberately not a full sentence-caser: these contain proper nouns and
+ * amounts the user chose, and anything cleverer would start "fixing" $10k.
+ */
+function capitalise(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
 /** Affirmations the user has saved or had generated for them. */
 export function useSavedAffirmations() {
   const userId = useUserId();
@@ -29,7 +49,7 @@ export function useSavedAffirmations() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data ?? []).map((row) => ({ ...row, text: capitalise(row.text) }));
     },
   });
 }

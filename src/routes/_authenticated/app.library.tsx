@@ -7,7 +7,12 @@ import { NumberList } from "@/features/numbers/number-card";
 import { coverIndexFor } from "@/features/stories/dream-cover";
 import { coverImage, themeFor } from "@/features/stories/imagery";
 import { CarouselSection, StoryCard } from "@/features/stories/story-card";
-import { FREQUENCY_DISCLAIMER, KIND_LABELS, KIND_ORDER } from "@/features/stories/track-catalogue";
+import {
+  FREQUENCY_DISCLAIMER,
+  KIND_LABELS,
+  KIND_ORDER,
+  sectionFor,
+} from "@/features/stories/track-catalogue";
 import { useStories, useToggleStoryFavorite, type Story } from "@/features/stories/use-stories";
 import { useHasTracks, useSeedTracks } from "@/features/stories/use-tracks";
 import {
@@ -86,8 +91,8 @@ function Library() {
   const byKind = useMemo(() => {
     const map = new Map<string, Story[]>();
     for (const story of visible) {
-      const kind = story.kind || "story";
-      map.set(kind, [...(map.get(kind) ?? []), story]);
+      const section = sectionFor(story);
+      map.set(section, [...(map.get(section) ?? []), story]);
     }
     return KIND_ORDER.map((kind) => [kind, map.get(kind) ?? []] as const).filter(
       ([, items]) => items.length > 0,

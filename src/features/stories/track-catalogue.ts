@@ -21,7 +21,17 @@ export type CatalogueTrack = {
   body: string;
 };
 
+/**
+ * Section headings in the library.
+ *
+ * `mine` is not a catalogue kind — it's the bucket personal stories go in, and
+ * it exists because they were being filed under "Trending now". A story written
+ * from one person's own dream, that nobody else can see, is the opposite of
+ * trending; calling it that implies an audience which does not exist. The
+ * heading claimed something untrue about the user's own private writing.
+ */
 export const KIND_LABELS: Record<string, string> = {
+  mine: "Written for you",
   story: "Trending now",
   affirmation: "Affirmations",
   sleep: "Sleep tracks",
@@ -29,7 +39,17 @@ export const KIND_LABELS: Record<string, string> = {
   frequency: "Frequencies",
 };
 
-export const KIND_ORDER = ["story", "affirmation", "sleep", "meditation", "frequency"];
+export const KIND_ORDER = ["mine", "story", "affirmation", "sleep", "meditation", "frequency"];
+
+/**
+ * Which library section a row belongs to.
+ *
+ * Source decides, not kind. Personal rows have a null `kind`, which used to
+ * default to "story" and land them in the shared catalogue's section.
+ */
+export function sectionFor(row: { kind: string | null; source: string | null }): string {
+  return row.source === "catalogue" ? (row.kind ?? "story") : "mine";
+}
 
 export const TRACKS: CatalogueTrack[] = [
   // ---------- Sleep ----------

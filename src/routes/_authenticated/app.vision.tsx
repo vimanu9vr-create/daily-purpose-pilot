@@ -44,18 +44,19 @@ function Vision() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  async function create(category: (typeof BOARD_CATEGORIES)[number]) {
-    const boardId = await createBoard.mutateAsync({
-      title: category.label,
-      category: category.id,
-    });
+  /**
+   * Build a board and fill it.
+   *
+   * `focus` is the list of dreams this board is about. For a board made from
+   * one of their dreams that is a single title, which is the point: passing
+   * every dream produced a board with a Defender, a laptop and a mountain on
+   * it, belonging to nothing in particular.
+   */
+  async function create(title: string, category: string, focus: string[]) {
+    const boardId = await createBoard.mutateAsync({ title, category });
 
     // Fill it immediately. An empty board is the reason nobody comes back.
-    const items = suggestBoardItems({
-      title: category.label,
-      category: category.id,
-      desires: (desires ?? []).map((desire) => desire.title),
-    });
+    const items = suggestBoardItems({ title, category, desires: focus });
 
     for (const item of items) {
       await addItem.mutateAsync({
@@ -69,6 +70,11 @@ function Vision() {
     setCreating(false);
     setOpenId(boardId);
   }
+
+  /** Dreams that don't have a board yet — the ones worth offering. */
+  const unboarded = (desires ?? []).filter(
+    (desire) => !(boards ?? []).some((board) => board.title === desire.title),
+  );
 
   if (isPending) {
     return (
@@ -97,8 +103,8 @@ function Vision() {
           <Sparkles className="mx-auto h-6 w-6 text-primary" />
           <h2 className="mt-4 font-display text-2xl">Start a board</h2>
           <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Pick an area and it arrives with imagery and a couple of lines already in it. Change
-            anything you don&rsquo;t like.
+            Pick one of your dreams and it arrives with imagery and a couple of lines already in it.
+            Change anything you don&rsquo;t like.
           </p>
           <Button variant="hero" className="mt-6 rounded-full" onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" /> New board
@@ -107,20 +113,64 @@ function Vision() {
       )}
 
       {creating && (
-        <section className="mt-6 grid grid-cols-2 gap-3">
-          {BOARD_CATEGORIES.map((category) => (
-            <button
-              key={category.id}
-              type="button"
-              disabled={createBoard.isPending || addItem.isPending}
-              onClick={() => void create(category)}
-              className="rounded-3xl border border-glass-border bg-card/50 px-4 py-6 text-center transition active:scale-[0.98] disabled:opacity-50"
-            >
-              <span className="text-2xl">{category.emoji}</span>
-              <span className="mt-2 block text-sm font-medium">{category.label}</span>
-            </button>
-          ))}
-        </section>
+        <>
+          {/*
+            Their own dreams first, and by name.
+
+            This screen only offered "Growth", "Money", "Love" and so on — so
+            somebody who had typed "I want to buy defender car" got a board
+            called Money. The thing they actually wanted was never an option,
+            which is the same disconnect the stories had.
+          */}
+          {unboarded.length > 0 && (
+            <section className="mt-6">
+              <p className="eyebrow">Your dreams</p>
+              <div className="mt-3 space-y-2">
+                {unboarded.map((desire) => (
+                  <button
+                    key={desire.id}
+                    type="button"
+                    disabled={createBoard.isPending || addItem.isPending}
+                    onClick={() =>
+                      void create(desire.title, desire.category ?? "growth", [desire.title])
+                    }
+                    className="flex w-full items-center gap-3 rounded-2xl border border-glass-border bg-card/50 px-4 py-3.5 text-left transition active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {desire.title}
+                    </span>
+                    <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="mt-6">
+            {unboarded.length > 0 && <p className="eyebrow">Or an area of life</p>}
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {BOARD_CATEGORIES.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  disabled={createBoard.isPending || addItem.isPending}
+                  onClick={() =>
+                    void create(
+                      category.label,
+                      category.id,
+                      (desires ?? []).map((desire) => desire.title),
+                    )
+                  }
+                  className="rounded-3xl border border-glass-border bg-card/50 px-4 py-6 text-center transition active:scale-[0.98] disabled:opacity-50"
+                >
+                  <span className="text-2xl">{category.emoji}</span>
+                  <span className="mt-2 block text-sm font-medium">{category.label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
       {(boards?.length ?? 0) > 0 && (
