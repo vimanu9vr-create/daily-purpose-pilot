@@ -26,6 +26,10 @@ import {
 import { useProfile } from "@/features/onboarding/use-profile";
 import { PracticeCard } from "@/features/practice/practice-card";
 import { AffirmationRow } from "@/features/affirmations/affirmation-row";
+import {
+  useAffirmationsByDesire,
+  useGenerateAffirmations,
+} from "@/features/affirmations/use-affirmations";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({ meta: [{ title: "ManifestAI" }] }),
@@ -142,6 +146,27 @@ function HomeFeed() {
     if (selectedDesireId || !desires?.length) return;
     setSelectedDesireId(desires[0]!.id);
   }, [desires, selectedDesireId]);
+
+  /**
+   * Write affirmations for a dream that has none, the same way stories are.
+   *
+   * "I want to buy defender car" had seven stories, seven photographs and ZERO
+   * affirmations, so selecting it showed an empty anchor where the one line to
+   * carry around should be. Affirmations are only written at the moment a
+   * dream is created, so any dream older than that feature has none and no
+   * amount of using the app ever fixes it.
+   *
+   * Same shape as the story backfill above: the screen asks for what's missing
+   * rather than waiting for somebody to find a button.
+   */
+  const affirmationsFor = useAffirmationsByDesire(selectedDesireId);
+  const generateAffirmations = useGenerateAffirmations();
+  useEffect(() => {
+    if (!selectedDesireId || affirmationsFor.isPending || generateAffirmations.isPending) return;
+    if ((affirmationsFor.data?.length ?? 0) > 0) return;
+    generateAffirmations.mutate({ desireId: selectedDesireId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDesireId, affirmationsFor.isPending, affirmationsFor.data?.length]);
 
   /**
    * Write for a dream the moment someone selects one with nothing under it.

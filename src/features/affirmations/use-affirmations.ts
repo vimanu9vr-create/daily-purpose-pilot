@@ -84,6 +84,23 @@ export function useAnchorAffirmation(desireId: string | null | undefined) {
   });
 }
 
+/** Every affirmation written for one dream. Used to spot a dream that has none. */
+export function useAffirmationsByDesire(desireId: string | null | undefined) {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: [...affirmationKeys.saved, "by-desire", desireId ?? "none"],
+    enabled: Boolean(userId) && Boolean(desireId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("affirmations")
+        .select("id")
+        .eq("desire_id", desireId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 /**
  * The deck the user actually swipes through: their AI-generated and saved
  * affirmations first, then the curated library for the chosen category.
@@ -215,7 +232,22 @@ export function useGenerateAffirmations() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ categoryId }: { categoryId: string | null }) => {
+    mutationFn: async ({
+      categoryId = null,
+      desireId,
+    }: {
+      categoryId?: string | null;
+      /**
+       * Write them for ONE dream, and mark one of the six as its anchor.
+       *
+       * The edge function has always accepted this — `useCreateDesire` passes
+       * it — but this hook didn't, so every other caller asked for affirmations
+       * by CATEGORY and got six unattached lines. That is why "I want to buy
+       * defender car" had seven stories and no affirmations: nothing except the
+       * moment of creation could ever write them for a specific dream.
+       */
+      desireId?: string | null;
+    }) => {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
       if (!token) throw new Error("Your session expired. Sign in again.");
@@ -224,7 +256,7 @@ export function useGenerateAffirmations() {
       const response = await fetch(`${supabaseUrl}/functions/v1/ai-affirmations`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ category: categoryId }),
+        body: JSON.stringify({ category: categoryId, ...(desireId ? { desireId } : {}) }),
       });
 
       if (!response.ok) {
