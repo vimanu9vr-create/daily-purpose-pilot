@@ -111,9 +111,9 @@ const tiers = [
     blurb: "Enough to see whether this is for you.",
     perks: [
       `${FREE_LIMITS.storiesPerRefresh} stories per refresh`,
-      `${NARRATION_ALLOWANCE.free.total} narrations in the studio voice, to hear what it's like`,
       `${FREE_LIMITS.coachMessagesPerDay} coach messages a day`,
       "The whole library to read",
+      `One narrated sleep track, so you can hear the voice`,
     ],
     cta: "Start free",
     featured: false,

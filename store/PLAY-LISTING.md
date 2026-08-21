@@ -75,7 +75,8 @@ built on.
 
 PRICING
 
-Free to use for as long as you like.
+Free to use for as long as you like, including one narrated sleep session so
+you can hear the voice before deciding anything.
 
 Standard unlocks everything written — unlimited stories, affirmations, coaching
 and the whole library to read.

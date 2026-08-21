@@ -264,12 +264,8 @@ export function useStudioNarration(
          * so it is passed through rather than replaced with "something went
          * wrong".
          */
-        if (detail?.error === "daily_limit" || detail?.error === "trial_used") {
-          setAtDailyLimit(true);
-        }
-        if (detail?.error === "voice_not_included" || detail?.error === "trial_used") {
-          setNeedsVoicePlan(true);
-        }
+        if (detail?.error === "daily_limit") setAtDailyLimit(true);
+        if (detail?.error === "voice_not_included") setNeedsVoicePlan(true);
         throw new Error(detail?.message ?? "Studio narration isn't available.");
       }
 

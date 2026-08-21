@@ -3,7 +3,10 @@ import { cn } from "@/lib/utils";
 /** Ambient gradient-mesh backdrop used across marketing and app surfaces. */
 export function AuroraBackground({ className }: { className?: string }) {
   return (
-    <div aria-hidden className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}>
+    <div
+      aria-hidden
+      className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
+    >
       <div className="absolute inset-0 aurora-mesh opacity-90" />
       <div className="absolute -left-40 top-[-10%] h-[38rem] w-[38rem] rounded-full bg-primary/25 blur-[140px] animate-float-slow" />
       <div className="absolute right-[-12%] top-[6%] h-[32rem] w-[32rem] rounded-full bg-violet/25 blur-[150px] animate-float-slow [animation-delay:-5s]" />

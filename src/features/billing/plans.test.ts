@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   NARRATION_ALLOWANCE,
   PLANS,
+  SAMPLE_TRACK_TITLE,
   STANDARD_PLANS,
   VOICE_PLANS,
   includesVoice,
@@ -53,25 +54,22 @@ describe("plan tiers", () => {
 });
 
 describe("narration allowance", () => {
-  it("gives standard no narration at all", () => {
-    expect(NARRATION_ALLOWANCE.standard.perDay).toBe(0);
-    expect(NARRATION_ALLOWANCE.standard.perMonth).toBe(0);
-  });
-
   /**
-   * A paid tier that gets less than free would be indefensible, and it is an
-   * easy thing to introduce by tuning one number without looking at the other.
-   * Free's narration is a trial with a lifetime total; voice has no total at
-   * all, so this compares the thing that actually differs.
+   * There is no free trial, and this is the test that says so.
+   *
+   * A per-user trial is a per-user bill. At a thousand installs a month it
+   * cost more than every paying subscriber's listening combined, spent mostly
+   * on people who never came back. Voice is the ONLY tier that commissions
+   * audio; what everybody else can hear is one shared sample.
    */
-  it("never lets free out-listen voice", () => {
-    expect(NARRATION_ALLOWANCE.voice.perDay).toBeGreaterThan(NARRATION_ALLOWANCE.free.perDay);
-    expect(NARRATION_ALLOWANCE.voice.perMonth).toBeGreaterThan(NARRATION_ALLOWANCE.free.perMonth);
-    expect(NARRATION_ALLOWANCE.voice.total).toBeNull();
+  it("commissions narration for voice and nobody else", () => {
+    expect(NARRATION_ALLOWANCE.free).toEqual({ perDay: 0, perMonth: 0 });
+    expect(NARRATION_ALLOWANCE.standard).toEqual({ perDay: 0, perMonth: 0 });
+    expect(NARRATION_ALLOWANCE.voice.perDay).toBeGreaterThan(0);
   });
 
-  it("makes free a trial that ends rather than an allowance that resets forever", () => {
-    expect(NARRATION_ALLOWANCE.free.total).not.toBeNull();
+  it("names a sample track, so the paywall isn't selling a voice nobody has heard", () => {
+    expect(SAMPLE_TRACK_TITLE.length).toBeGreaterThan(0);
   });
 
   /**
@@ -108,7 +106,11 @@ describe("narration allowance", () => {
     expect(NARRATION_ALLOWANCE.voice.perDay).toBeLessThan(NARRATION_ALLOWANCE.voice.perMonth);
   });
 
-  it("keeps the free trial cheap enough to give to someone who never pays", () => {
-    expect(costOf(NARRATION_ALLOWANCE.free.total ?? 0)).toBeLessThan(1);
+  /**
+   * The sample is a fixed cost, not a per-user one, and that is the entire
+   * point of it. One render serves every install the app ever gets.
+   */
+  it("costs the same to demo the voice to ten people or ten thousand", () => {
+    expect(costOf(1)).toBeLessThan(0.5);
   });
 });

@@ -59,12 +59,20 @@ const OPENING_SENTENCES = 2;
 // See NOTES.md §9.
 type Tier = "free" | "standard" | "voice";
 
-const NARRATION_ALLOWANCE: Record<Tier, { perDay: number; perMonth: number; total: number | null }> =
-  {
-    free: { perDay: 1, perMonth: 3, total: 3 },
-    standard: { perDay: 0, perMonth: 0, total: 0 },
-    voice: { perDay: 3, perMonth: 30, total: null },
-  };
+const NARRATION_ALLOWANCE: Record<Tier, { perDay: number; perMonth: number }> = {
+  free: { perDay: 0, perMonth: 0 },
+  standard: { perDay: 0, perMonth: 0 },
+  voice: { perDay: 3, perMonth: 30 },
+};
+
+/**
+ * The one narrated track anybody can hear without paying. See NOTES.md §9a.
+ *
+ * Matched on title because that is also how catalogue audio is keyed in
+ * storage, so this is the same track for every user by construction rather
+ * than by coincidence.
+ */
+const SAMPLE_TRACK_TITLE = "Tomorrow is not here yet";
 
 /**
  * Mirror of `tierOf` in src/features/billing/plans.ts.
@@ -90,6 +98,23 @@ function tierOf(plan: string | null | undefined): Tier {
     default:
       return "free";
   }
+}
+
+/** Reads the active subscription and turns it into a tier. Service key, not the user's. */
+async function tierFor(supabaseUrl: string, serviceKey: string, userId: string): Promise<Tier> {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/subscriptions?select=plan,status&user_id=eq.${userId}` +
+      `&status=in.("active","trialing")&limit=1`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+  );
+  if (!res.ok) {
+    // Fail closed. A database blip should cost somebody a narration, not hand
+    // the paid feature to everybody for as long as the blip lasts.
+    console.error("could not read subscription; treating as free", res.status);
+    return "free";
+  }
+  const rows = (await res.json()) as { plan?: string }[];
+  return tierOf(rows[0]?.plan);
 }
 
 Deno.serve(async (req: Request) => {
@@ -155,6 +180,38 @@ Deno.serve(async (req: Request) => {
     const story = rows[0];
     if (!story) return json({ error: "not_found" }, 404);
 
+    const isCatalogue = story.source === "catalogue";
+
+    /**
+     * ENTITLEMENT. Checked here, before any cache path — see NOTES.md §9b.
+     *
+     * This has to sit above the cache returns rather than beside the spend
+     * caps, and getting that wrong is invisible: the caps are about who pays
+     * for a NEW render, so they correctly sit next to the ElevenLabs call. But
+     * "may this person hear this at all" is a different question, and a free
+     * user opening a track somebody else already paid for never reaches that
+     * far. Every catalogue track is pre-rendered, so leaving the check below
+     * would have handed the entire narrated library away for nothing.
+     */
+    const tier = await tierFor(supabaseUrl, serviceKey, user.id);
+    const isSample = isCatalogue && story.title === SAMPLE_TRACK_TITLE;
+
+    if (tier !== "voice" && !isSample) {
+      console.log(`voice not in plan user=${user.id} tier=${tier} story=${storyId}`);
+      return json(
+        {
+          error: "voice_not_included",
+          message:
+            tier === "standard"
+              ? "Your plan covers everything written. The narrated voice is on the Voice plan."
+              : "Studio narration is on the Voice plan. Everything here is still yours to read.",
+          tier,
+          sample: SAMPLE_TRACK_TITLE,
+        },
+        402,
+      );
+    }
+
     // See NOTES.md §10.
     if (!part && story.audio_url && story.audio_voice?.startsWith(`${voice}@`) && !force) {
       const staleVersion = story.audio_voice !== renderTag;
@@ -179,7 +236,6 @@ Deno.serve(async (req: Request) => {
     const partSuffix = part ? `-${part}` : "";
 
     // See NOTES.md §11.
-    const isCatalogue = story.source === "catalogue";
     const path = isCatalogue
       ? `catalogue/${slugify(story.title)}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`
       : `${user.id}/${storyId}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`;
@@ -274,48 +330,19 @@ Deno.serve(async (req: Request) => {
         return total && total !== "*" ? Number(total) : 0;
       };
 
-      const [subRes, today, month, ever] = await Promise.all([
-        fetch(
-          `${supabaseUrl}/rest/v1/subscriptions?select=plan,status&user_id=eq.${user.id}` +
-            `&status=in.("active","trialing")&limit=1`,
-          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
-        ),
-        countSpend(startOfDay),
-        countSpend(startOfMonth),
-        countSpend(null),
-      ]);
+      const [today, month] = await Promise.all([countSpend(startOfDay), countSpend(startOfMonth)]);
 
-      const subs = subRes.ok ? ((await subRes.json()) as { plan?: string }[]) : [];
-      const tier = tierOf(subs[0]?.plan);
+      // Only voice reaches here — everything else was refused above — so the
+      // allowance is never zero and there is no "you didn't buy this" case
+      // left to handle.
       const allowance = NARRATION_ALLOWANCE[tier];
-
-      /**
-       * Standard doesn't include narration at all, and this is not a limit
-       * they've hit — it's a thing they didn't buy. Different error, different
-       * status, different screen: 402 with an offer, not 429 with "come back
-       * tomorrow", which would be a lie since tomorrow changes nothing.
-       */
-      if (allowance.perDay === 0) {
-        console.log(`voice not in plan user=${user.id} tier=${tier}`);
-        return json(
-          {
-            error: "voice_not_included",
-            message:
-              "Your plan covers everything written. The narrated voice is on the Voice plan.",
-            tier,
-          },
-          402,
-        );
-      }
 
       const over =
         today >= allowance.perDay
           ? { window: "day", spent: today, allowance: allowance.perDay }
           : month >= allowance.perMonth
             ? { window: "month", spent: month, allowance: allowance.perMonth }
-            : allowance.total !== null && ever >= allowance.total
-              ? { window: "total", spent: ever, allowance: allowance.total }
-              : null;
+            : null;
 
       if (over) {
         console.log(
@@ -323,24 +350,17 @@ Deno.serve(async (req: Request) => {
             `spent=${over.spent} allowance=${over.allowance}`,
         );
 
-        /**
-         * Three different sentences because three different things are true,
-         * and a person can tell when a message doesn't match their situation.
-         * Telling a free user whose trial is spent that "it resets at midnight"
-         * would have them come back tomorrow to nothing.
-         */
+        // Two sentences because two different things are true, and a person
+        // can tell when a message doesn't match their situation. "It resets at
+        // midnight" is wrong if what they've run out of is the month.
         const message =
-          over.window === "total"
-            ? "That's the last of your free narrations. The Voice plan opens them up properly."
-            : over.window === "month"
-              ? "That's this month's narration used. It resets on the first — every story is still here to read."
-              : tier === "free"
-                ? "That's today's free narration. You can still read every story, and it resets at midnight."
-                : "That's today's three narrations. The words are all here to read, and it resets at midnight.";
+          over.window === "month"
+            ? "That's this month's narration used. It resets on the first — every story is still here to read."
+            : "That's today's three narrations. The words are all here to read, and it resets at midnight.";
 
         return json(
           {
-            error: over.window === "total" ? "trial_used" : "daily_limit",
+            error: "daily_limit",
             message,
             window: over.window,
             spent: over.spent,

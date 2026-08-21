@@ -141,6 +141,7 @@ export const VOICE_FEATURES = [
   "Everything in Standard",
   "Studio narration in a real human voice",
   "Sleep sessions, meditations and frequencies, narrated",
+  "A narration a day — three in one sitting if you want them",
   "Sentence-by-sentence highlighting as it reads",
 ] as const;
 
@@ -152,10 +153,8 @@ export const PREMIUM_FEATURES = [...STANDARD_FEATURES, ...VOICE_FEATURES.slice(1
  * Stella's reviews are full of people angry at a three-listens-a-day cap, and a
  * paywall that makes the app useless mostly produces uninstalls.
  *
- * Narration is the exception, and it is a taste rather than an allowance: three
- * in total, not three a day. Three costs about 60c to give away, which is a
- * reasonable price for letting somebody hear the thing they'd be buying. Three
- * a day would be $18 a month, per person, for people who may never pay.
+ * Narration is not on this list, because free users get none. See
+ * `SAMPLE_TRACK_TITLE` for what replaced the trial.
  */
 export const FREE_LIMITS = {
   storiesPerRefresh: 3,
@@ -164,11 +163,32 @@ export const FREE_LIMITS = {
 } as const;
 
 /**
+ * The one narrated track anybody can hear without paying.
+ *
+ * There is no free narration trial. A per-user trial is a per-user bill: at a
+ * thousand installs a month it cost more than every paying subscriber's
+ * listening combined, and it was spent mostly on people who never came back.
+ *
+ * But a paywall selling a voice nobody has heard is a paywall selling nothing.
+ * The fix is that this is ONE track, shared by title, rendered once and served
+ * to every user who ever opens it. The bill is about 20c in total, forever —
+ * not 20c per person.
+ *
+ * It's a sleep track on purpose. It's the longest, calmest thing in the app and
+ * the format the voice matters most in, so it's the fairest possible test of
+ * whether somebody wants to pay for it.
+ */
+export const SAMPLE_TRACK_TITLE = "Tomorrow is not here yet";
+
+/**
  * How much narration each tier may commission.
  *
- * `perDay` bounds a single day's spend; `total` bounds it over the account's
- * whole life (free only); `perMonth` bounds the tail so one enthusiastic user
- * can't outrun the subscription that's paying for them.
+ * `perDay` bounds a single day's spend. `perMonth` bounds the tail, so one
+ * enthusiastic subscriber can't outrun the subscription paying for them.
+ *
+ * Only Voice gets any. Free and Standard are both zero — the one narrated
+ * thing they can hear is `SAMPLE_TRACK_TITLE`, which is shared rather than
+ * commissioned and so doesn't appear in any allowance.
  *
  * The voice figures, at ~20c a listen on Flash and a 15% store fee:
  *
@@ -185,13 +205,10 @@ export const FREE_LIMITS = {
  * The daily cap of 3 sits inside the monthly one so a single evening can't
  * consume the month, while still allowing a proper session.
  */
-export const NARRATION_ALLOWANCE: Record<
-  PlanTier,
-  { perDay: number; perMonth: number; total: number | null }
-> = {
-  free: { perDay: 1, perMonth: 3, total: 3 },
-  standard: { perDay: 0, perMonth: 0, total: 0 },
-  voice: { perDay: 3, perMonth: 30, total: null },
+export const NARRATION_ALLOWANCE: Record<PlanTier, { perDay: number; perMonth: number }> = {
+  free: { perDay: 0, perMonth: 0 },
+  standard: { perDay: 0, perMonth: 0 },
+  voice: { perDay: 3, perMonth: 30 },
 };
 
 /**

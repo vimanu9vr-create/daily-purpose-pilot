@@ -187,20 +187,65 @@ for the person who listens, and the app loses more money the more its best
 feature gets used. Standard is priced low and includes no narration; Voice is
 priced to cover its own bill. See `src/features/billing/plans.ts`.
 
-Three windows, not one. `perDay` stops a single evening consuming the month.
-`perMonth` bounds the tail so one enthusiastic subscriber can't outrun the
-subscription paying for them. `total` exists only on free, where narration is
-a trial that ends rather than an allowance that resets forever — three
-listens costs about 60c to give away, a fair price for letting somebody hear
-the thing they'd be buying. Three a *day* would be $18 a month per person,
-for people who may never pay.
+Two windows. `perDay` stops a single evening consuming the month. `perMonth`
+bounds the tail so one enthusiastic subscriber can't outrun the subscription
+paying for them.
+
+The monthly figure is set by the **cheapest** plan that carries voice, not the
+dearest. At 45 the ceiling cost $8.78 while a yearly subscriber pays $7.08 a
+month — so the plan lost money precisely when somebody loved it. The first
+version of these numbers was checked against the monthly price, passed, and
+was wrong.
 
 ### The exemption
 
-The shared library is exempt. Those tracks are keyed by title, so one render
-serves every user who ever opens them; charging a person's allowance for a
-file that already exists would be punishing them for someone else's
-generosity.
+Catalogue tracks don't count against the allowance. They're keyed by title, so
+one render serves every user who ever opens them; charging a person's
+allowance for a file that already exists would punish them for being first.
+
+Note that this is an exemption from **counting**, not from **entitlement** —
+see §9b, which is the distinction that a whole library nearly got given away
+over.
+
+## 9a. `const SAMPLE_TRACK_TITLE = "Tomorrow is not here yet";`
+
+The one narrated track anybody can hear without paying.
+
+There is no free trial. There was one — three narrations per account — and it
+is a per-user bill dressed up as a feature: modelled at a thousand installs a
+month it cost more than every paying subscriber's listening combined, and it
+was spent mostly on people who never came back. Free tiers should be built out
+of the things that cost nothing, and narration is the one thing that doesn't.
+
+But a paywall selling a voice nobody has heard is a paywall selling nothing.
+
+So the demo is a single shared track rather than a per-user allowance. It is
+rendered once and served to everybody who ever opens it, because catalogue
+audio is keyed by title. **The bill is about 20c in total, forever — not 20c
+per person.** Ten users and ten thousand cost exactly the same.
+
+It's a sleep track deliberately. It's the longest, calmest thing in the app and
+the format where the voice matters most, so it's the fairest test of whether
+somebody wants to pay for it.
+
+## 9b. Where the entitlement check goes, and why it isn't next to the caps
+
+Above every cache path. This is the least obvious thing in the file.
+
+The caps answer "who pays for a NEW render", so they sit correctly next to the
+ElevenLabs call, after every cache has had its chance. Entitlement answers a
+different question — "may this person hear this at all" — and the answer must
+not depend on whether somebody else has already paid.
+
+Every catalogue track is pre-rendered. So a free user opening one would hit the
+cached return, get the audio, and never travel as far as the caps. Putting the
+two checks in the same place would have handed the entire narrated library —
+every sleep session and meditation, the thing Voice is largely sold on — to
+anybody who signed up, and nothing in the logs would have said so.
+
+`tierFor` also **fails closed**: if the subscription lookup errors, the user is
+treated as free. A database blip should cost somebody a narration, not hand the
+paid feature to everybody for as long as the blip lasts.
 
 ## 10. `if (!part && story.audio_url && story.audio_voice?.startsWith(`${voice}@`) && !f`
 
@@ -263,21 +308,22 @@ The shared library is exempt for the same reason: it is keyed by title,
 so the first person to open a sleep track pays for everyone, and taking
 their allowance for it would punish them for being first.
 
-### Two refusals, not one
+Only voice tiers reach this block at all — §9b refused everybody else further
+up — so there is no "you didn't buy this" case left to handle here, and the
+allowance is never zero.
 
-A Standard subscriber gets **402 `voice_not_included`**. A Voice subscriber
-who has used today's three gets **429 `daily_limit`**. These must be
-different, because the screens they produce are opposites: one says "come
-back tomorrow", and the other has to say "this is on the Voice plan".
+### Two refusals, in two different places
+
+**402 `voice_not_included`** (§9b, above the cache) means you don't have the
+plan. **429 `daily_limit`** (here) means you have it and have used today's
+three. These must be different, because the screens they produce are
+opposites: one says "come back tomorrow", the other has to say "this is on the
+Voice plan".
 
 Telling a Standard subscriber to come back tomorrow sends them back tomorrow
 to find nothing has changed, which reads as a broken app rather than a plan
 boundary — and it wastes the one moment they wanted the voice enough to press
 a button.
-
-The free trial running out is a third case again (`trial_used`), for the same
-reason: "it resets at midnight" is a lie when the allowance is a lifetime
-total.
 
 ### This copy of `tierOf` is the one that decides
 
