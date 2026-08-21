@@ -203,8 +203,6 @@ function StoryPlayer() {
    * happens in the maintenance page rather than here.
    */
 
-
-
   // Always fade the pad out when leaving the player.
   useEffect(() => {
     return () => {
@@ -361,7 +359,28 @@ function StoryPlayer() {
             </p>
           )}
 
-          {studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>}
+          {/*
+            Running out of narrations for the day is not an error, so it is not
+            shown as one. Red text under a play button reads as "the app is
+            broken"; this is closer to a closing time — the story is still
+            right there to read, and it comes back tomorrow.
+          */}
+          {studio.atDailyLimit ? (
+            <div className="rounded-[20px] border border-white/15 bg-white/10 px-4 py-3">
+              <p className="text-center text-[12px] leading-relaxed text-white/85">
+                {studio.error}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowFullStory(true)}
+                className="mt-2 w-full text-center text-[12px] font-medium text-white underline underline-offset-2"
+              >
+                Read it instead
+              </button>
+            </div>
+          ) : (
+            studio.error && <p className="text-[11px] text-white/60">{studio.error}</p>
+          )}
 
           <div className="flex items-center justify-between gap-4">
             <p className="min-w-0 flex-1 truncate text-sm text-white/60">{story.title}</p>

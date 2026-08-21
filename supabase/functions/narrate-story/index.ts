@@ -163,6 +163,28 @@ const BREAK_SECONDS = 2.4;
  */
 const OPENING_SENTENCES = 2;
 
+/**
+ * How many narrations a person may commission in a day.
+ *
+ * The arithmetic that forced this: one active user renders roughly 2,300
+ * characters a day, which is about 69,000 a month, which on a Creator plan is
+ * around $15 — against a $8.99 subscription. Narration is not a cost centre in
+ * this app, it is the entire cost, and nothing was counting it. One person on
+ * a slow afternoon could empty the month's allowance for everybody, and that
+ * is not a hypothetical: it is what happened.
+ *
+ * A cap is the only mechanism that makes the app safe to give to strangers.
+ * The numbers are deliberately generous — two full stories a day is more than
+ * a daily practice needs, and ten is more than anyone will use — because the
+ * point is to stop a runaway, not to ration normal use.
+ *
+ * The shared library is exempt. Those tracks are keyed by title, so one render
+ * serves every user who ever opens them; charging a person's daily allowance
+ * for a file that already exists would be punishing them for someone else's
+ * generosity.
+ */
+const DAILY_NARRATIONS = { free: 2, paid: 10 };
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
@@ -354,6 +376,56 @@ Deno.serve(async (req: Request) => {
     const script = sentences.join(joiner);
 
     /**
+     * THE DAILY CAP. Checked here, after every cache path has had its chance.
+     *
+     * Placement is the whole design. Everything above this line either found
+     * existing audio or established that none exists, so a cached hit never
+     * costs somebody their allowance — you are only charged for a narration
+     * that is actually bought.
+     *
+     * The shared library is exempt for the same reason: it is keyed by title,
+     * so the first person to open a sleep track pays for everyone, and taking
+     * their daily allowance for it would punish them for being first.
+     */
+    if (!isCatalogue) {
+      const since = new Date();
+      since.setUTCHours(0, 0, 0, 0);
+
+      const [spentRes, subRes] = await Promise.all([
+        fetch(
+          `${supabaseUrl}/rest/v1/narration_spend?select=id&user_id=eq.${user.id}` +
+            `&billed=is.true&created_at=gte.${since.toISOString()}`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+        ),
+        fetch(
+          `${supabaseUrl}/rest/v1/subscriptions?select=status&user_id=eq.${user.id}` +
+            `&status=in.("active","trialing")&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+        ),
+      ]);
+
+      const spent = spentRes.ok ? ((await spentRes.json()) as unknown[]).length : 0;
+      const paid = subRes.ok ? ((await subRes.json()) as unknown[]).length > 0 : false;
+      const allowance = paid ? DAILY_NARRATIONS.paid : DAILY_NARRATIONS.free;
+
+      if (spent >= allowance) {
+        console.log(`daily cap reached user=${user.id} spent=${spent} allowance=${allowance}`);
+        return json(
+          {
+            error: "daily_limit",
+            message: paid
+              ? "That's today's narration. The words are all here to read, and it resets at midnight."
+              : "That's both of today's narrations. You can still read every story, and it resets at midnight.",
+            spent,
+            allowance,
+            paid,
+          },
+          429,
+        );
+      }
+    }
+
+    /**
      * Tell the model what comes either side of this chunk.
      *
      * THIS IS THE FIX FOR "the voice first feels robotic and after some
@@ -512,6 +584,30 @@ Deno.serve(async (req: Request) => {
     } else {
       await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, marks);
     }
+
+    /**
+     * Record what we just bought.
+     *
+     * After the upload rather than before it, so a failed render doesn't cost
+     * somebody a narration they never received. The window where a crash
+     * between upload and here loses a record is small and errs the right way:
+     * the user gets a free one rather than being charged for nothing.
+     */
+    await fetch(`${supabaseUrl}/rest/v1/narration_spend`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+        moment_id: storyId,
+        characters: script.length,
+        billed: true,
+      }),
+    }).catch((error) => console.error("could not record spend", error));
 
     console.log(`narrated ${storyId} voice=${voice} chars=${script.length} shared=${isCatalogue}`);
     return json({ audioUrl, marks, cached: false }, 200);

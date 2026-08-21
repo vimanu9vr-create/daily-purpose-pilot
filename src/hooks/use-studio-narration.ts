@@ -62,6 +62,8 @@ export function useStudioNarration(
   const [marks, setMarks] = useState<number[]>(cachedMarks ?? []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** True once today's narration allowance is used up. Not an error state. */
+  const [atDailyLimit, setAtDailyLimit] = useState(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   /** True while the browser has run out of downloaded audio mid-track. */
@@ -240,7 +242,22 @@ export function useStudioNarration(
       });
 
       if (!response.ok) {
-        const detail = (await response.json().catch(() => null)) as { message?: string } | null;
+        const detail = (await response.json().catch(() => null)) as {
+          message?: string;
+          error?: string;
+        } | null;
+
+        /**
+         * Reaching the daily limit is not a fault, so it must not read like
+         * one. The function sends back a sentence written for a person —
+         * "that's both of today's narrations, you can still read every story"
+         * — and it is a better message than anything this layer could invent,
+         * so it is passed through rather than replaced with "something went
+         * wrong".
+         */
+        if (detail?.error === "daily_limit") {
+          setAtDailyLimit(true);
+        }
         throw new Error(detail?.message ?? "Studio narration isn't available.");
       }
 
@@ -422,6 +439,7 @@ export function useStudioNarration(
     isGenerating,
     isBuffering,
     error,
+    atDailyLimit,
     generate,
     prepare,
     unlock,
