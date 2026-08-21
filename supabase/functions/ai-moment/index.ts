@@ -73,7 +73,14 @@ const MODEL = "google/gemini-2.5-flash";
  */
 const SYSTEM_PROMPT = `You write a short visualization for a manifestation app. It is listened to with eyes closed. Its job is to let someone spend two minutes inside a life where the thing they want is already true.
 
-THE SCENE IS SET AFTER THEY HAVE IT — and not on the day they got it. Later. Months later, once it has become ordinary. This is the most important instruction here. The day-you-get-it version is a daydream they have already had on their own; the ordinary-Tuesday version is the one that does something.
+THE STORY IS ABOUT THE THING THEY WANT. This overrides everything else in this prompt.
+
+- What they want must be UNMISTAKABLY PRESENT in the scene, by the second sentence at the latest, in their own words.
+- The scene has to be one that only makes sense BECAUSE they have it. It should be materially responsible for what is happening.
+- THE TEST, and apply it before you answer: if you could swap in a completely different desire and the story would still work unchanged, you have written the wrong story. Start again.
+- If what they want is an amount of money, a state, or an achievement rather than an object, it still has to be physically visible — what it pays for, what it removed, what it changed about the room, the day, or the decision. "Ten thousand clears every Monday" is in the scene. A person feeling calm near a window is not.
+
+THE SCENE IS SET AFTER THEY HAVE IT — and not on the day they got it. Later. Months later, once it has become ordinary. The day-you-get-it version is a daydream they have already had on their own; the ordinary-Tuesday version is the one that does something.
 
 Form:
 - Second person, present tense. 4 to 6 short paragraphs, 150-220 words.
@@ -99,6 +106,7 @@ NEVER — each of these produced hundreds of identical stories:
 THE FIRST LINE — it is the card preview, so it is the part that looks repeated:
 - Do NOT begin with "You're…", "You've…", "You sit…", "You wake…" or "It's…". Those are the default openings and they make every story read as one voice saying one thing, however different the scenes are.
 - Do not open by describing the weather or the light. "It's raining and the light is soft" is the single most common way these start and it says nothing.
+- Do not open on food, cooking, coffee or a kitchen unless what they want IS food, cooking, coffee or a kitchen.
 - Open on something happening, something concrete, or something absent. An object. A sound. A negation. Mid-action. A fragment. "The kettle has boiled twice and nobody has made the tea." "Nobody has needed anything from you for two hours." "Second gear, and the exhaust note changes."
 
 The one honesty rule: never claim the world will deliver it. No "it's on its way", no "the universe is arranging this", no timelines, no guarantees, no "this is already yours" as a promise about reality. Describing an imagined scene is fine — that is the whole exercise. Predicting events is not.
@@ -128,24 +136,41 @@ Return ONLY JSON: {"title": "...", "body": "..."} where body uses \\n\\n between
  * instruction to "be different from what you've written" has nothing to read.
  * A constraint beats an instruction.
  *
- * Deliberately phrased to work for a thing OR a state — "long after it stopped
- * being new" fits a Defender and a calmer mind equally.
+ * ## And why half of them had to be rewritten again
+ *
+ * I wrote this list while thinking about a Defender, and it showed. "A small
+ * everyday use of it", "coming back to it after a few days away", "using it for
+ * something boring and practical", "an unhurried afternoon with it" — every one
+ * assumes a physical object you can pick up and go somewhere in.
+ *
+ * Handed "I am earning $10k per week", there is no "it" to come back to. The
+ * model resolved the contradiction the only way it could, by inventing an
+ * object, and a money dream produced a story about sitting in a warm car.
+ *
+ * "Bad weather, and this making the difference" was worse: pure scenery, no
+ * connection to any desire at all. Given a weekly income it produced "The Aroma
+ * of Bad Weather" — rain gear, a coffee grinder, toasted oats, and not one
+ * mention of the money. That is the exact story that got reported.
+ *
+ * So every entry now refers to "this" as the FACT of having it rather than as
+ * an object, and each one has to make sense for all three shapes a desire
+ * comes in: a thing, a state, and an amount.
  */
 const MOMENTS = [
   "an ordinary weekday morning, long after this stopped being new",
   "a day when nothing in particular is happening and this is simply true",
   "someone who knew you before noticing, and you not making much of it",
-  "a small everyday use of it you would never have thought to picture",
-  "bad weather, and this making the difference",
+  "a small ordinary consequence of this you would never have thought to picture",
+  "a decision that used to be difficult, made in about four seconds",
   "arriving somewhere, in no hurry to move",
   "the quiet hour of a day this made possible",
-  "an unhurried free afternoon with it, nothing that has to be done",
+  "an unhurried free afternoon this paid for, nothing that has to be done",
   "an early start that would once have been miserable",
-  "coming back to it after a few days away",
+  "the first hour back after a few days away",
   "night, and nowhere you have to be",
   "realising you haven't thought about wanting this in weeks",
-  "using it for something completely boring and practical",
-  "sharing it with someone, without ceremony",
+  "something boring and practical, handled without a second thought",
+  "sharing what this makes possible with someone, without ceremony",
   "a moment where the old version of you would have flinched",
   "the end of a long day, and it is still true",
 ];
@@ -431,17 +456,38 @@ Deno.serve(async (req: Request) => {
       return json({ error: "no_subject", message: "Nothing to write about yet." }, 400);
     }
 
-    const context = [
-      `WHAT THEY WANT: ${subject.title}`,
-      subject.why ? `WHY IT MATTERS: ${subject.why}` : "",
+    /**
+     * Ordering and force, both deliberate. See §CONTEXT-WEIGHT in NOTES.
+     *
+     * The subject is stated first, framed as the requirement, and repeated at
+     * the end. The moment and the sense are explicitly demoted to modifiers of
+     * it. This is not decoration: the previous version listed the desire as a
+     * bare label and gave the sense the only imperative in the whole block —
+     * "LEAD WITH THIS SENSE, and do not lean on any other" — which made the
+     * scenery the strongest instruction present and the dream the weakest.
+     *
+     * A model given "$10k per week", "bad weather" and "smell, do not lean on
+     * any other" wrote a story about rain gear, a coffee grinder and toasted
+     * oats, and never mentioned the money once. It obeyed perfectly. I had
+     * simply told it the wrong thing was important.
+     */
+    const subjectBlock = [
+      `WRITE ABOUT THIS, and nothing else: ${subject.title}`,
+      subject.why ? `WHY IT MATTERS TO THEM: ${subject.why}` : "",
       subject.feeling ? `HOW THEY WANT IT TO FEEL: ${subject.feeling}` : "",
       subject.obstacles ? `WHAT'S IN THE WAY: ${subject.obstacles}` : "",
       subject.progress != null ? `MILESTONE PROGRESS: ${subject.progress}%` : "",
-      `THE MOMENT THIS IS SET IN: ${sceneFor(variant, subject.title)}`,
-      `LEAD WITH THIS SENSE, and do not lean on any other: ${registerFor(variant, subject.title)}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ].filter(Boolean);
+
+    const context = [
+      subjectBlock.join("\n"),
+      [
+        "The two lines below choose the ANGLE on the subject above. They are not the subject. If either one pulls the story away from it, ignore that line and keep the subject.",
+        `WHICH MOMENT OF ALREADY HAVING IT: ${sceneFor(variant, subject.title)}`,
+        `WHICH SENSE TO NOTICE IT THROUGH: ${registerFor(variant, subject.title)}`,
+      ].join("\n"),
+      `Before you answer, check: is "${subject.title}" unmistakably in this scene, in their own words, by the second sentence? If not, write it again.`,
+    ].join("\n\n");
 
     const upstream = await askWithRetry(
       (model) =>
