@@ -80,22 +80,35 @@ describe("narration allowance", () => {
    *
    * 2,139 characters is the measured average story on production. ElevenLabs
    * Creator is $22 for 121,000 credits (August 2026), and Flash bills half a
-   * credit per character. Voice grosses $14.99, of which roughly $10.49 is left
-   * after the store's 30% cut.
+   * credit per character. Apple and Google both take 15% below $1M a year.
    */
-  it("keeps a worst-case month of voice inside what the plan charges", () => {
-    const AVG_CHARS = 2139;
-    const COST_PER_CREDIT = 22 / 121_000;
-    const worstCase = NARRATION_ALLOWANCE.voice.perMonth * AVG_CHARS * 0.5 * COST_PER_CREDIT;
-    const netRevenue = 14.99 * 0.7;
+  const AVG_CHARS = 2139;
+  const COST_PER_CREDIT = 22 / 121_000;
+  const STORE_FEE = 0.15;
+  const costOf = (listens: number) => listens * AVG_CHARS * 0.5 * COST_PER_CREDIT;
 
-    expect(worstCase).toBeLessThan(netRevenue);
+  /**
+   * Checked against the YEARLY plan, deliberately.
+   *
+   * This test is here because the first version of these numbers was checked
+   * against the monthly price and passed, while the yearly plan — which costs
+   * the subscriber less per month for exactly the same allowance — lost money
+   * at the ceiling. A cap has to be survivable on the cheapest plan that
+   * carries it, not the dearest, or the app loses money precisely when
+   * somebody loves it.
+   */
+  it("survives a worst-case month on the cheapest plan that includes voice", () => {
+    const cheapestVoicePerMonth = 119.99 / 12;
+    const netRevenue = cheapestVoicePerMonth * (1 - STORE_FEE);
+
+    expect(costOf(NARRATION_ALLOWANCE.voice.perMonth)).toBeLessThan(netRevenue);
+  });
+
+  it("keeps the daily cap inside the monthly one", () => {
+    expect(NARRATION_ALLOWANCE.voice.perDay).toBeLessThan(NARRATION_ALLOWANCE.voice.perMonth);
   });
 
   it("keeps the free trial cheap enough to give to someone who never pays", () => {
-    const AVG_CHARS = 2139;
-    const COST_PER_CREDIT = 22 / 121_000;
-    const total = NARRATION_ALLOWANCE.free.total ?? 0;
-    expect(total * AVG_CHARS * 0.5 * COST_PER_CREDIT).toBeLessThan(1);
+    expect(costOf(NARRATION_ALLOWANCE.free.total ?? 0)).toBeLessThan(1);
   });
 });

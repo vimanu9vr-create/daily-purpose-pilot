@@ -170,7 +170,7 @@ function Upgrade() {
           <p className="mt-4 rounded-2xl bg-white/50 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
             {tier === "standard"
               ? "Standard does not include the narrated voice. Every story, affirmation and session is there to read — you just read it yourself."
-              : "Voice includes up to three narrations a day. A studio voice costs real money per listen, and that cap is what keeps this plan honestly priced rather than quietly rationed."}
+              : "Voice includes a narration a day — up to three in one sitting, thirty a month. A studio voice costs real money per listen, and that cap is what keeps this plan honestly priced rather than quietly rationed."}
           </p>
 
           <div className="mt-6 space-y-2.5">

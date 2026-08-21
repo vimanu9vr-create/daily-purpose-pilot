@@ -63,7 +63,7 @@ const NARRATION_ALLOWANCE: Record<Tier, { perDay: number; perMonth: number; tota
   {
     free: { perDay: 1, perMonth: 3, total: 3 },
     standard: { perDay: 0, perMonth: 0, total: 0 },
-    voice: { perDay: 3, perMonth: 45, total: null },
+    voice: { perDay: 3, perMonth: 30, total: null },
   };
 
 /**

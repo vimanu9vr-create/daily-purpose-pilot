@@ -118,10 +118,10 @@ export const VOICE_PLANS: Plan[] = [
     tier: "voice",
     name: "Yearly",
     productId: "com.manifestai.voice.yearly",
-    priceDisplay: "$99.99",
+    priceDisplay: "$119.99",
     cadence: "per year",
-    blurb: "Works out at $8.33 a month.",
-    highlight: "Save 44%",
+    blurb: "Works out at $10 a month.",
+    highlight: "Save 33%",
   },
 ];
 
@@ -170,10 +170,20 @@ export const FREE_LIMITS = {
  * whole life (free only); `perMonth` bounds the tail so one enthusiastic user
  * can't outrun the subscription that's paying for them.
  *
- * The voice figures: 45 a month at ~20c each is about $9 in the worst case,
- * against $14.99 gross — roughly $10.50 after the store's cut. Thin at the
- * ceiling, comfortable at the fifteen-or-so a month most people will actually
- * play. The daily cap of 3 exists so a single evening can't consume the month.
+ * The voice figures, at ~20c a listen on Flash and a 15% store fee:
+ *
+ *   30/month costs $5.85.
+ *   Voice monthly nets $12.74 — $6.89 left at the ceiling.
+ *   Voice yearly nets $8.50/month — $2.65 left at the ceiling.
+ *
+ * The yearly plan is what sets this number, and it is why 30 rather than 45.
+ * At 45 the ceiling costs $8.78, which is more than a yearly subscriber pays
+ * per month — so the plan lost money precisely when somebody loved it. A cap
+ * has to be survivable on the cheapest plan that carries it, not on the
+ * dearest.
+ *
+ * The daily cap of 3 sits inside the monthly one so a single evening can't
+ * consume the month, while still allowing a proper session.
  */
 export const NARRATION_ALLOWANCE: Record<
   PlanTier,
@@ -181,7 +191,7 @@ export const NARRATION_ALLOWANCE: Record<
 > = {
   free: { perDay: 1, perMonth: 3, total: 3 },
   standard: { perDay: 0, perMonth: 0, total: 0 },
-  voice: { perDay: 3, perMonth: 45, total: null },
+  voice: { perDay: 3, perMonth: 30, total: null },
 };
 
 /**
