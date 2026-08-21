@@ -397,7 +397,10 @@ function HomeFeed() {
 
       {storiesOnly.length > 0 && (
         <RefreshCountdown
-          onRefresh={() => generate.mutate({ perDesire: 6 })}
+          // `all`: a press rewrites every dream. Without it this rewrote the
+          // day's two and left the rest of the feed identical, which reads as
+          // the button having done nothing.
+          onRefresh={() => generate.mutate({ perDesire: 6, all: true })}
           busy={generate.isPending}
         />
       )}

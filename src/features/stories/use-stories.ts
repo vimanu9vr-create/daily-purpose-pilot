@@ -399,7 +399,9 @@ export function useGenerateStories() {
     mutationFn: async ({
       perDesire = 3,
       desireIds,
-    }: { perDesire?: number; desireIds?: string[] } = {}) => {
+      /** Set only by an explicit press. Writes for every dream, not the daily two. */
+      all = false,
+    }: { perDesire?: number; desireIds?: string[]; all?: boolean } = {}) => {
       if (!userId) throw new Error("Not signed in");
 
       /**
@@ -545,9 +547,26 @@ export function useGenerateStories() {
       const offset = active.length > 0 ? (day * DESIRE_BATCH) % active.length : 0;
       const rotated = [...active.slice(offset), ...active.slice(0, offset)];
 
+      /**
+       * A button labelled "Write new ones now" has to write new ones. All of them.
+       *
+       * Reported as "it's not rewiring": pressing it with seven dreams rewrote
+       * two, so most of the feed was word for word the same afterwards. From
+       * the outside that is indistinguishable from the button not working, and
+       * the natural conclusion is that nothing I'd fixed had shipped.
+       *
+       * The batch is a budget for the UNPROMPTED refresh — the one that runs
+       * because Home opened — and it should never have applied to a press. An
+       * automatic job rationing itself is prudent; a button rationing itself is
+       * broken. Stories cost nothing but Gemini's free tier anyway, and the
+       * expensive part of this app is narration, which is paid for separately
+       * and only when somebody actually presses play.
+       */
       const targets = desireIds?.length
         ? active.filter((desire) => desireIds.includes(desire.id))
-        : rotated.slice(0, DESIRE_BATCH);
+        : all
+          ? active
+          : rotated.slice(0, DESIRE_BATCH);
 
       for (const desire of targets) {
         for (let variant = 0; variant < perDesire; variant += 1) {

@@ -219,7 +219,7 @@ Return ONLY JSON: {"title": "...", "body": "..."} where body uses \\n\\n between
  * comes in: a thing, a state, and an amount.
  */
 const MOMENTS = [
-  "an ordinary weekday morning, long after this stopped being new",
+  "an ordinary morning, long after this stopped being new",
   "a day when nothing in particular is happening and this is simply true",
   "someone who knew you before noticing, and you not making much of it",
   "a small ordinary consequence of this you would never have thought to picture",

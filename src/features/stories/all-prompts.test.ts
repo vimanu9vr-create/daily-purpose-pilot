@@ -36,6 +36,20 @@ function allPrompts(): { name: string; text: string }[] {
     for (const match of code.matchAll(/(?:SYSTEM_PROMPT|PROMPT)\s*=\s*`([\s\S]*?)`;/g)) {
       found.push({ name: dir.name, text: match[1]! });
     }
+
+    /**
+     * The lists that get interpolated INTO a prompt count as prompt too.
+     *
+     * This was checking template literals only, so `MOMENTS` and `REGISTERS`
+     * were invisible to it — and that is exactly where the next leak was. The
+     * ban on naming a weekday was in the prompt while the phrase "an ordinary
+     * WEEKDAY morning" sat in MOMENTS, in the same request. Three of six
+     * stories named a day. The prime beat the ban, and the guard never looked
+     * at the half of the request the prime was in.
+     */
+    for (const match of code.matchAll(/const (?:MOMENTS|REGISTERS)\s*=\s*\[([\s\S]*?)\n\];/g)) {
+      found.push({ name: `${dir.name} (assigned list)`, text: match[1]! });
+    }
   }
   return found;
 }
@@ -58,6 +72,12 @@ describe("every prompt in the app", () => {
     "friday",
     "saturday",
     "sunday",
+    // "weekday" is here because banning the seven names did not work. Three of
+    // six stories still named a day, and the pull was coming from the assigned
+    // moment "an ordinary WEEKDAY morning" — a word I had left in while adding
+    // the rule against it. The negative instruction and the positive prime were
+    // in the same request, and the prime won, as it has every time.
+    "weekday",
     "kettle",
     "kitchen",
     "mug",
@@ -107,7 +127,9 @@ describe("every prompt in the app", () => {
    * everyone, which is what "generic" means.
    */
   it("tells the model to write from what this particular person typed", () => {
-    for (const { name, text } of allPrompts()) {
+    // Assigned lists are fragments interpolated into a prompt; the instruction
+    // lives in the prompt they're interpolated into, not in each entry.
+    for (const { name, text } of allPrompts().filter((p) => !p.name.includes("assigned list"))) {
       expect(
         text,
         `${name} never tells the model to use the user's own words or stay on their subject`,
