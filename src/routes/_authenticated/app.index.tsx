@@ -122,6 +122,28 @@ function HomeFeed() {
       interleaveByDesire(storiesOnly);
 
   /**
+   * THE FEED BELONGS TO ONE DREAM. Default it to the newest.
+   *
+   * Reported as: "I typed I am earning 10k week and it's showing something
+   * related to defender car in More for you and Trending for you."
+   *
+   * Exactly right. Typing a dream selected it, so the feed was correct in that
+   * moment — and on the next page load the selection reset to null, which fell
+   * through to an interleave of EVERY dream. So the app answered "what do you
+   * want to manifest?" with a shuffle of everything you had ever answered, and
+   * a question that doesn't act on your answer isn't a question.
+   *
+   * I built that interleave to fix the opposite complaint — a dream that never
+   * appeared at all — and overcorrected into a feed that belongs to nobody in
+   * particular. The right shape is one dream at a time with the others one tap
+   * away, which fixes both: nothing is hidden, and nothing is mixed.
+   */
+  useEffect(() => {
+    if (selectedDesireId || !desires?.length) return;
+    setSelectedDesireId(desires[0]!.id);
+  }, [desires, selectedDesireId]);
+
+  /**
    * Write for a dream the moment someone selects one with nothing under it.
    *
    * The empty state offered a button, and pressing it wrote stories for two
@@ -355,8 +377,20 @@ function HomeFeed() {
         </div>
       )}
 
+      {/*
+        The heading names the dream.
+
+        "Trending for you" and "More for you" said nothing about WHICH dream,
+        so a feed showing the wrong one looked like a feed showing random
+        stories — there was no way to tell from the screen that a different
+        dream was selected. Naming it makes the link between what you typed
+        and what you're reading visible, and makes a wrong feed obviously
+        wrong rather than vaguely disappointing.
+      */}
       {forYou.length > 0 && (
-        <CarouselSection label="Trending for you">
+        <CarouselSection
+          label={selectedDesire ? `Written for “${selectedDesire.title}”` : "Written for you"}
+        >
           {forYou.map((story) => (
             <StoryCard
               key={story.id}
@@ -376,7 +410,9 @@ function HomeFeed() {
       )}
 
       {trending.length > 0 && (
-        <CarouselSection label="More for you">
+        <CarouselSection
+          label={selectedDesire ? `More for “${selectedDesire.title}”` : "More for you"}
+        >
           {trending.map((story) => (
             <StoryCard
               key={story.id}
