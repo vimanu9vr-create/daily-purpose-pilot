@@ -29,12 +29,20 @@ import { reportError, trail } from "@/lib/telemetry";
  * So: one request, one file, one performance. It cannot desynchronise and it
  * cannot stall, because there is nothing to hand over to.
  *
- * Latency is handled the honest way instead — by starting the work earlier
- * rather than by starting the playback earlier. Opening a track begins
- * generating it, so by the time the play button is pressed it's usually ready.
- * That costs real money for tracks that are opened and never played, and it's
- * worth it: audio is cached forever, and library tracks are shared by title, so
- * the first person to open one pays and nobody else ever does.
+ * ## And nothing renders until play is pressed
+ *
+ * Opening a track used to start generating it, on the reasoning that the few
+ * seconds before somebody presses play are seconds the audio can spend being
+ * made. That reasoning is sound and it emptied the ElevenLabs allowance: the
+ * feed writes twelve stories a day, people tap into several and listen to one,
+ * and every tap was a full narration bought and thrown away.
+ *
+ * The cost of waiting until play is a pause on the first listen of each story.
+ * That is a real cost, and it is one somebody chose by pressing a button —
+ * rather than a bill nobody sees for silence nobody heard.
+ *
+ * The shared library still renders ahead of time, because one render there
+ * serves every user who ever opens that track. See `prepare`.
  */
 
 export type StudioState = {
@@ -328,20 +336,20 @@ export function useStudioNarration(
   );
 
   /**
-   * Start generating when the screen opens, so pressing play is usually free.
+   * Render the library's shared tracks ahead of time. Nothing else.
    *
-   * This is what replaces the split. Rather than starting playback before the
-   * audio exists, it starts the work before the person asks — which buys the
-   * same few seconds without ever producing a gap mid-track.
+   * This used to run on every story screen open, which is how the ElevenLabs
+   * allowance went on audio nobody played — twelve stories a day written, a
+   * couple actually listened to, all of them paid for in full the moment they
+   * were tapped.
+   *
+   * It survives only for the catalogue, where one render serves every user who
+   * ever opens that track, so paying up front is genuinely cheaper than making
+   * the first listener wait. The maintenance page is the only caller.
    */
   const prepare = useCallback(
     async (voice = "sarah") => {
       if (!storyId || !body.trim() || audioUrl) return;
-
-      // Reports as generating, so the play button shows a spinner from the
-      // moment the screen opens rather than only once it's pressed. Tapping
-      // into a button that looks idle but isn't is what "it feels like it got
-      // hanged" was — and the work had usually already started.
       setIsGenerating(true);
       try {
         await request(voice);

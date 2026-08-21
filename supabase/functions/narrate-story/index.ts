@@ -59,7 +59,24 @@ const DEFAULT_VOICE = "sarah";
  */
 const OUTPUT_FORMAT = "mp3_44100_64";
 
-const MODEL = "eleven_multilingual_v2";
+/**
+ * Which model reads it.
+ *
+ * `eleven_multilingual_v2` is ElevenLabs' recommendation for narration and the
+ * one they describe as most stable across a long generation. It is also full
+ * price per character.
+ *
+ * `eleven_flash_v2_5` is documented as "50% lower price per character for API
+ * generations" — genuinely half the cost. It is built for real-time agents
+ * rather than long-form reading, so it is faster and slightly less settled on
+ * a three-minute piece.
+ *
+ * Default stays on quality. This app has been told its voice sounds wrong more
+ * than once, and halving the bill by halving the thing people are paying for
+ * is a trade worth making deliberately rather than quietly. `NARRATION_MODEL`
+ * switches it without a deploy if the numbers ever demand it.
+ */
+const MODEL = Deno.env.get("NARRATION_MODEL") ?? "eleven_multilingual_v2";
 
 /**
  * Bumped whenever the model, voice settings, or timing source change.
@@ -175,11 +192,14 @@ Deno.serve(async (req: Request) => {
       storyId,
       voice = DEFAULT_VOICE,
       part,
+      force = false,
     } = (await req.json().catch(() => ({}))) as {
       storyId?: string;
       voice?: string;
       /** "opening" for the first lines, "rest" for everything after. Omit for the whole thing. */
       part?: "opening" | "rest";
+      /** Re-render even though usable audio exists. Costs money; ask first. */
+      force?: boolean;
     };
     if (!storyId) return json({ error: "bad_request", message: "No story given." }, 400);
 
@@ -206,8 +226,26 @@ Deno.serve(async (req: Request) => {
     const story = rows[0];
     if (!story) return json({ error: "not_found" }, 404);
 
-    // Already paid for in this voice — hand back the cached copy.
-    if (!part && story.audio_url && story.audio_voice === renderTag) {
+    /**
+     * ANY existing audio in this voice is good enough. Not just this version.
+     *
+     * This used to require an exact match on `voice@RENDER_VERSION`, so every
+     * time I changed a voice setting the entire library was invalidated and
+     * re-rendered from scratch — and I bumped that constant four times in one
+     * week tuning the pacing. Storage still holds five separate renders of
+     * "abundance-888-hz", one per bump. Every one was paid for.
+     *
+     * The version exists so that a settings change reaches new audio. It was
+     * never worth re-buying thousands of tracks that already sound fine, and
+     * nobody listening can hear the difference between v6 and v7 anyway — they
+     * can only hear the difference between audio and no audio.
+     *
+     * `force: true` re-renders deliberately, which is what the maintenance
+     * page uses when a change is actually worth paying for.
+     */
+    if (!part && story.audio_url && story.audio_voice?.startsWith(`${voice}@`) && !force) {
+      const staleVersion = story.audio_voice !== renderTag;
+      if (staleVersion) console.log(`reusing ${story.audio_voice} rather than re-rendering`);
       return json({ audioUrl: story.audio_url, marks: story.audio_marks, cached: true }, 200);
     }
 
@@ -241,6 +279,13 @@ Deno.serve(async (req: Request) => {
     const path = isCatalogue
       ? `catalogue/${slugify(story.title)}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`
       : `${user.id}/${storyId}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`;
+    // Older renders of the same track, newest first. A file from v5 is still
+    // Sarah reading the same words, and reusing it costs nothing.
+    const olderPaths = isCatalogue
+      ? ["v6", "v5", "v4", "v3"].map(
+          (v) => `catalogue/${slugify(story.title)}-${voice}-${v}${partSuffix}.mp3`,
+        )
+      : [];
     const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
 
     /**
@@ -265,24 +310,41 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    if (isCatalogue && !part) {
-      // Somebody has already paid for this one. Point this user's row at it
-      // and return without touching ElevenLabs.
-      const head = await fetch(audioUrl, { method: "HEAD" });
+    if (isCatalogue && !part && !force) {
+      /**
+       * Somebody has already paid for this one. Point this user's row at it
+       * and return without touching ElevenLabs.
+       *
+       * Older render versions count. A v5 file is Sarah reading the same
+       * script; charging again for a marginally different pause length is how
+       * five copies of "abundance-888-hz" ended up in storage.
+       */
+      let found = audioUrl;
+      let head = await fetch(audioUrl, { method: "HEAD" });
+      for (const older of olderPaths) {
+        if (head.ok) break;
+        const olderUrl = `${supabaseUrl}/storage/v1/object/public/narration/${older}`;
+        head = await fetch(olderUrl, { method: "HEAD" });
+        if (head.ok) {
+          found = olderUrl;
+          console.log(`reusing an older render: ${older}`);
+        }
+      }
       if (head.ok) {
+        const audioUrlToUse = found;
         // Another user already paid for this track. Their row has the real
         // marks; read them rather than estimating, so the second listener gets
         // the same sync as the first.
         const sharedRes = await fetch(
-          `${supabaseUrl}/rest/v1/moments?select=audio_marks&audio_url=eq.${encodeURIComponent(audioUrl)}&audio_marks=not.is.null&limit=1`,
+          `${supabaseUrl}/rest/v1/moments?select=audio_marks&audio_url=eq.${encodeURIComponent(audioUrlToUse)}&audio_marks=not.is.null&limit=1`,
           { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
         );
         const sharedRows = sharedRes.ok ? await sharedRes.json() : [];
         const sharedMarks = Array.isArray(sharedRows) ? sharedRows[0]?.audio_marks : null;
         const reused = Array.isArray(sharedMarks) ? (sharedMarks as number[]) : [];
-        await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrl, renderTag, reused);
-        console.log(`reused shared narration ${path} marks=${reused.length}`);
-        return json({ audioUrl, marks: reused, cached: true }, 200);
+        await saveToMoment(supabaseUrl, serviceKey, storyId, audioUrlToUse, renderTag, reused);
+        console.log(`reused shared narration ${audioUrlToUse} marks=${reused.length}`);
+        return json({ audioUrl: audioUrlToUse, marks: reused, cached: true }, 200);
       }
     }
 

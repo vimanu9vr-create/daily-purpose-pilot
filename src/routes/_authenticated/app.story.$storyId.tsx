@@ -179,18 +179,31 @@ function StoryPlayer() {
    */
 
   /**
-   * Start rendering the narration while they're still looking at the cover.
+   * NARRATION IS NOT PRE-RENDERED ANY MORE. This is the big one.
    *
-   * This is what replaces the old split. Opening a track and pressing play are
-   * a few seconds apart, and those are seconds the audio can spend being made
-   * — which buys the same head start as splitting did, without ever leaving a
-   * gap in the middle of a track.
+   * Opening a story used to commission the whole narration immediately, on the
+   * reasoning that the seconds between opening and pressing play were seconds
+   * the audio could spend being made. That is true, and it is also how the
+   * ElevenLabs allowance was spent on audio nobody listened to.
+   *
+   * The feed writes twelve stories a day. Somebody browsing taps into several
+   * and plays one or two — and we paid, in full, for every single one they
+   * looked at. Roughly a thousand characters each, gone whether or not a
+   * single second was heard. Multiply by every user and the plan is finished
+   * before anyone has a complaint about the writing.
+   *
+   * So it renders when play is pressed. The cost of that is a wait on the
+   * first play of each story, which is real — but it is a wait somebody chose
+   * by pressing a button, and the button now shows a spinner and says what
+   * it's doing. Paying for silence to avoid a five-second wait is the wrong
+   * trade at any scale, and at this scale it is the whole bill.
+   *
+   * The library is different and still worth pre-rendering: those tracks are
+   * shared by title, so one render serves every user who ever opens it. That
+   * happens in the maintenance page rather than here.
    */
-  useEffect(() => {
-    if (!story?.body) return;
-    void studio.prepare("sarah");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [story?.id]);
+
+
 
   // Always fade the pad out when leaving the player.
   useEffect(() => {
