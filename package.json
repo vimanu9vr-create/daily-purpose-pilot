@@ -16,7 +16,8 @@
     "android:sync": "npm run build:native && cap sync android",
     "android:open": "cap open android",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy:fn": "npx supabase functions deploy --project-ref pkxkksamenqcvsaulceq --use-api"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
