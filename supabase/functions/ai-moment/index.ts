@@ -169,7 +169,7 @@ THE FIRST LINE — it is the card preview, so it is the part that looks repeated
 - Do not open by describing the weather or the light. "It's raining and the light is soft" is the single most common way these start and it says nothing.
 - Do not open on food, cooking, coffee or a kitchen unless what they want IS food, cooking, coffee or a kitchen.
 - Open on something happening, something concrete, or something absent. An object. A sound. A negation. Mid-action. A fragment.
-- DO NOT NAME A DAY OF THE WEEK. Not in the body, not in the title. "An ordinary morning" and "the middle of the afternoon" do the same work without every story landing on the same day.
+- DO NOT NAME A DAY OF THE WEEK, in the body or the title. You are given a time of day to anchor the scene in, which does the same job.
 
 The one honesty rule: never claim the world will deliver it. No "it's on its way", no "the universe is arranging this", no timelines, no guarantees, no "this is already yours" as a promise about reality. Describing an imagined scene is fine — that is the whole exercise. Predicting events is not.
 
@@ -291,6 +291,49 @@ function registerFor(variant: number | undefined, subjectTitle: string): string 
   for (const char of subjectTitle) hash = (hash * 17 + char.charCodeAt(0)) | 0;
   const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
   return REGISTERS[index % REGISTERS.length]!;
+}
+
+/**
+ * When in the day the scene happens.
+ *
+ * ## Why this exists at all: banning a word does not remove the need for it
+ *
+ * Thirteen of twenty-nine stories named Tuesday. Zero named Wednesday,
+ * Thursday, Saturday or Sunday. I removed the word "weekday" that was priming
+ * it and added a rule — DO NOT NAME A DAY OF THE WEEK — and the next batch
+ * still named one in three of six.
+ *
+ * That is the fourth ban I have written today and the fourth to be worked
+ * around, and the pattern is finally clear: a scene needs to be anchored in
+ * time, "an ordinary Tuesday" is the single most available way to do that in
+ * English, and forbidding it leaves the need in place with nothing to meet it.
+ * A ban tells the model what not to reach for. It does not put anything else
+ * within reach.
+ *
+ * So the day is replaced rather than forbidden. The same trick that fixed
+ * diesel clatter (assigned REGISTERS) and fixed every story being the same
+ * scene (assigned MOMENTS): hand it a constraint instead of a prohibition.
+ * Eight times of day, assigned deterministically, so the anchor is already
+ * there and specific before the model goes looking for one.
+ *
+ * The ban stays as a backstop, but it is no longer doing the work.
+ */
+const TIMES = [
+  "first light, before anything has started",
+  "mid-morning",
+  "the middle of the afternoon",
+  "late afternoon, with the light going",
+  "early evening",
+  "after dark, with the day finished",
+  "the small hours, everyone else asleep",
+  "the hour either side of noon",
+];
+
+function timeFor(variant: number | undefined, subjectTitle: string): string {
+  let hash = 0;
+  for (const char of subjectTitle) hash = (hash * 13 + char.charCodeAt(0)) | 0;
+  const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
+  return TIMES[index % TIMES.length]!;
 }
 
 /**
@@ -544,9 +587,10 @@ Deno.serve(async (req: Request) => {
     const context = [
       subjectBlock.join("\n"),
       [
-        "The two lines below choose the ANGLE on the subject above. They are not the subject. If either one pulls the story away from it, ignore that line and keep the subject.",
+        "The three lines below choose the ANGLE on the subject above. They are not the subject. If any of them pulls the story away from it, ignore that line and keep the subject.",
         `WHICH MOMENT OF ALREADY HAVING IT: ${sceneFor(variant, subject.title)}`,
         `WHICH SENSE TO NOTICE IT THROUGH: ${registerFor(variant, subject.title)}`,
+        `WHEN IN THE DAY THIS HAPPENS: ${timeFor(variant, subject.title)} — this is the time anchor, so there is no need to name a day of the week.`,
       ].join("\n"),
       [
         `Before you answer, check both of these.`,

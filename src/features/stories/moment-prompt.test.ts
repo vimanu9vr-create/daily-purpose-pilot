@@ -152,6 +152,37 @@ describe("no concrete noun leaks out of the prompt as an example", () => {
   });
 });
 
+describe("time of day is assigned, not forbidden", () => {
+  /**
+   * The fourth ban I wrote today, and the fourth to be worked around.
+   *
+   * Thirteen of twenty-nine stories named Tuesday; none named Wednesday,
+   * Thursday, Saturday or Sunday. Removing the priming word and adding "DO NOT
+   * NAME A DAY OF THE WEEK" still left one in three naming a day.
+   *
+   * A scene has to be anchored in time, "an ordinary Tuesday" is the most
+   * available way to do that in English, and a ban leaves the need in place
+   * with nothing to meet it. Assigning a time of day meets the need, the same
+   * way assigned REGISTERS fixed diesel clatter and assigned MOMENTS fixed
+   * every story being the same scene.
+   */
+  it("hands the model a time of day to anchor the scene in", () => {
+    const block = SOURCE.match(/const TIMES = \[([\s\S]*?)\n\];/);
+    expect(block, "TIMES not found — the ban is doing the work again").toBeTruthy();
+
+    const times = [...block![1]!.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
+    expect(times.length).toBeGreaterThanOrEqual(6);
+    for (const time of times) {
+      expect(time).not.toMatch(/monday|tuesday|wednesday|thursday|friday|saturday|sunday/i);
+    }
+  });
+
+  it("sends the assigned time in the request", () => {
+    expect(CODE).toMatch(/WHEN IN THE DAY THIS HAPPENS/);
+    expect(CODE).toMatch(/timeFor\(variant, subject\.title\)/);
+  });
+});
+
 describe("the prompt keeps the desire in charge", () => {
   /**
    * The ordering failure that caused the report.

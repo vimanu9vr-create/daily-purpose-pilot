@@ -47,7 +47,9 @@ function allPrompts(): { name: string; text: string }[] {
      * stories named a day. The prime beat the ban, and the guard never looked
      * at the half of the request the prime was in.
      */
-    for (const match of code.matchAll(/const (?:MOMENTS|REGISTERS)\s*=\s*\[([\s\S]*?)\n\];/g)) {
+    for (const match of code.matchAll(
+      /const (?:MOMENTS|REGISTERS|TIMES)\s*=\s*\[([\s\S]*?)\n\];/g,
+    )) {
       found.push({ name: `${dir.name} (assigned list)`, text: match[1]! });
     }
   }
