@@ -26,6 +26,7 @@ import {
 import { useProfile } from "@/features/onboarding/use-profile";
 import { PracticeCard } from "@/features/practice/practice-card";
 import { AffirmationRow } from "@/features/affirmations/affirmation-row";
+import { useMilestones, useSeedMilestones } from "@/features/milestones/use-milestones";
 import {
   useAffirmationsByDesire,
   useGenerateAffirmations,
@@ -167,6 +168,31 @@ function HomeFeed() {
     generateAffirmations.mutate({ desireId: selectedDesireId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDesireId, affirmationsFor.isPending, affirmationsFor.data?.length]);
+
+  /**
+   * And its milestones. Same rule: selected, empty, so write them.
+   *
+   * These were seeded only by the progress panel on the Profile screen, so a
+   * dream had steps if and only if you happened to visit Profile after adding
+   * it. Not one of the three live dreams had a single milestone, and
+   * `suggest-milestones` had not been called once in twenty-four hours.
+   *
+   * Everything a dream needs is now written from the screen where the dream
+   * was typed, rather than from wherever somebody happens to navigate next.
+   */
+  const milestonesFor = useMilestones(selectedDesireId);
+  const seedMilestones = useSeedMilestones();
+  useEffect(() => {
+    if (!selectedDesire || milestonesFor.isPending || seedMilestones.isPending) return;
+    if ((milestonesFor.data?.length ?? 0) > 0) return;
+    seedMilestones.mutate({
+      desireId: selectedDesire.id,
+      title: selectedDesire.title,
+      category: selectedDesire.category,
+      why: selectedDesire.description,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDesire?.id, milestonesFor.isPending, milestonesFor.data?.length]);
 
   /**
    * Write for a dream the moment someone selects one with nothing under it.
