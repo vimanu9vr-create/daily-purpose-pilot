@@ -148,6 +148,7 @@ Form:
 - Sensory detail SPECIFIC TO THIS THING, not to nice things in general. Never "your car", never "your new place". Work out what this particular thing is actually like to live with and use that.
 - Use their own NOUN for the thing. If they wrote "defender car", the story says defender, not "the vehicle" and not "your car". A noun, never their whole sentence — see the rule above.
 - Quiet and ordinary throughout. No triumph, no music swelling, nobody applauding.
+- PUT PEOPLE IN IT. Not crowds — one or two specific people, doing something small and ordinary nearby: someone in the next room, a friend across a table, a stranger who has no idea. A life is other people, and a scene with nobody in it reads as a showroom. If they have named anybody, that person is who it is.
 
 NOTHING IS WRONG WITH IT. A rule, not a preference:
 - No faults. Nothing broken, worn out, sticking, rattling, leaking, needing fixing, needing paying for, or needing doing at the weekend. Not at the end, not in the middle, nowhere.
@@ -562,6 +563,37 @@ Deno.serve(async (req: Request) => {
     }
 
     /**
+     * WHO THIS IS FOR. The app collects this at onboarding and then threw it away.
+     *
+     * Stella's best reviews are not about the writing being good — they are
+     * about it being about THEM. "I've listened to 3-4 stories and have been
+     * balling my eyes out, it feels so real." The one complaint in that same
+     * review is that the app mispronounces a specific person's name, which
+     * means the stories contain the names of people in their life.
+     *
+     * This app asks for a name, a desired feeling, the obstacle in the way and
+     * a preferred tone during onboarding, stores all four on `profiles`, and
+     * then wrote every story from a bare desire title. Nothing that made it
+     * theirs ever reached the page. That is not a missing feature; it is a
+     * missing line of code between two tables that already exist.
+     *
+     * Fetched as the user, so RLS keeps it to their own row.
+     */
+    const profileRes = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?select=display_name,desired_feeling,obstacles,tone&limit=1`,
+      { headers: { Authorization: authHeader, apikey: anonKey } },
+    );
+    const profiles = profileRes.ok ? await profileRes.json() : [];
+    const profile = (Array.isArray(profiles) ? profiles[0] : null) as {
+      display_name?: string | null;
+      desired_feeling?: string | null;
+      obstacles?: string | null;
+      tone?: string | null;
+    } | null;
+
+    const firstName = profile?.display_name?.trim().split(/\s+/)[0] ?? "";
+
+    /**
      * Ordering and force, both deliberate. See §CONTEXT-WEIGHT in NOTES.
      *
      * The subject is stated first, framed as the requirement, and repeated at
@@ -584,8 +616,20 @@ Deno.serve(async (req: Request) => {
       subject.progress != null ? `MILESTONE PROGRESS: ${subject.progress}%` : "",
     ].filter(Boolean);
 
+    const aboutThem = [
+      firstName ? `THEIR NAME: ${firstName} — you may use it, sparingly. Once is plenty.` : "",
+      profile?.desired_feeling
+        ? `THE FEELING THEY ARE AFTER: ${profile.desired_feeling}. The last paragraph should land there.`
+        : "",
+      profile?.obstacles
+        ? `WHAT HAS BEEN IN THEIR WAY: ${profile.obstacles}. Do not mention it, argue with it, or solve it. Use it to know what its ABSENCE looks like in the scene — that absence is the point.`
+        : "",
+      profile?.tone ? `TONE THEY ASKED FOR: ${profile.tone}` : "",
+    ].filter(Boolean);
+
     const context = [
       subjectBlock.join("\n"),
+      ...(aboutThem.length > 0 ? [aboutThem.join("\n")] : []),
       [
         "The three lines below choose the ANGLE on the subject above. They are not the subject. If any of them pulls the story away from it, ignore that line and keep the subject.",
         `WHICH MOMENT OF ALREADY HAVING IT: ${sceneFor(variant, subject.title)}`,
