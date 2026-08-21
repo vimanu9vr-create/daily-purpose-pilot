@@ -16,7 +16,8 @@ const MODEL = "google/gemini-2.5-flash";
 const SYSTEM_PROMPT = `You are the coach inside ManifestAI, an app that combines goal clarity, habit formation and reflection.
 
 How you work:
-- Ground every reply in the user's actual goals, habits and recent reflections, which are provided to you. Reference them specifically rather than speaking in generalities.
+- Ground every reply in WHAT THEY SAID THEY WANT TO MANIFEST — their own typed words, given to you below. Quote their phrasing back to them. Their goals, habits and reflections are also provided; use them, but the thing they typed is the subject.
+- Never answer in generalities that would fit any user. If your reply would make sense to someone with completely different dreams, you have not used what you were given.
 - End with ONE concrete next action the user could take in the next 24 hours. Small and specific beats ambitious and vague.
 - Be warm and direct. Two or three short paragraphs. No bullet lists unless the user asks.
 
@@ -93,7 +94,20 @@ Deno.serve(async (req: Request) => {
     const asUser = { Authorization: authHeader, apikey: anonKey };
     const rest = (path: string) => fetch(`${supabaseUrl}/rest/v1/${path}`, { headers: asUser });
 
-    const [goalsRes, habitsRes, journalRes] = await Promise.all([
+    /**
+     * DESIRES FIRST, and adding them at all is the point of this change.
+     *
+     * This function read `goals` and nothing else, so the coach had never seen
+     * a single word the user typed into "what do you want to manifest?" — the
+     * one box the whole app is built around. It was coaching them from a
+     * different, largely empty table while claiming to know them.
+     *
+     * They are listed before goals for the same reason the subject goes first
+     * in the story prompt: whatever appears first, and is named as the point,
+     * is what gets treated as the point.
+     */
+    const [desiresRes, goalsRes, habitsRes, journalRes] = await Promise.all([
+      rest("desires?select=title,description&order=created_at.desc&limit=6"),
       rest(
         "goals?select=title,why,feeling,obstacles,category,target_date,progress,status&status=eq.active&order=created_at.desc&limit=3",
       ),
@@ -101,11 +115,12 @@ Deno.serve(async (req: Request) => {
       rest("journals?select=entry_date,mood,content&order=entry_date.desc&limit=5"),
     ]);
 
+    const desires = desiresRes.ok ? await desiresRes.json() : [];
     const goals = goalsRes.ok ? await goalsRes.json() : [];
     const habits = habitsRes.ok ? await habitsRes.json() : [];
     const journals = journalRes.ok ? await journalRes.json() : [];
 
-    const contextBlock = buildContext(goals, habits, journals);
+    const contextBlock = buildContext(desires, goals, habits, journals);
 
     const upstream = await fetch(provider!.url, {
       method: "POST",
@@ -163,6 +178,7 @@ function json(body: unknown, status: number) {
 }
 
 function buildContext(
+  desires: { title: string; description: string | null }[],
   goals: {
     title: string;
     why: string | null;
@@ -176,8 +192,33 @@ function buildContext(
 ): string {
   const parts: string[] = ["Here is the user's current context. Refer to it specifically."];
 
+  /**
+   * Their own sentences, quoted verbatim and labelled as such.
+   *
+   * Quoted because the wording is evidence. Somebody who wrote "my aim is to
+   * earn 20000cr" and somebody who wrote "financial freedom" want different
+   * things and should not get the same reply, and the difference lives
+   * entirely in how they said it.
+   */
+  if (desires.length > 0) {
+    parts.push(
+      "WHAT THEY SAID THEY WANT TO MANIFEST — their own words, most recent first. " +
+        "This is the heart of it. Use their phrasing back to them:\n" +
+        desires
+          .map((d) => [`- "${d.title}"`, d.description ? `  they added: ${d.description}` : ""])
+          .flat()
+          .filter(Boolean)
+          .join("\n"),
+    );
+  }
+
   if (goals.length === 0) {
-    parts.push("GOALS: none set yet. Help them name one concrete goal before anything else.");
+    // Only worth saying when there is nothing else either. Telling somebody
+    // with six dreams written down that they should "name one concrete goal"
+    // reads as not having looked.
+    if (desires.length === 0) {
+      parts.push("Nothing written down yet. Help them name one thing they want, in their words.");
+    }
   } else {
     parts.push(
       "GOALS:\n" +

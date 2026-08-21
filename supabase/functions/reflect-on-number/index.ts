@@ -33,7 +33,7 @@ Someone has noticed a repeating number. You are given what that number is tradit
 Rules:
 - One sentence. Under 25 words. It must end in a question mark.
 - It has to be answerable only by them, about their own life. If the question would work equally well for a stranger, it has failed.
-- Use their words for what they want, exactly as given.
+- Use their own nouns and numbers for what they want. Never paste their whole sentence in — they wrote it in first person about a wish, and this is a question addressed to them as "you". Rewrite it to fit.
 - Take the number's traditional meaning as the ANGLE, not the subject. A number about completion asks what they are finished with; it does not explain what the number means. They have already read that.
 - Ask about something specific and slightly uncomfortable — the thing they have been avoiding looking at. Gentle, not brutal, and never flattering.
 - Plain language. No mysticism, no "the universe", no exclamation marks, no emoji.

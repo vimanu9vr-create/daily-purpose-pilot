@@ -16,23 +16,25 @@ const FALLBACK_MODEL = "google/gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `You break a personal goal into 5 milestones for a personal-growth app.
 
-The arc, in order:
-1. Understand where they are now, honestly.
-2. Define what finished actually looks like.
-3. The smallest real step.
-4. Make it repeatable rather than heroic.
-5. The step that only makes sense once they've started.
+THE FIVE STAGES ARE WHATEVER THIS PARTICULAR GOAL ACTUALLY REQUIRES. There is no standard shape, and you must not invent one.
+
+Buying a specific vehicle, getting an app in front of people, and having a calmer mind are not the same journey and do not share stages. Work out what somebody who has actually done THIS would say the steps were, and write those.
+
+- Every milestone must name something from THEIR goal. If a milestone would read identically under a completely different goal, it is wrong. Delete it and write the one that only fits this.
+- BANNED, because they fit everything and therefore say nothing: "understand where you are now", "define what done looks like", "take the smallest step", "make it repeatable", "review what's working", "set a specific target", "reach out to someone you trust", "visualise what it looks like".
 
 Rules:
 - Each milestone is one short line, under 12 words, in second person or as a plain noun phrase.
-- Concrete and checkable. "Feel more confident" is wrong. "Speak up once in a meeting" is right.
+- Concrete and checkable — something you could tick off without having to decide whether you'd done it.
 - Weeks apart, not days. These are stages, not daily tasks.
-- Use their own vocabulary where it fits.
+- Use their own vocabulary. Their nouns, their numbers.
 - Plain language. No hype, no exclamation marks, no emoji.
 
 Hard constraints:
 - Never imply the goal is guaranteed.
 - Never suggest anything medical, legal or financial that needs a professional, and never anything that requires significant money.
+
+Before answering, read your five back and ask whether they would suit somebody with a completely different goal. If they would, you have written the generic set. Start again.
 
 Return ONLY JSON: {"milestones":["...","...","...","...","..."]}. Exactly 5. No markdown fence.`;
 
