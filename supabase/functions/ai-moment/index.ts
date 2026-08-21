@@ -70,22 +70,57 @@ const MODEL = "google/gemini-2.5-flash";
  * months in, when you've stopped noticing it" is stranger, more specific, and
  * far more affecting — it asks you to imagine being the person rather than
  * imagine the prize.
+ *
+ * ## The regression my own fix caused, one hour later
+ *
+ * Told the stories were off-topic, I added "unmistakably present by the second
+ * sentence, IN THEIR OWN WORDS" and kept an older rule, "use their exact words
+ * for it". Both were aimed at a noun. "Defender car" is a noun; you can drop it
+ * into a sentence and it reads.
+ *
+ * "I am earning $10k per week" is not a noun. It is a first-person sentence
+ * about a wish, and these stories are second-person descriptions of a life.
+ * Instructed to reproduce it exactly, the model did:
+ *
+ *   "Now that I am earning $10k per week, your Tuesdays do not have an urgency."
+ *   "Ever since your manifestation app taking off and going viral everywhere,
+ *    Tuesdays have become a sanctuary of calm."
+ *
+ * Of the twenty-four stories written by that version, TEN contained "I" or "my"
+ * inside a second-person story and SEVEN opened a sentence with "Because…" or
+ * "Now that…". I had fixed off-topic and shipped ungrammatical.
+ *
+ * Two lessons, and the second is the one that keeps recurring.
+ *
+ * A desire title has a GRAMMATICAL SHAPE, not just content. Some are nouns,
+ * some are sentences, some are fragments. Any rule that says "use their words"
+ * has to say WHICH words — the nouns and the numbers — or it is an instruction
+ * to paste one grammar into another.
+ *
+ * And: "mention this by sentence two" is a requirement a model can satisfy
+ * cheaply by bolting on a clause. Requirements get met in the laziest way that
+ * technically complies. So the rule is now to SHOW it — a figure on a screen,
+ * a stranger using the app — and the cheap constructions are banned by name.
  */
 const SYSTEM_PROMPT = `You write a short visualization for a manifestation app. It is listened to with eyes closed. Its job is to let someone spend two minutes inside a life where the thing they want is already true.
 
 THE STORY IS ABOUT THE THING THEY WANT. This overrides everything else in this prompt.
 
-- What they want must be UNMISTAKABLY PRESENT in the scene, by the second sentence at the latest, in their own words.
+- What they want must be UNMISTAKABLY PRESENT in the first paragraph — SHOWN AS PART OF THE SCENE, never announced.
+- TAKE THEIR NOUNS AND NUMBERS. NEVER THEIR SENTENCE. If they wrote "I am earning $10k per week", the story uses "$10k", "ten thousand", "every week" — it does NOT contain the string "I am earning $10k per week". Their sentence is written in first person about a wish; your story is written in second person about a life. Pasting one into the other produces gibberish like "Now that I am earning $10k per week, your afternoons are calm."
+- NEVER write "I", "I'm", "I am" or "my" outside of quoted dialogue. The story is "you", the whole way through, with no exceptions.
+- NEVER bolt it on as a causal clause. Banned openings for any sentence: "Because…", "Now that…", "Ever since…", "X means that…", "Thanks to…". These are what a model reaches for when it has been told to mention something and cannot be bothered to dramatise it, and they make every story identical.
+- SHOW IT INSTEAD. The money is a figure on a screen nobody is worried about. The app is a stranger two tables over using it. The car is what you are sitting in. If it can only be conveyed by stating it, you have not found the scene yet.
 - The scene has to be one that only makes sense BECAUSE they have it. It should be materially responsible for what is happening.
 - THE TEST, and apply it before you answer: if you could swap in a completely different desire and the story would still work unchanged, you have written the wrong story. Start again.
-- If what they want is an amount of money, a state, or an achievement rather than an object, it still has to be physically visible — what it pays for, what it removed, what it changed about the room, the day, or the decision. "Ten thousand clears every Monday" is in the scene. A person feeling calm near a window is not.
+- If what they want is an amount of money, a state, or an achievement rather than an object, it still has to be physically visible — what it pays for, what it removed, what it changed about the room, the day, or the decision. A figure appearing somewhere it can be read is in the scene. A person feeling calm near a window is not.
 
-THE SCENE IS SET AFTER THEY HAVE IT — and not on the day they got it. Later. Months later, once it has become ordinary. The day-you-get-it version is a daydream they have already had on their own; the ordinary-Tuesday version is the one that does something.
+THE SCENE IS SET AFTER THEY HAVE IT — and not on the day they got it. Later. Months later, once it has become ordinary. The day-you-get-it version is a daydream they have already had on their own; the months-later version is the one that does something.
 
 Form:
 - Second person, present tense. 4 to 6 short paragraphs, 150-220 words.
 - Sensory detail SPECIFIC TO THIS THING, not to nice things in general. Never "your car", never "your new place". Work out what this particular thing is actually like to live with and use that.
-- Use their exact words for it. If they wrote "defender car", the story says defender car.
+- Use their own NOUN for the thing. If they wrote "defender car", the story says defender, not "the vehicle" and not "your car". A noun, never their whole sentence — see the rule above.
 - Quiet and ordinary throughout. No triumph, no music swelling, nobody applauding.
 
 NOTHING IS WRONG WITH IT. A rule, not a preference:
@@ -107,7 +142,8 @@ THE FIRST LINE — it is the card preview, so it is the part that looks repeated
 - Do NOT begin with "You're…", "You've…", "You sit…", "You wake…" or "It's…". Those are the default openings and they make every story read as one voice saying one thing, however different the scenes are.
 - Do not open by describing the weather or the light. "It's raining and the light is soft" is the single most common way these start and it says nothing.
 - Do not open on food, cooking, coffee or a kitchen unless what they want IS food, cooking, coffee or a kitchen.
-- Open on something happening, something concrete, or something absent. An object. A sound. A negation. Mid-action. A fragment. "The kettle has boiled twice and nobody has made the tea." "Nobody has needed anything from you for two hours." "Second gear, and the exhaust note changes."
+- Open on something happening, something concrete, or something absent. An object. A sound. A negation. Mid-action. A fragment.
+- DO NOT NAME A DAY OF THE WEEK. Not in the body, not in the title. "An ordinary morning" and "the middle of the afternoon" do the same work without every story landing on the same day.
 
 The one honesty rule: never claim the world will deliver it. No "it's on its way", no "the universe is arranging this", no timelines, no guarantees, no "this is already yours" as a promise about reality. Describing an imagined scene is fine — that is the whole exercise. Predicting events is not.
 
@@ -486,7 +522,11 @@ Deno.serve(async (req: Request) => {
         `WHICH MOMENT OF ALREADY HAVING IT: ${sceneFor(variant, subject.title)}`,
         `WHICH SENSE TO NOTICE IT THROUGH: ${registerFor(variant, subject.title)}`,
       ].join("\n"),
-      `Before you answer, check: is "${subject.title}" unmistakably in this scene, in their own words, by the second sentence? If not, write it again.`,
+      [
+        `Before you answer, check both of these.`,
+        `1. Is what they want unmistakably present in the first paragraph, SHOWN as part of the scene?`,
+        `2. Does the text contain the words "I", "I'm", "my", "Because", "Now that", "Ever since", or the phrase "${subject.title}" copied out? If any of those appear, rewrite it. You are describing their life back to them as "you".`,
+      ].join("\n"),
     ].join("\n\n");
 
     const upstream = await askWithRetry(

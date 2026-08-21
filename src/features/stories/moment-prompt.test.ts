@@ -75,6 +75,83 @@ describe("assigned moments", () => {
   });
 });
 
+/** Just the text sent to the model — not the comments explaining it. */
+function systemPrompt(): string {
+  const match = SOURCE.match(/const SYSTEM_PROMPT = `([\s\S]*?)`;/);
+  if (!match) throw new Error("SYSTEM_PROMPT not found — did the declaration change shape?");
+  return match[1]!;
+}
+
+/**
+ * A line that forbids something. Naming a word in order to ban it is safe;
+ * naming it anywhere else is an instruction to use it.
+ */
+function isBan(line: string): boolean {
+  return /never|do not|don't|banned|avoid|gibberish/i.test(line);
+}
+
+describe("no concrete noun leaks out of the prompt as an example", () => {
+  /**
+   * THE MISTAKE THIS FILE EXISTS TO STOP. Made three times now.
+   *
+   * 1. The prompt named three Defender details to illustrate "specific".
+   *    Nine of the next twelve stories mentioned diesel clatter.
+   * 2. The prompt said "the ordinary-Tuesday version is the one that does
+   *    something", as a figure of speech. Thirteen of twenty-nine stories
+   *    named Tuesday. Zero named Wednesday, Thursday, Saturday or Sunday.
+   * 3. The prompt offered "The kettle has boiled twice and nobody has made the
+   *    tea" as a good opening. Nine of twenty-nine were kitchen scenes — while
+   *    the line directly above it banned kitchen openings. The example beat the
+   *    ban, because an example is concrete and a ban is abstract.
+   *
+   * The file's own notes already say "an example in a prompt is not an
+   * illustration, it is an instruction, and it is the strongest one in the
+   * file". I wrote that, then did it twice more. Hence a test rather than a
+   * resolution.
+   */
+  const STICKY = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "kettle",
+    "kitchen",
+    "mug",
+    "coffee",
+    "diesel",
+  ];
+
+  it("mentions a concrete noun only in order to forbid it", () => {
+    const offenders: string[] = [];
+    for (const line of systemPrompt().split("\n")) {
+      if (isBan(line)) continue;
+      for (const noun of STICKY) {
+        if (new RegExp(`\\b${noun}`, "i").test(line))
+          offenders.push(`"${noun}" in: ${line.trim()}`);
+      }
+    }
+    expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+
+  /**
+   * Illustrations are the delivery mechanism. Structural description — "an
+   * object, a sound, a negation" — tells the model the SHAPE without handing
+   * it contents to copy.
+   */
+  it("describes the shape of a good opening instead of demonstrating one", () => {
+    const openingRules = systemPrompt()
+      .split("\n")
+      .filter((line) => /^- Open on/.test(line));
+    expect(openingRules.length).toBeGreaterThan(0);
+    for (const rule of openingRules) {
+      expect(rule, "an example sentence in quotes will become the cliché").not.toMatch(/"/);
+    }
+  });
+});
+
 describe("the prompt keeps the desire in charge", () => {
   /**
    * The ordering failure that caused the report.
@@ -106,8 +183,39 @@ describe("the prompt keeps the desire in charge", () => {
     expect(CODE).toMatch(/swap in a completely different desire/);
   });
 
-  it("requires the desire to appear early and in the user's own words", () => {
-    expect(CODE).toMatch(/by the second sentence/);
+  it("requires the desire to appear early, and to be shown rather than announced", () => {
+    expect(CODE).toMatch(/SHOWN AS PART OF THE SCENE, never announced/);
+  });
+
+  /**
+   * The regression the first version of this fix caused.
+   *
+   * "Use their own words" was written for a noun. "Defender car" drops into a
+   * sentence fine. "I am earning $10k per week" is a first-person sentence
+   * about a wish, and these stories are second-person descriptions of a life —
+   * so reproducing it exactly produced "Now that I am earning $10k per week,
+   * your Tuesdays do not have an urgency."
+   *
+   * Ten of twenty-four stories carried "I" or "my" into a "you" story.
+   */
+  it("asks for the user's nouns and numbers, never their sentence", () => {
+    expect(CODE).toMatch(/TAKE THEIR NOUNS AND NUMBERS\. NEVER THEIR SENTENCE/);
+    expect(CODE).not.toMatch(/Use their exact words/);
+  });
+
+  it("forbids first person outright, since the story is second person", () => {
+    expect(CODE).toMatch(/NEVER write "I", "I'm", "I am" or "my"/);
+  });
+
+  /**
+   * "Mention it by sentence two" is a requirement a model satisfies in the
+   * laziest way that technically complies — by bolting on a causal clause.
+   * Seven of twenty-four did exactly that, so they're banned by name.
+   */
+  it("bans the bolted-on causal clause by name", () => {
+    for (const cheat of ["Because", "Now that", "Ever since", "Thanks to"]) {
+      expect(CODE).toMatch(new RegExp(`"${cheat}`));
+    }
   });
 
   /** Kitchens and coffee were the actual content of the reported story. */
