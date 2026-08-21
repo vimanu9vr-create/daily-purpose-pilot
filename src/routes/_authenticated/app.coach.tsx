@@ -108,8 +108,8 @@ function Coach() {
                 </span>
                 <h2 className="mt-6 font-display text-xl font-semibold">What's on your mind?</h2>
                 <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-                  Your coach reads your current goals, habits and recent journal entries, and ends
-                  every reply with one specific next action.
+                  Your coach has read what you said you want to manifest, along with your habits and
+                  recent journal entries, and ends every reply with one specific next action.
                 </p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   {COACH_STARTERS.map((starter) => (

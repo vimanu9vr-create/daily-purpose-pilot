@@ -304,16 +304,43 @@ export function useStory(id: string) {
 /**
  * The opening line shown on the card — pulled from the story body so the card
  * and the player agree, rather than being written twice.
+ *
+ * ## Why it no longer falls back to the dream's title
+ *
+ * It used to return `fallback` — the raw sentence the user typed — whenever the
+ * first sentence fell outside 20 to 120 characters. Eleven of twenty-nine cards
+ * were showing "I want to buy defender car" and "My manifestation app taking
+ * off and going viral everywhere" where a line of the story should have been.
+ *
+ * That reads as the app having failed to write anything. And it got worse as
+ * the writing got better: the rewritten prompt opens on denser, more specific
+ * sentences, and specific sentences are longer — so every improvement to the
+ * prose pushed more cards over 120 characters and into showing the label.
+ *
+ * An inconvenient length is not a reason to hand somebody their own input back.
+ * Long openings are cut at a word boundary, short ones borrow the sentence
+ * after them, and the title is used only if there is no prose at all.
  */
-function hookFrom(body: string, fallback: string): string {
-  const firstSentence = body
-    .split(/\n\n/)[0]
-    ?.split(/(?<=[.!?])\s/)[0]
-    ?.trim();
-  if (firstSentence && firstSentence.length > 20 && firstSentence.length < 120) {
-    return firstSentence;
-  }
-  return fallback;
+export function hookFrom(body: string, fallback: string): string {
+  const MAX = 110;
+
+  const sentences = (body.split(/\n\n/)[0] ?? "")
+    .split(/(?<=[.!?])\s/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  if (sentences.length === 0) return fallback;
+
+  // A four-word opening is a fragment rather than a hook, so it takes the
+  // sentence after it as well.
+  let hook = sentences[0]!;
+  if (hook.length < 30 && sentences[1]) hook = `${hook} ${sentences[1]}`;
+  if (hook.length <= MAX) return hook;
+
+  const cut = hook.slice(0, MAX);
+  const lastSpace = cut.lastIndexOf(" ");
+  const trimmed = lastSpace > 40 ? cut.slice(0, lastSpace) : cut;
+  return `${trimmed.replace(/[,;:—-]+$/, "")}…`;
 }
 
 /**
