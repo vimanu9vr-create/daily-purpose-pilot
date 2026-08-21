@@ -88,9 +88,10 @@ function tierOf(plan: string | null | undefined): Tier {
     case "standard_yearly":
     case "standard_lifetime":
       return "standard";
+    // The bare three were sold before the split, with narration included.
+    // They keep what they bought.
     case "voice_monthly":
     case "voice_yearly":
-    // Sold before the split, with narration included. They keep it.
     case "monthly":
     case "yearly":
     case "lifetime":
