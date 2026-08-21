@@ -140,6 +140,24 @@ export function useSaveAffirmation() {
       source?: string;
     }) => {
       if (!userId) throw new Error("Not signed in");
+
+      /**
+       * Saving the same line twice does nothing.
+       *
+       * "I am allowed to take up space." is in the database twice, which means
+       * it appears twice in a deck somebody swipes through — the heart is easy
+       * to tap again on a card you don't remember having saved, and nothing
+       * stopped it. Checking first is cheaper than a unique index here, since
+       * a constraint violation would surface as an error toast on what is
+       * really a no-op.
+       */
+      const { data: existing } = await supabase
+        .from("affirmations")
+        .select("id")
+        .eq("text", text)
+        .limit(1);
+      if (existing && existing.length > 0) return { alreadySaved: true };
+
       const { error } = await supabase.from("affirmations").insert({
         user_id: userId,
         text,
@@ -149,9 +167,12 @@ export function useSaveAffirmation() {
         source,
       });
       if (error) throw error;
+      return { alreadySaved: false };
     },
-    onSuccess: () => {
-      toast.success("Saved to your affirmations");
+    onSuccess: (result) => {
+      toast.success(
+        result?.alreadySaved ? "Already in your affirmations" : "Saved to your affirmations",
+      );
       void queryClient.invalidateQueries({ queryKey: affirmationKeys.saved });
     },
     onError: (error: Error) => toast.error(error.message || "Couldn't save that one"),
