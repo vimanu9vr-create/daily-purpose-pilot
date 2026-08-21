@@ -75,8 +75,13 @@ built on.
 
 PRICING
 
-Free to use for as long as you like. Optional subscription unlocks unlimited
-stories, studio narration and the full library.
+Free to use for as long as you like.
+
+Standard unlocks everything written — unlimited stories, affirmations, coaching
+and the whole library to read.
+
+Voice adds the narrated human voice on top: stories, sleep sessions and
+meditations read aloud rather than read by you.
 
 ManifestAI is a personal development tool for reflection and visualisation. It
 is not therapy, medical advice, or a guarantee of results.
@@ -219,5 +224,22 @@ each before this goes to real testers.
 - **The subscription.** No payment path exists on any platform. Either wire
   Google Play Billing through RevenueCat before uploading, or cut the pricing
   paragraph and ship it free for the test.
+
+  When you do wire it, five products need creating — the ids are in
+  `src/features/billing/plans.ts` and they must match character for character
+  or the plan won't appear on the device:
+
+  | Product id | Type | Price |
+  | --- | --- | --- |
+  | `com.manifestai.standard.monthly` | Subscription | $4.99 / month |
+  | `com.manifestai.standard.yearly` | Subscription | $29.99 / year |
+  | `com.manifestai.standard.lifetime` | One-time | $99.99 |
+  | `com.manifestai.voice.monthly` | Subscription | $14.99 / month |
+  | `com.manifestai.voice.yearly` | Subscription | $99.99 / year |
+
+  In RevenueCat, the two Voice products carry the `premium` entitlement and the
+  three Standard ones do not — but the app doesn't trust that anyway. The
+  webhook writes the plan id onto the `subscriptions` row and `narrate-story`
+  reads it there, so entitlement configuration is a convenience, not the gate.
 - **The coach.** Three replies ever. Have a conversation with it first.
 - **Notifications.** Never fired once. Either fix or don't mention them.

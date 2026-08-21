@@ -64,6 +64,15 @@ export function useStudioNarration(
   const [error, setError] = useState<string | null>(null);
   /** True once today's narration allowance is used up. Not an error state. */
   const [atDailyLimit, setAtDailyLimit] = useState(false);
+  /**
+   * True when narration isn't part of this plan at all.
+   *
+   * Distinct from `atDailyLimit` because the two need opposite screens: a limit
+   * says "come back tomorrow", and this one says "this is on the Voice plan".
+   * Showing the first to a Standard subscriber would send them back tomorrow to
+   * find nothing had changed.
+   */
+  const [needsVoicePlan, setNeedsVoicePlan] = useState(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   /** True while the browser has run out of downloaded audio mid-track. */
@@ -255,8 +264,11 @@ export function useStudioNarration(
          * so it is passed through rather than replaced with "something went
          * wrong".
          */
-        if (detail?.error === "daily_limit") {
+        if (detail?.error === "daily_limit" || detail?.error === "trial_used") {
           setAtDailyLimit(true);
+        }
+        if (detail?.error === "voice_not_included" || detail?.error === "trial_used") {
+          setNeedsVoicePlan(true);
         }
         throw new Error(detail?.message ?? "Studio narration isn't available.");
       }
@@ -440,6 +452,7 @@ export function useStudioNarration(
     isBuffering,
     error,
     atDailyLimit,
+    needsVoicePlan,
     generate,
     prepare,
     unlock,

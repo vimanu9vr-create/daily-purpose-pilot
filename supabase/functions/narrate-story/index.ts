@@ -31,7 +31,7 @@ const DEFAULT_VOICE = "sarah";
 const OUTPUT_FORMAT = "mp3_44100_64";
 
 // See NOTES.md §3.
-const MODEL = Deno.env.get("NARRATION_MODEL") ?? "eleven_multilingual_v2";
+const MODEL = Deno.env.get("NARRATION_MODEL") ?? "eleven_flash_v2_5";
 
 // See NOTES.md §4.
 const RENDER_VERSION = "v7";
@@ -57,7 +57,40 @@ const BREAK_SECONDS = 2.4;
 const OPENING_SENTENCES = 2;
 
 // See NOTES.md §9.
-const DAILY_NARRATIONS = { free: 2, paid: 10 };
+type Tier = "free" | "standard" | "voice";
+
+const NARRATION_ALLOWANCE: Record<Tier, { perDay: number; perMonth: number; total: number | null }> =
+  {
+    free: { perDay: 1, perMonth: 3, total: 3 },
+    standard: { perDay: 0, perMonth: 0, total: 0 },
+    voice: { perDay: 3, perMonth: 45, total: null },
+  };
+
+/**
+ * Mirror of `tierOf` in src/features/billing/plans.ts.
+ *
+ * Duplicated rather than shared because an edge function cannot import from the
+ * app bundle. The rule that matters is that THIS copy is the one that decides —
+ * the client's copy only controls what gets drawn on screen. A gate that lives
+ * on the client is a suggestion.
+ */
+function tierOf(plan: string | null | undefined): Tier {
+  switch (plan) {
+    case "standard_monthly":
+    case "standard_yearly":
+    case "standard_lifetime":
+      return "standard";
+    case "voice_monthly":
+    case "voice_yearly":
+    // Sold before the split, with narration included. They keep it.
+    case "monthly":
+    case "yearly":
+    case "lifetime":
+      return "voice";
+    default:
+      return "free";
+  }
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -211,37 +244,108 @@ Deno.serve(async (req: Request) => {
 
     // See NOTES.md §14.
     if (!isCatalogue) {
-      const since = new Date();
-      since.setUTCHours(0, 0, 0, 0);
+      const startOfDay = new Date();
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      const startOfMonth = new Date(startOfDay);
+      startOfMonth.setUTCDate(1);
 
-      const [spentRes, subRes] = await Promise.all([
+      /**
+       * Count without downloading the rows.
+       *
+       * `Prefer: count=exact` with a one-row window makes Postgres return the
+       * total in the Content-Range header. The lifetime count for a long-lived
+       * voice subscriber is in the hundreds; fetching all of them to call
+       * `.length` on the array would get slower every month the account exists.
+       */
+      const countSpend = async (since: Date | null): Promise<number> => {
+        const window = since ? `&created_at=gte.${since.toISOString()}` : "";
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/narration_spend?select=id&user_id=eq.${user.id}&billed=is.true${window}`,
+          {
+            headers: {
+              apikey: serviceKey,
+              Authorization: `Bearer ${serviceKey}`,
+              Prefer: "count=exact",
+              Range: "0-0",
+            },
+          },
+        );
+        const total = res.headers.get("content-range")?.split("/")[1];
+        return total && total !== "*" ? Number(total) : 0;
+      };
+
+      const [subRes, today, month, ever] = await Promise.all([
         fetch(
-          `${supabaseUrl}/rest/v1/narration_spend?select=id&user_id=eq.${user.id}` +
-            `&billed=is.true&created_at=gte.${since.toISOString()}`,
-          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
-        ),
-        fetch(
-          `${supabaseUrl}/rest/v1/subscriptions?select=status&user_id=eq.${user.id}` +
+          `${supabaseUrl}/rest/v1/subscriptions?select=plan,status&user_id=eq.${user.id}` +
             `&status=in.("active","trialing")&limit=1`,
           { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
         ),
+        countSpend(startOfDay),
+        countSpend(startOfMonth),
+        countSpend(null),
       ]);
 
-      const spent = spentRes.ok ? ((await spentRes.json()) as unknown[]).length : 0;
-      const paid = subRes.ok ? ((await subRes.json()) as unknown[]).length > 0 : false;
-      const allowance = paid ? DAILY_NARRATIONS.paid : DAILY_NARRATIONS.free;
+      const subs = subRes.ok ? ((await subRes.json()) as { plan?: string }[]) : [];
+      const tier = tierOf(subs[0]?.plan);
+      const allowance = NARRATION_ALLOWANCE[tier];
 
-      if (spent >= allowance) {
-        console.log(`daily cap reached user=${user.id} spent=${spent} allowance=${allowance}`);
+      /**
+       * Standard doesn't include narration at all, and this is not a limit
+       * they've hit — it's a thing they didn't buy. Different error, different
+       * status, different screen: 402 with an offer, not 429 with "come back
+       * tomorrow", which would be a lie since tomorrow changes nothing.
+       */
+      if (allowance.perDay === 0) {
+        console.log(`voice not in plan user=${user.id} tier=${tier}`);
         return json(
           {
-            error: "daily_limit",
-            message: paid
-              ? "That's today's narration. The words are all here to read, and it resets at midnight."
-              : "That's both of today's narrations. You can still read every story, and it resets at midnight.",
-            spent,
-            allowance,
-            paid,
+            error: "voice_not_included",
+            message:
+              "Your plan covers everything written. The narrated voice is on the Voice plan.",
+            tier,
+          },
+          402,
+        );
+      }
+
+      const over =
+        today >= allowance.perDay
+          ? { window: "day", spent: today, allowance: allowance.perDay }
+          : month >= allowance.perMonth
+            ? { window: "month", spent: month, allowance: allowance.perMonth }
+            : allowance.total !== null && ever >= allowance.total
+              ? { window: "total", spent: ever, allowance: allowance.total }
+              : null;
+
+      if (over) {
+        console.log(
+          `cap reached user=${user.id} tier=${tier} window=${over.window} ` +
+            `spent=${over.spent} allowance=${over.allowance}`,
+        );
+
+        /**
+         * Three different sentences because three different things are true,
+         * and a person can tell when a message doesn't match their situation.
+         * Telling a free user whose trial is spent that "it resets at midnight"
+         * would have them come back tomorrow to nothing.
+         */
+        const message =
+          over.window === "total"
+            ? "That's the last of your free narrations. The Voice plan opens them up properly."
+            : over.window === "month"
+              ? "That's this month's narration used. It resets on the first — every story is still here to read."
+              : tier === "free"
+                ? "That's today's free narration. You can still read every story, and it resets at midnight."
+                : "That's today's three narrations. The words are all here to read, and it resets at midnight.";
+
+        return json(
+          {
+            error: over.window === "total" ? "trial_used" : "daily_limit",
+            message,
+            window: over.window,
+            spent: over.spent,
+            allowance: over.allowance,
+            tier,
           },
           429,
         );

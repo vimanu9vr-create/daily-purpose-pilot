@@ -36,39 +36,68 @@ This is also the honest answer to "I need it to be fast". Generation time is
 fixed by how much text there is, but transfer time is ours to choose, and we
 had been paying double for a fidelity nobody can hear on a voice track.
 
-## 3. `const MODEL = Deno.env.get("NARRATION_MODEL") ?? "eleven_multilingual_v2";`
+## 3. `const MODEL = Deno.env.get("NARRATION_MODEL") ?? "eleven_flash_v2_5";`
 
-Which model reads it.
+Which model reads it. **This default changed, and it is on probation.**
 
 `eleven_multilingual_v2` is ElevenLabs' recommendation for narration and the
-one they describe as most stable across a long generation. It is also full
-price per character.
+one they describe as most stable across a long generation. It is full price:
+one credit per character, so **39c** for the average 2,139-character story.
 
-`eleven_flash_v2_5` is documented as "50% lower price per character for API
-generations" — genuinely half the cost. It is built for real-time agents
-rather than long-form reading, so it is faster and slightly less settled on
-a three-minute piece.
+`eleven_flash_v2_5` bills half a credit per character — **20c** for the same
+story. It is built for real-time agents rather than long-form reading, so it
+is faster and slightly less settled over three minutes.
 
-Default stays on quality. This app has been told its voice sounds wrong more
-than once, and halving the bill by halving the thing people are paying for
-is a trade worth making deliberately rather than quietly. `NARRATION_MODEL`
-switches it without a deploy if the numbers ever demand it.
+### Why the default moved
+
+It used to sit on quality, with the reasoning that halving the bill by
+halving the thing people are paying for is a bad trade. That reasoning was
+right, and it was argued against a cost figure that turned out to be wrong by
+an order of magnitude — a story is 2,139 characters, not the ~230 the old
+arithmetic implied. At 39c a listen, the Voice plan's 45-a-month ceiling costs
+$17.55 against $10.49 of net revenue. It doesn't work. At 20c it does.
+
+So the trade is no longer quality against thrift, it is Flash against no voice
+at all.
+
+### How to judge it, and how to undo it
+
+`RENDER_VERSION` was deliberately **not** bumped. Every story already narrated
+keeps its `multilingual_v2` audio and plays untouched; only new renders use
+Flash. That makes an old story and a new one a direct comparison on the same
+voice, the same settings and the same phone.
+
+The thing to listen for is the complaint this app has already had once: the
+voice sounding clipped or hurried rather than settled. If it's there, set the
+`NARRATION_MODEL` secret to `eleven_multilingual_v2` — that reverts it with no
+deploy and no re-rendering — and the plan maths has to be solved another way,
+by shortening the stories or by raising the price.
 
 ## 4. `const RENDER_VERSION = "v7";`
 
-Bumped whenever the model, voice settings, or timing source change.
+Bumped when a change is meant to reach audio that already exists.
 
 v4 switched from estimated sentence times to real ones. v5 slowed the voice
 to 0.7 and opened the gaps to 2.4s. v6 gives each half of a split narration
 the text either side of it, so the two halves sound like one performance
-instead of two.
+instead of two. Each of those was a fix somebody had complained about, and
+cached audio is keyed by voice — so without the bump only brand new tracks
+would change, and the fix would look like it hadn't worked.
 
-Every cached file was rendered under the old rules, so without the bump only
-brand new tracks would change and the fix would look like it hadn't worked.
+### But bumping is not free, and it is the single most expensive habit here
 
-Cached audio is keyed by voice, so without this every story generated before
-the change would keep its old narration and only new stories would sound
-better — which would have looked like the fix not working.
+Two thirds of every character ever bought on this account was waste, and the
+largest share of it was this constant: four bumps in a week while tuning the
+pacing, each one re-buying the entire library. Storage still holds five
+separate renders of "abundance-888-hz". Every one was paid for.
+
+So the rule is narrower than it looks. Bump when existing audio is *wrong* and
+must be replaced. Do **not** bump merely because something changed.
+
+The move to Flash in §3 is the worked example: it changes the model, and it
+deliberately does not bump. Old audio isn't wrong, it's just more expensive
+than the next one will be — and leaving it alone costs nothing, preserves a
+direct A/B against the new renders, and keeps a reversal free.
 
 ## 5. `const VOICE_SETTINGS = {`
 
@@ -126,25 +155,51 @@ would run out before the rest arrives. Two plus the 1.6s pause between them
 buys roughly ten to fifteen seconds of cover, which is comfortably more than
 the rest takes to render.
 
-## 9. `const DAILY_NARRATIONS = { free: 2, paid: 10 };`
+## 9. `const NARRATION_ALLOWANCE = { free, standard, voice }`
 
-How many narrations a person may commission in a day.
+How much narration each tier may commission, and why the tier decides.
 
-The arithmetic that forced this: one active user renders roughly 2,300
-characters a day, which is about 69,000 a month, which on a Creator plan is
-around $15 — against a $8.99 subscription. Narration is not a cost centre in
-this app, it is the entire cost, and nothing was counting it. One person on
-a slow afternoon could empty the month's allowance for everybody, and that
-is not a hypothetical: it is what happened.
+Narration is not a cost centre in this app, it is the entire cost. Text runs
+on Gemini's free tier and photographs on Pexels' free allowance; ElevenLabs
+bills per character, and nothing was counting it. One person on a slow
+afternoon could empty the month's allowance for everybody, and that is not a
+hypothetical: it is what happened.
 
-A cap is the only mechanism that makes the app safe to give to strangers.
-The numbers are deliberately generous — two full stories a day is more than
-a daily practice needs, and ten is more than anyone will use — because the
-point is to stop a runaway, not to ration normal use.
+### The measured numbers
+
+Taken from production rather than estimated. The average narrated story is
+**2,139 characters**. ElevenLabs Creator is **$22 for 121,000 credits**
+(checked August 2026), so a credit costs $0.000182. `multilingual_v2` bills
+one credit per character, `flash_v2_5` bills half.
+
+That makes one listen **39c** at full quality, or **20c** on Flash.
+
+The figures this replaces were wrong by an order of magnitude. They assumed
+about 2,300 characters a *day* when a single story is 2,139 — so the
+"generous" cap of ten a day was roughly $60 a month per subscriber against
+$8.99 of revenue. A cap set by intuition rather than by measurement is not
+a cap.
+
+### Why the tier decides, not just "paid"
+
+One price covering both text and voice means the person who only reads pays
+for the person who listens, and the app loses more money the more its best
+feature gets used. Standard is priced low and includes no narration; Voice is
+priced to cover its own bill. See `src/features/billing/plans.ts`.
+
+Three windows, not one. `perDay` stops a single evening consuming the month.
+`perMonth` bounds the tail so one enthusiastic subscriber can't outrun the
+subscription paying for them. `total` exists only on free, where narration is
+a trial that ends rather than an allowance that resets forever — three
+listens costs about 60c to give away, a fair price for letting somebody hear
+the thing they'd be buying. Three a *day* would be $18 a month per person,
+for people who may never pay.
+
+### The exemption
 
 The shared library is exempt. Those tracks are keyed by title, so one render
-serves every user who ever opens them; charging a person's daily allowance
-for a file that already exists would be punishing them for someone else's
+serves every user who ever opens them; charging a person's allowance for a
+file that already exists would be punishing them for someone else's
 generosity.
 
 ## 10. `if (!part && story.audio_url && story.audio_voice?.startsWith(`${voice}@`) && !f`
@@ -197,7 +252,7 @@ five copies of "abundance-888-hz" ended up in storage.
 
 ## 14. `if (!isCatalogue) {`
 
-THE DAILY CAP. Checked here, after every cache path has had its chance.
+THE CAP. Checked here, after every cache path has had its chance.
 
 Placement is the whole design. Everything above this line either found
 existing audio or established that none exists, so a cached hit never
@@ -206,7 +261,30 @@ that is actually bought.
 
 The shared library is exempt for the same reason: it is keyed by title,
 so the first person to open a sleep track pays for everyone, and taking
-their daily allowance for it would punish them for being first.
+their allowance for it would punish them for being first.
+
+### Two refusals, not one
+
+A Standard subscriber gets **402 `voice_not_included`**. A Voice subscriber
+who has used today's three gets **429 `daily_limit`**. These must be
+different, because the screens they produce are opposites: one says "come
+back tomorrow", and the other has to say "this is on the Voice plan".
+
+Telling a Standard subscriber to come back tomorrow sends them back tomorrow
+to find nothing has changed, which reads as a broken app rather than a plan
+boundary — and it wastes the one moment they wanted the voice enough to press
+a button.
+
+The free trial running out is a third case again (`trial_used`), for the same
+reason: "it resets at midnight" is a lie when the allowance is a lifetime
+total.
+
+### This copy of `tierOf` is the one that decides
+
+The client has its own copy in `plans.ts`. That one only controls what gets
+drawn on screen. Anyone can edit what runs in their own browser, so a gate
+that lives there is a suggestion — the subscription row is read here, with
+the service key, on every uncached render.
 
 ## 15. `const CONTEXT_CHARS = 400;`
 

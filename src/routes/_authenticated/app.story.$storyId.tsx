@@ -1,10 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BookOpen,
   ChevronLeft,
   Heart,
   Loader2,
+  Mic,
   Music,
   Pause,
   Play,
@@ -365,11 +366,29 @@ function StoryPlayer() {
             broken"; this is closer to a closing time — the story is still
             right there to read, and it comes back tomorrow.
           */}
-          {studio.atDailyLimit ? (
+          {studio.atDailyLimit || studio.needsVoicePlan ? (
             <div className="rounded-[20px] border border-white/15 bg-white/10 px-4 py-3">
               <p className="text-center text-[12px] leading-relaxed text-white/85">
                 {studio.error}
               </p>
+
+              {/*
+                Offered here rather than only on the pricing page, because this
+                is the second somebody wanted the voice enough to press a
+                button. Making them go and find it later means they mostly
+                don't.
+              */}
+              {studio.needsVoicePlan && (
+                <Link
+                  to="/app/upgrade"
+                  search={{ tier: "voice" }}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-[12px] font-medium text-neutral-900"
+                >
+                  <Mic className="h-3.5 w-3.5" />
+                  Hear it on the Voice plan
+                </Link>
+              )}
+
               <button
                 type="button"
                 onClick={() => setShowFullStory(true)}

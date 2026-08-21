@@ -17,7 +17,13 @@ import { AuroraBackground } from "@/components/aurora-background";
 import { PageTransition, Reveal } from "@/components/page-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { FREE_LIMITS, PLANS, PREMIUM_FEATURES } from "@/features/billing/plans";
+import {
+  FREE_LIMITS,
+  NARRATION_ALLOWANCE,
+  STANDARD_FEATURES,
+  VOICE_FEATURES,
+  planById,
+} from "@/features/billing/plans";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -86,6 +92,17 @@ const features = [
  * signed up saw a different price to the one that sold them. Deriving it means
  * that can't happen twice.
  */
+const standardYearly = planById("standard_yearly");
+const voiceYearly = planById("voice_yearly");
+
+/**
+ * Three columns, one per tier, each showing its yearly price.
+ *
+ * It used to render every plan as its own column, which meant five near
+ * identical cards listing the same four perks — so the page answered "how often
+ * do I pay" and never answered "what do I get". The choice that actually
+ * matters is whether you want the voice, and that's the one the page now makes.
+ */
 const tiers = [
   {
     name: "Free",
@@ -94,24 +111,34 @@ const tiers = [
     blurb: "Enough to see whether this is for you.",
     perks: [
       `${FREE_LIMITS.storiesPerRefresh} stories per refresh`,
-      `${FREE_LIMITS.studioNarrationsTotal} narrations in the studio voice`,
+      `${NARRATION_ALLOWANCE.free.total} narrations in the studio voice, to hear what it's like`,
       `${FREE_LIMITS.coachMessagesPerDay} coach messages a day`,
-      "The full sleep and meditation library",
+      "The whole library to read",
     ],
-    cta: "Start Free",
+    cta: "Start free",
     featured: false,
     badge: null as string | null,
   },
-  ...PLANS.map((plan) => ({
-    name: plan.name,
-    price: plan.priceDisplay,
-    period: plan.cadence,
-    blurb: plan.blurb,
-    perks: [...PREMIUM_FEATURES].slice(0, 4),
-    cta: plan.id === "lifetime" ? "Get Lifetime" : `Get ${plan.name}`,
-    featured: plan.id === "yearly",
-    badge: plan.highlight ?? null,
-  })),
+  {
+    name: "Standard",
+    price: standardYearly?.priceDisplay ?? "$29.99",
+    period: standardYearly?.cadence ?? "per year",
+    blurb: "Everything written, with no limits. You do the reading.",
+    perks: [...STANDARD_FEATURES].slice(0, 4),
+    cta: "Get Standard",
+    featured: false,
+    badge: standardYearly?.highlight ?? null,
+  },
+  {
+    name: "Voice",
+    price: voiceYearly?.priceDisplay ?? "$99.99",
+    period: voiceYearly?.cadence ?? "per year",
+    blurb: "Everything in Standard, read aloud in a real human voice.",
+    perks: [...VOICE_FEATURES],
+    cta: "Get Voice",
+    featured: true,
+    badge: voiceYearly?.highlight ?? null,
+  },
 ];
 
 function Landing() {

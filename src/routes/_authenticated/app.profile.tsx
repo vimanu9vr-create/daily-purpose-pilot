@@ -11,6 +11,7 @@ import {
   Loader2,
   LogOut,
   MessageCircleHeart,
+  Mic,
   Moon,
   Share,
   Shield,
@@ -30,7 +31,7 @@ import { WeekCard } from "@/features/insights/week-card";
 import { NumberCard } from "@/features/numbers/number-card";
 import { useDesires } from "@/features/stories/use-stories";
 import { DeleteAccountDialog } from "@/features/account/delete-account-dialog";
-import { planById } from "@/features/billing/plans";
+import { planById, tierName } from "@/features/billing/plans";
 import { purchaseStore } from "@/features/billing/store";
 import { useSubscription } from "@/features/billing/use-subscription";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ function ProfilePage() {
   const { data: desires } = useDesires();
   const updateProfile = useUpdateProfile();
   const signOut = useSignOut();
-  const { isPremium, plan, subscription } = useSubscription();
+  const { isPremium, plan, tier, hasVoice, subscription } = useSubscription();
 
   const push = usePushState();
   const { data: isSubscribed } = useIsSubscribed();
@@ -221,10 +222,34 @@ function ProfilePage() {
             <div className="mt-3 flex items-center justify-between">
               <span className="text-sm">Plan</span>
               <span className="text-sm text-muted-foreground">
-                {planById(plan)?.name ?? "Premium"}
+                {tierName(tier)}
+                {planById(plan) ? ` · ${planById(plan)?.name}` : ""}
                 {subscription?.price_display ? ` · ${subscription.price_display}` : ""}
               </span>
             </div>
+
+            {/*
+              A Standard subscriber has no way to discover the Voice plan
+              otherwise — the paywall only shows to people who haven't paid, so
+              without this the one group most likely to buy the upgrade is the
+              only group never offered it.
+            */}
+            {!hasVoice && (
+              <Link
+                to="/app/upgrade"
+                search={{ tier: "voice" }}
+                className="mt-3 flex w-full items-center gap-3 rounded-xl bg-primary/5 px-3 py-3 text-left text-sm transition-colors hover:bg-primary/10"
+              >
+                <Mic className="h-4 w-4 shrink-0 text-primary" />
+                <span className="flex-1">
+                  Add the narrated voice
+                  <span className="block text-xs text-muted-foreground">
+                    Stories and sessions read aloud, instead of read by you.
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Link>
+            )}
             {subscription?.current_period_end && (
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-sm">
