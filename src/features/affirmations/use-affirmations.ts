@@ -125,10 +125,26 @@ export function useAffirmationDeck(categoryId: string | null) {
     saved: false,
   }));
 
-  // Personal ones lead; library fills the rest. Dedupe on text so a saved
-  // library affirmation doesn't appear twice.
+  /**
+   * Yours only, once you have any. The library is a starting point, not filler.
+   *
+   * The deck used to be everything at once — 107 written for this person's own
+   * dreams and 155 stock lines, in one pile, with nothing on the card saying
+   * which was which. So a canned "I am allowed to take up space" arrived
+   * looking exactly like a line written from what somebody typed, which is the
+   * only thing about a template that actually matters. Swiping long enough
+   * always reached the generic ones.
+   *
+   * A new account still gets the library, because an empty deck on the first
+   * morning is worse than a general one. The moment there is anything personal,
+   * the library steps back and becomes what it is: a library, reachable by
+   * picking a category, not something pretending to be about you.
+   */
   const seen = new Set(savedForCategory.map((a) => a.text));
-  return [...savedForCategory, ...library.filter((a) => !seen.has(a.text))];
+  const rest = library.filter((a) => !seen.has(a.text));
+
+  if (savedForCategory.length === 0) return rest;
+  return categoryId ? [...savedForCategory, ...rest] : savedForCategory;
 }
 
 /** One affirmation for today — the user's own if they have any, else the library. */

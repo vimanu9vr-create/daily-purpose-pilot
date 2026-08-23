@@ -3,6 +3,7 @@ import { ImagePlus, Loader2, Plus, Sparkles, Type, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useDesires } from "@/features/stories/use-stories";
 import { cn } from "@/lib/utils";
@@ -52,11 +53,29 @@ function Vision() {
    * every dream produced a board with a Defender, a laptop and a mountain on
    * it, belonging to nothing in particular.
    */
-  async function create(title: string, category: string, focus: string[]) {
+  async function create(title: string, category: string, focus: string[], desireId?: string) {
     const boardId = await createBoard.mutateAsync({ title, category });
 
+    /**
+     * Read the dream's own affirmations before filling the board.
+     *
+     * Read here rather than through a hook because a board is created for one
+     * dream at a time, on a tap — a query keyed to a selection would have to
+     * exist before anybody chose anything.
+     */
+    let affirmations: string[] = [];
+    if (desireId) {
+      const { data } = await supabase
+        .from("affirmations")
+        .select("text,is_anchor")
+        .eq("desire_id", desireId)
+        .order("is_anchor", { ascending: false })
+        .limit(4);
+      affirmations = (data ?? []).map((row) => row.text);
+    }
+
     // Fill it immediately. An empty board is the reason nobody comes back.
-    const items = suggestBoardItems({ title, category, desires: focus });
+    const items = suggestBoardItems({ title, category, desires: focus, affirmations });
 
     for (const item of items) {
       await addItem.mutateAsync({
@@ -132,7 +151,12 @@ function Vision() {
                     type="button"
                     disabled={createBoard.isPending || addItem.isPending}
                     onClick={() =>
-                      void create(desire.title, desire.category ?? "growth", [desire.title])
+                      void create(
+                        desire.title,
+                        desire.category ?? "growth",
+                        [desire.title],
+                        desire.id,
+                      )
                     }
                     className="flex w-full items-center gap-3 rounded-2xl border border-glass-border bg-card/50 px-4 py-3.5 text-left transition active:scale-[0.99] disabled:opacity-50"
                   >

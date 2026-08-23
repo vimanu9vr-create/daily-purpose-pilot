@@ -20,6 +20,8 @@ export type BoardSeed = {
   title: string;
   category?: string | null;
   desires?: string[];
+  /** The dream's own affirmations, already written. Used before anything canned. */
+  affirmations?: string[];
 };
 
 const LINES_BY_CATEGORY: Record<string, string[]> = {
@@ -80,13 +82,27 @@ export function suggestBoardItems(seed: BoardSeed): SuggestedItem[] {
 
   const lines = LINES_BY_CATEGORY[category] ?? UNIVERSAL_LINES;
 
-  // If they've written desires, use their own words first — a line someone
-  // typed themselves lands harder than one we wrote for them.
-  const fromDesires = (seed.desires ?? [])
-    .slice(0, 2)
-    .map((desire) => `I am becoming the person for whom ${desirePhraseOr(desire)} is ordinary`);
+  /**
+   * Their own affirmations first — the real ones, written for this dream.
+   *
+   * Two templates used to compete here and both lost. The canned lines put
+   * "Money is something I understand" onto a board about a Defender. And the
+   * supposedly-personal fallback was itself a slot — "I am becoming the person
+   * for whom ${dream} is ordinary" — which produced "the person for whom i am
+   * earning $10k weekly is ordinary" the moment somebody typed a sentence
+   * instead of a noun. The same slot bug as the stories and the programmes.
+   *
+   * The app already writes six real affirmations per dream and marks one as
+   * the anchor. Those are the words that belong on a board. The canned lines
+   * survive only for a board made before any exist — the one case where
+   * something generic genuinely beats an empty grid.
+   */
+  const fromAffirmations = (seed.affirmations ?? [])
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 2);
 
-  const chosenLines = [...fromDesires, ...lines].slice(0, 2);
+  const chosenLines = [...fromAffirmations, ...lines].slice(0, 2);
 
   return [
     { kind: "image", imageUrl: coverImage(`${seed.title}-1`, theme) },
