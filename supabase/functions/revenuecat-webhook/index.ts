@@ -18,12 +18,44 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-/** RevenueCat product identifier → our plan name. */
+/**
+ * Store product identifier → the plan we record.
+ *
+ * These must match `src/features/billing/plans.ts` exactly. The plan string
+ * written here is what `narrate-story` later reads to decide whether somebody
+ * may commission narration, so a wrong entry here is not a display bug — it is
+ * either giving the expensive tier away or withholding a paid one.
+ *
+ * The three bare names at the bottom are the plans sold before the Standard /
+ * Voice split. They included narration, so they keep it.
+ */
 const PLAN_BY_PRODUCT: Record<string, string> = {
+  "com.manifestai.standard.monthly": "standard_monthly",
+  "com.manifestai.standard.yearly": "standard_yearly",
+  "com.manifestai.standard.lifetime": "standard_lifetime",
+  "com.manifestai.voice.monthly": "voice_monthly",
+  "com.manifestai.voice.yearly": "voice_yearly",
+
+  // Sold before the split.
   "com.manifestai.premium.monthly": "monthly",
   "com.manifestai.premium.yearly": "yearly",
   "com.manifestai.premium.lifetime": "lifetime",
 };
+
+/**
+ * What to record when the product isn't in that map.
+ *
+ * It used to be "monthly" — which, after the split, is the LEGACY id and maps
+ * to the voice tier. So a typo in App Store Connect, or a product created and
+ * not added here, would have handed the $14.99 plan to somebody paying $4.99,
+ * silently, for as long as it took anyone to notice.
+ *
+ * Standard is the safe direction to be wrong in. The person has paid and gets
+ * the base paid tier immediately, nobody is handed narration by accident, and
+ * the error is logged loudly enough to find. Refusing outright was the other
+ * option and it is worse: it takes money and grants nothing.
+ */
+const FALLBACK_PLAN = "standard_monthly";
 
 /** Events that mean "this person should have premium right now". */
 const GRANTING = new Set([
@@ -103,7 +135,14 @@ Deno.serve(async (req: Request) => {
     }
 
     if (GRANTING.has(event.type)) {
-      const plan = PLAN_BY_PRODUCT[event.product_id ?? ""] ?? "monthly";
+      const known = PLAN_BY_PRODUCT[event.product_id ?? ""];
+      if (!known) {
+        console.error(
+          `UNMAPPED PRODUCT "${event.product_id}" for ${userId} — granting ${FALLBACK_PLAN}. ` +
+            `Add it to PLAN_BY_PRODUCT and to src/features/billing/plans.ts.`,
+        );
+      }
+      const plan = known ?? FALLBACK_PLAN;
       const periodEnd = event.expiration_at_ms
         ? new Date(event.expiration_at_ms).toISOString()
         : null;

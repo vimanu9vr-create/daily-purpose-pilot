@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +64,52 @@ export function useSubscription() {
     hasVoice,
     narrationAllowance: NARRATION_ALLOWANCE[tier],
     limits: isPremium ? null : FREE_LIMITS,
+  };
+}
+
+/**
+ * Wait for the purchase to actually arrive, then refresh.
+ *
+ * A purchase is not one thing happening. StoreKit tells the app it succeeded,
+ * and separately RevenueCat posts a webhook to us, and only that webhook writes
+ * the `subscriptions` row. The app is deliberately not allowed to grant its own
+ * entitlement — a jailbroken device can lie to the SDK but cannot forge a
+ * server-to-server call — so the row is the only thing that counts.
+ *
+ * Which means the two land out of order. The SDK returns in a second; the
+ * webhook takes a few more. Navigating straight to Home on "purchased" showed
+ * the person the free tier, having just paid, with nothing to do but wonder
+ * whether it had worked and possibly buy it again.
+ *
+ * So this polls the row until it appears, and gives up after roughly twenty
+ * seconds — at which point the honest message is "we've got your payment, it's
+ * taking a moment", not silence.
+ */
+export function useAwaitEntitlement() {
+  const queryClient = useQueryClient();
+
+  return async function waitForPlan(timeoutMs = 20_000): Promise<boolean> {
+    const started = Date.now();
+
+    while (Date.now() - started < timeoutMs) {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("plan")
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (data?.plan) {
+        await queryClient.invalidateQueries({ queryKey: billingKeys.mine });
+        return true;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+
+    // Refresh anyway: if it landed a moment after we stopped looking, the next
+    // screen should still be right.
+    await queryClient.invalidateQueries({ queryKey: billingKeys.mine });
+    return false;
   };
 }
 

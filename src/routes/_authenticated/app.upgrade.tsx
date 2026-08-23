@@ -14,7 +14,7 @@ import {
   type PlanTier,
 } from "@/features/billing/plans";
 import { purchaseStore } from "@/features/billing/store";
-import { useSubscription } from "@/features/billing/use-subscription";
+import { useAwaitEntitlement, useSubscription } from "@/features/billing/use-subscription";
 import { cn } from "@/lib/utils";
 
 /**
@@ -47,6 +47,7 @@ function Upgrade() {
   const navigate = useNavigate();
   const { tier: openTo } = useSearch({ from: "/_authenticated/app/upgrade" });
   const { tier: currentTier, hasVoice } = useSubscription();
+  const awaitEntitlement = useAwaitEntitlement();
 
   const [tier, setTier] = useState<PaidTier>(openTo ?? "voice");
   const [selected, setSelected] = useState<PlanId>(
@@ -62,25 +63,56 @@ function Upgrade() {
     setSelected(next === "voice" ? "voice_yearly" : "standard_yearly");
   }
 
+  /**
+   * Buy, then WAIT for the entitlement before leaving this screen.
+   *
+   * The store telling the app "purchased" and our database knowing about it are
+   * two separate events, and they arrive out of order: StoreKit returns in a
+   * second, the RevenueCat webhook takes a few more, and only the webhook
+   * writes the row. Navigating on the SDK's word alone dropped somebody who had
+   * just paid onto a Home screen that still said Free — which is the exact
+   * moment a person decides the payment failed and tries again.
+   *
+   * So the spinner stays until the plan is really there. If it takes longer
+   * than twenty seconds they are told the truth rather than shown a lie.
+   */
   async function buy() {
     setBusy(true);
     const result = await purchaseStore().purchase(selected);
-    setBusy(false);
 
     if (result.status === "purchased") {
-      toast.success(tier === "voice" ? "You're in. The voice is yours." : "You're in.");
+      const landed = await awaitEntitlement();
+      setBusy(false);
+
+      if (landed) {
+        toast.success(tier === "voice" ? "You're in. The voice is yours." : "You're in.");
+      } else {
+        toast.success("Payment received. Your plan will appear here in a moment.");
+      }
       void navigate({ to: "/app" });
-    } else if (result.status === "cancelled") {
-      // Nothing to say — they chose to back out.
-    } else {
-      toast.error(result.message);
+      return;
     }
+
+    setBusy(false);
+    if (result.status === "cancelled") return; // They chose to back out.
+    toast.error(result.message);
   }
 
   async function restore() {
+    setBusy(true);
     const result = await purchaseStore().restore();
-    if (result.status === "purchased") toast.success("Purchase restored.");
-    else if (result.status !== "cancelled") toast.error(result.message);
+
+    if (result.status === "purchased") {
+      // Same race as a fresh purchase: RevenueCat re-posts the events, and the
+      // row may be a few seconds behind the SDK saying it found the receipt.
+      await awaitEntitlement();
+      setBusy(false);
+      toast.success("Purchase restored.");
+      return;
+    }
+
+    setBusy(false);
+    if (result.status !== "cancelled") toast.error(result.message);
   }
 
   /**
