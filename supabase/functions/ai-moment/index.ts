@@ -630,7 +630,9 @@ Deno.serve(async (req: Request) => {
     ].filter(Boolean);
 
     const aboutThem = [
-      firstName ? `THEIR NAME: ${firstName} — you may use it, sparingly. Once is plenty.` : "",
+      firstName
+        ? `THEIR NAME IS ${firstName}, AND IT MAY ONLY APPEAR INSIDE QUOTATION MARKS — another person in the scene saying it to them, once at most. Everywhere else they are "you". NEVER write "${firstName} walks", "${firstName} signs", "${firstName} looks" or any other sentence with ${firstName} as the subject: that turns the person being spoken to into a character being described, and the entire story stops being about them.`
+        : "",
       profile?.desired_feeling
         ? `THE FEELING THEY ARE AFTER: ${profile.desired_feeling}. The last paragraph should land there.`
         : "",
@@ -672,6 +674,11 @@ Deno.serve(async (req: Request) => {
         `Before you answer, check both of these.`,
         `1. Is what they want unmistakably present in the first paragraph, SHOWN as part of the scene?`,
         `2. Does the text contain "I", "I'm", "my", or the phrase "${subject.title}" copied out anywhere at all — including in quotation marks, in speech, on a screen, or after a colon? If so, rewrite it. You are describing their life back to them as "you", using your own sentences.`,
+        ...(firstName
+          ? [
+              `3. Does "${firstName}" appear anywhere outside quotation marks? If so, replace it with "you" — the reader is the person in this scene, not somebody they are watching.`,
+            ]
+          : []),
       ].join("\n"),
       ...(rewriteBlock ? [rewriteBlock] : []),
     ].join("\n\n");

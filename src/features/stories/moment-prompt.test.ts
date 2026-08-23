@@ -152,6 +152,29 @@ describe("no concrete noun leaks out of the prompt as an example", () => {
   });
 });
 
+describe("the reader's name", () => {
+  /**
+   * The regression adding the name caused, measured on the next batch.
+   *
+   * The rule was "THEIR NAME: Vicky — you may use it, sparingly". Permission
+   * with no constraint on WHERE, so seven of fifteen stories made her a
+   * character: "Vicky signs for the cashmere delivery" instead of "you sign".
+   * That breaks second person, which is the entire format — the reader stops
+   * being the person in the scene and becomes somebody watching one.
+   *
+   * A name in second-person narration only works in one position: inside
+   * quotation marks, said by somebody else. So that is the only place it is
+   * allowed.
+   */
+  it("allows the name only inside quotation marks", () => {
+    expect(CODE).toMatch(/MAY ONLY APPEAR INSIDE QUOTATION MARKS/);
+  });
+
+  it("forbids the name in subject position by example", () => {
+    expect(CODE).toMatch(/NEVER write .*\$\{firstName\} walks/);
+  });
+});
+
 describe("time of day is assigned, not forbidden", () => {
   /**
    * The fourth ban I wrote today, and the fourth to be worked around.
