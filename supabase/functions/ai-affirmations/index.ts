@@ -271,9 +271,28 @@ Deno.serve(async (req: Request) => {
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
     const user = (await userRes.json()) as { id: string };
 
-    const { category, desireId } = (await req.json().catch(() => ({}))) as {
+    const { category, desireId, stages } = (await req.json().catch(() => ({}))) as {
       category?: string | null;
       desireId?: string | null;
+      /**
+       * Theme names for a 7- or 21-day programme, in order.
+       *
+       * Reported as: the 7-day and 21-day programmes show the same
+       * affirmations for every dream — the Defender, the $10k, the app.
+       *
+       * They did. The days came from a hardcoded list of seven stages, and
+       * THREE OF THE SEVEN never referenced the dream at all, so those days
+       * were byte-identical whatever somebody had typed. The other four
+       * substituted the title into a slot shaped for a noun, which produced
+       * "I want I am earning $10k weekly, and I say so without apologising"
+       * — the same grammar-shape bug the stories had.
+       *
+       * The stage ARC is good and stays: naming, deserving, identity, work,
+       * doubt, being seen, ordinary. It is the LINES that have to be written
+       * for the dream. One call for the whole programme rather than one per
+       * day, because seven round trips is a spinner nobody waits through.
+       */
+      stages?: string[];
     };
 
     const headers = { Authorization: authHeader, apikey: anonKey };
@@ -369,11 +388,32 @@ Deno.serve(async (req: Request) => {
         ? `Every affirmation must be about this one thing and nothing else: ${sources[0]!.title}`
         : "";
 
+    /**
+     * Programme mode. Same voice and same rules, a different shape of answer.
+     *
+     * Deliberately reuses this function rather than adding another one: the
+     * conviction rules, the identity-not-prophecy line, the banned openings and
+     * the honesty limits all live in SYSTEM_PROMPT, and a second writer would
+     * mean two places to keep those correct. The stage themes are the only new
+     * information.
+     */
+    const programmeAsk =
+      stages && stages.length > 0
+        ? [
+            `WRITE A ${stages.length}-DAY PROGRAMME, not a single set.`,
+            `Each day has its own theme, in this order: ${stages.map((s, i) => `${i + 1}. ${s}`).join("; ")}.`,
+            `For each day write FOUR affirmations that belong to that day's theme AND to their one subject. Every day must read differently from every other day — the themes are what makes them differ, so a line that would fit any day is wrong.`,
+            `At least two lines a day must contain something concrete from their subject — its noun, its number, the room it changes. A day with no trace of what they typed is the failure this replaces.`,
+            `Return ONLY JSON: {"days":[{"lines":["...","...","...","..."]}]} with exactly ${stages.length} entries in the order given. No markdown fence.`,
+          ].join("\n")
+        : "";
+
     const userContent = [
       preamble,
       context,
       focus,
       category ? `Slant these toward: ${category}.` : "",
+      programmeAsk,
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -414,7 +454,48 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload = (await upstream.json()) as { choices?: { message?: { content?: string } }[] };
-    const { anchor, rest } = parseSet(payload.choices?.[0]?.message?.content ?? "");
+    const raw = payload.choices?.[0]?.message?.content ?? "";
+
+    /**
+     * Programme mode returns and stops here.
+     *
+     * Nothing is written to `affirmations`: these are a programme's days, not
+     * six lines to carry around, and mixing them into the saved set would put
+     * twenty-eight rows into a deck somebody swipes through one at a time.
+     * The caller writes them to `programme_days`.
+     */
+    if (stages && stages.length > 0) {
+      const cleaned = raw
+        .trim()
+        .replace(/^```(?:json)?/i, "")
+        .replace(/```$/, "")
+        .trim();
+
+      let days: string[][] = [];
+      try {
+        const parsed = JSON.parse(cleaned) as { days?: { lines?: unknown }[] };
+        days = (parsed.days ?? [])
+          .map((day) =>
+            Array.isArray(day.lines)
+              ? day.lines.filter((l): l is string => typeof l === "string" && l.trim().length > 0)
+              : [],
+          )
+          .filter((lines) => lines.length > 0);
+      } catch {
+        console.error("programme: unparseable", cleaned.slice(0, 300));
+      }
+
+      // Short is worse than absent: a programme missing days would show blanks
+      // partway through a commitment somebody made. Fail so the caller can say so.
+      if (days.length < stages.length) {
+        console.error(`programme: got ${days.length} days, wanted ${stages.length}`);
+        return json({ error: "empty", message: "Couldn't write that programme." }, 502);
+      }
+
+      return json({ days: days.slice(0, stages.length) }, 200);
+    }
+
+    const { anchor, rest } = parseSet(raw);
 
     if (!anchor && rest.length === 0) {
       return json({ error: "empty", message: "Couldn't write those right now." }, 502);

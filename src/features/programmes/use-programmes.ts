@@ -87,13 +87,46 @@ export function useStartProgramme() {
         .single();
       if (error) throw error;
 
-      const days = buildProgramme(desireTitle, length).map((day) => ({
+      /**
+       * The arc is local; the LINES are written for this dream.
+       *
+       * Reported as: the 7-day and 21-day programmes show the same
+       * affirmations for the Defender, the $10k and the app. They did. Three of
+       * the seven stages never mentioned the dream at all, so those days were
+       * byte-identical for everyone, and the other four pasted the title into a
+       * noun-shaped slot: "I want I am earning $10k weekly, and I say so
+       * without apologising."
+       *
+       * The stage themes survive — naming, deserving, identity, work, doubt,
+       * being seen, ordinary is a genuinely good arc and it was never the
+       * problem. One call writes every day's lines against those themes, so a
+       * twenty-one day commitment is twenty-one different days about the thing
+       * they actually typed.
+       *
+       * If the writer can't answer, the programme is not created at all. A
+       * half-written programme would show blanks partway through something
+       * somebody committed to, which is worse than not starting.
+       */
+      const skeleton = buildProgramme(desireTitle, length);
+
+      const { data: written, error: writeError } = await supabase.functions.invoke(
+        "ai-affirmations",
+        { body: { desireId, stages: skeleton.map((day) => day.theme) } },
+      );
+
+      const lines = (written as { days?: { lines?: string[] }[] } | null)?.days;
+      if (writeError || !lines || lines.length < skeleton.length) {
+        await supabase.from("programmes").delete().eq("id", programme.id);
+        throw new Error("Couldn't write that programme just now. Try again in a moment.");
+      }
+
+      const days = skeleton.map((day, index) => ({
         programme_id: programme.id,
         user_id: userId,
         day_number: day.dayNumber,
         theme: day.theme,
         intention: day.intention,
-        lines: day.lines,
+        lines: lines[index]?.lines?.length ? lines[index]!.lines! : day.lines,
       }));
 
       const { error: daysError } = await supabase.from("programme_days").insert(days);
