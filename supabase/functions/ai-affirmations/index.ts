@@ -402,9 +402,10 @@ Deno.serve(async (req: Request) => {
         ? [
             `WRITE A ${stages.length}-DAY PROGRAMME, not a single set.`,
             `Each day has its own theme, in this order: ${stages.map((s, i) => `${i + 1}. ${s}`).join("; ")}.`,
-            `For each day write FOUR affirmations that belong to that day's theme AND to their one subject. Every day must read differently from every other day — the themes are what makes them differ, so a line that would fit any day is wrong.`,
+            `For each day write ONE intention and FOUR affirmations, both belonging to that day's theme AND to their one subject. Every day must read differently from every other day — the themes are what makes them differ, so anything that would fit any day is wrong.`,
+            `The intention is one sentence of second person addressed to them — what today is for. Never paste their subject in as a phrase; write around its nouns and numbers, because what they typed may be a whole sentence and dropping it into a slot produces gibberish.`,
             `At least two lines a day must contain something concrete from their subject — its noun, its number, the room it changes. A day with no trace of what they typed is the failure this replaces.`,
-            `Return ONLY JSON: {"days":[{"lines":["...","...","...","..."]}]} with exactly ${stages.length} entries in the order given. No markdown fence.`,
+            `Return ONLY JSON: {"days":[{"intention":"...","lines":["...","...","...","..."]}]} with exactly ${stages.length} entries in the order given. No markdown fence.`,
           ].join("\n")
         : "";
 
@@ -471,16 +472,17 @@ Deno.serve(async (req: Request) => {
         .replace(/```$/, "")
         .trim();
 
-      let days: string[][] = [];
+      let days: { intention: string; lines: string[] }[] = [];
       try {
-        const parsed = JSON.parse(cleaned) as { days?: { lines?: unknown }[] };
+        const parsed = JSON.parse(cleaned) as { days?: { intention?: unknown; lines?: unknown }[] };
         days = (parsed.days ?? [])
-          .map((day) =>
-            Array.isArray(day.lines)
+          .map((day) => ({
+            intention: typeof day.intention === "string" ? day.intention.trim() : "",
+            lines: Array.isArray(day.lines)
               ? day.lines.filter((l): l is string => typeof l === "string" && l.trim().length > 0)
               : [],
-          )
-          .filter((lines) => lines.length > 0);
+          }))
+          .filter((day) => day.lines.length > 0);
       } catch {
         console.error("programme: unparseable", cleaned.slice(0, 300));
       }

@@ -114,19 +114,32 @@ export function useStartProgramme() {
         { body: { desireId, stages: skeleton.map((day) => day.theme) } },
       );
 
-      const lines = (written as { days?: { lines?: string[] }[] } | null)?.days;
-      if (writeError || !lines || lines.length < skeleton.length) {
+      const days_ = (written as { days?: { intention?: string; lines?: string[] }[] } | null)?.days;
+      if (writeError || !days_ || days_.length < skeleton.length) {
         await supabase.from("programmes").delete().eq("id", programme.id);
         throw new Error("Couldn't write that programme just now. Try again in a moment.");
       }
 
+      /**
+       * The INTENTION is written too, not just the lines.
+       *
+       * Half-fixing this was my mistake an hour ago: the lines became specific
+       * and the intentions stayed templated, so four of every seven days still
+       * said something that fitted any dream, and the other three read "Today
+       * is just about naming i am earning $10k weekly without softening it."
+       *
+       * `desirePhrase` only knows how to reshape "I want to buy X" into "your
+       * X". Handed a sentence it returns the sentence, lowercased — which is
+       * fine inside a slot built for it and wrong everywhere else. Asking the
+       * writer for the sentence removes the slot entirely.
+       */
       const days = skeleton.map((day, index) => ({
         programme_id: programme.id,
         user_id: userId,
         day_number: day.dayNumber,
         theme: day.theme,
-        intention: day.intention,
-        lines: lines[index]?.lines?.length ? lines[index]!.lines! : day.lines,
+        intention: days_[index]?.intention?.trim() || day.intention,
+        lines: days_[index]?.lines?.length ? days_[index]!.lines! : day.lines,
       }));
 
       const { error: daysError } = await supabase.from("programme_days").insert(days);
