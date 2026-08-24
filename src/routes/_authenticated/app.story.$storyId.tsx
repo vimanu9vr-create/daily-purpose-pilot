@@ -370,7 +370,7 @@ function StoryPlayer() {
             broken"; this is closer to a closing time — the story is still
             right there to read, and it comes back tomorrow.
           */}
-          {studio.atDailyLimit || studio.needsVoicePlan ? (
+          {studio.atDailyLimit || studio.needsVoicePlan || studio.voiceUnavailable ? (
             <div className="rounded-[20px] border border-white/15 bg-white/10 px-4 py-3">
               <p className="text-center text-[12px] leading-relaxed text-white/85">
                 {studio.error}
@@ -391,6 +391,17 @@ function StoryPlayer() {
                   <Mic className="h-3.5 w-3.5" />
                   Hear it on the Voice plan
                 </Link>
+              )}
+
+              {/*
+                Nothing to offer and nothing to sell — the voice is off at our
+                end. Saying so plainly beats a grey error line, and beats
+                implying they did something wrong or should pay to fix it.
+              */}
+              {studio.voiceUnavailable && (
+                <p className="mt-2 text-center text-[11px] leading-relaxed text-white/55">
+                  Nothing you did — we&rsquo;re fixing it. The words are all here meanwhile.
+                </p>
               )}
 
               <button

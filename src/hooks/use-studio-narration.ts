@@ -73,6 +73,20 @@ export function useStudioNarration(
    * find nothing had changed.
    */
   const [needsVoicePlan, setNeedsVoicePlan] = useState(false);
+  /**
+   * True when the voice is off for a reason that is nothing to do with them.
+   *
+   * The account being out of ElevenLabs credit, a rejected key, the feature not
+   * being configured — none of these are the reader's fault and none are fixed
+   * by them trying again. They were all falling through to a line of small grey
+   * error text under the play button, which is what somebody who has just been
+   * promised "a real human voice" would see.
+   *
+   * Right now this is the state the app is actually in: the balance is zero, so
+   * every single person who presses play gets this. Worth being honest about
+   * and offering the words instead, rather than looking broken.
+   */
+  const [voiceUnavailable, setVoiceUnavailable] = useState(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   /** True while the browser has run out of downloaded audio mid-track. */
@@ -266,6 +280,18 @@ export function useStudioNarration(
          */
         if (detail?.error === "daily_limit") setAtDailyLimit(true);
         if (detail?.error === "voice_not_included") setNeedsVoicePlan(true);
+
+        // Ours to fix, not theirs. Retrying changes nothing.
+        if (
+          detail?.error === "quota" ||
+          detail?.error === "bad_key" ||
+          detail?.error === "not_configured" ||
+          detail?.error === "upstream_error"
+        ) {
+          setVoiceUnavailable(true);
+          throw new Error("The voice is unavailable right now — this one is on us, not you.");
+        }
+
         throw new Error(detail?.message ?? "Studio narration isn't available.");
       }
 
@@ -449,6 +475,7 @@ export function useStudioNarration(
     error,
     atDailyLimit,
     needsVoicePlan,
+    voiceUnavailable,
     generate,
     prepare,
     unlock,
