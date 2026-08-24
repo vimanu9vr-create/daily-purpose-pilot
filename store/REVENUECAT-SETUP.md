@@ -18,11 +18,11 @@ for character or the plan will not appear on the device.
 
 | Product ID | Type | Price |
 | --- | --- | --- |
-| `com.manifestai.standard.monthly` | Auto-renewable subscription | $4.99 |
-| `com.manifestai.standard.yearly` | Auto-renewable subscription | $29.99 |
-| `com.manifestai.standard.lifetime` | Non-consumable | $59.99 |
-| `com.manifestai.voice.monthly` | Auto-renewable subscription | $14.99 |
-| `com.manifestai.voice.yearly` | Auto-renewable subscription | $119.99 |
+| `com.manifestai.standard.monthly` | Auto-renewable subscription | $6.99 |
+| `com.manifestai.standard.yearly` | Auto-renewable subscription | $49.99 |
+| `com.manifestai.standard.lifetime` | Non-consumable | $79.99 |
+| `com.manifestai.voice.monthly` | Auto-renewable subscription | $19.99 |
+| `com.manifestai.voice.yearly` | Auto-renewable subscription | $149.99 |
 
 The four subscriptions go in **one subscription group**. That is what lets
 somebody move between Standard and Voice, and between monthly and yearly,

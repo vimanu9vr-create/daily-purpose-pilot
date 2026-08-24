@@ -232,11 +232,11 @@ each before this goes to real testers.
 
   | Product id | Type | Price |
   | --- | --- | --- |
-  | `com.manifestai.standard.monthly` | Subscription | $4.99 / month |
-  | `com.manifestai.standard.yearly` | Subscription | $29.99 / year |
-  | `com.manifestai.standard.lifetime` | One-time | $59.99 |
-  | `com.manifestai.voice.monthly` | Subscription | $14.99 / month |
-  | `com.manifestai.voice.yearly` | Subscription | $119.99 / year |
+  | `com.manifestai.standard.monthly` | Subscription | $6.99 / month |
+  | `com.manifestai.standard.yearly` | Subscription | $49.99 / year |
+  | `com.manifestai.standard.lifetime` | One-time | $79.99 |
+  | `com.manifestai.voice.monthly` | Subscription | $19.99 / month |
+  | `com.manifestai.voice.yearly` | Subscription | $149.99 / year |
 
   In RevenueCat, the two Voice products carry the `premium` entitlement and the
   three Standard ones do not — but the app doesn't trust that anyway. The

@@ -78,7 +78,7 @@ export const STANDARD_PLANS: Plan[] = [
     tier: "standard",
     name: "Monthly",
     productId: "com.manifestai.standard.monthly",
-    priceDisplay: "$4.99",
+    priceDisplay: "$6.99",
     cadence: "per month",
     blurb: "Cancel any time.",
   },
@@ -87,30 +87,27 @@ export const STANDARD_PLANS: Plan[] = [
     tier: "standard",
     name: "Yearly",
     productId: "com.manifestai.standard.yearly",
-    priceDisplay: "$29.99",
+    priceDisplay: "$49.99",
     cadence: "per year",
-    blurb: "Works out at $2.50 a month.",
-    highlight: "Save 50%",
+    blurb: "Works out at $4.17 a month.",
+    highlight: "Save 40%",
   },
   {
     /**
-     * $59.99, and the number is set against a competitor rather than plucked.
+     * $79.99 — level with Stella's top in-app purchase, deliberately.
      *
-     * Stella's top in-app purchase is $79.99, and it includes their narration.
-     * This was $99.99 for a plan with NO voice — more money for less product,
-     * which is a price nobody picks once they have both tabs open.
+     * Close to pure margin: Standard costs almost nothing to serve, since the
+     * text runs on Gemini's free tier and narration is what actually bills. So
+     * the only question is what somebody will pay, not what it costs.
      *
-     * $59.99 is twice the yearly, comfortably under their headline, and it is
-     * close to pure margin: Standard costs almost nothing to serve, since the
-     * text runs on Gemini's free tier and narration is what actually bills.
-     * Break-even against the yearly plan is two years, and anybody still here
-     * in two years was never going to churn anyway.
+     * Break-even against the yearly plan is about eighteen months, and anybody
+     * still here in eighteen months was never going to churn anyway.
      */
     id: "standard_lifetime",
     tier: "standard",
     name: "Lifetime",
     productId: "com.manifestai.standard.lifetime",
-    priceDisplay: "$59.99",
+    priceDisplay: "$79.99",
     cadence: "one payment",
     blurb: "Pay once. Yours permanently, including everything added later.",
   },
@@ -122,7 +119,7 @@ export const VOICE_PLANS: Plan[] = [
     tier: "voice",
     name: "Monthly",
     productId: "com.manifestai.voice.monthly",
-    priceDisplay: "$14.99",
+    priceDisplay: "$19.99",
     cadence: "per month",
     blurb: "Cancel any time.",
   },
@@ -131,10 +128,10 @@ export const VOICE_PLANS: Plan[] = [
     tier: "voice",
     name: "Yearly",
     productId: "com.manifestai.voice.yearly",
-    priceDisplay: "$119.99",
+    priceDisplay: "$149.99",
     cadence: "per year",
-    blurb: "Works out at $10 a month.",
-    highlight: "Save 33%",
+    blurb: "Works out at $12.50 a month.",
+    highlight: "Save 37%",
   },
 ];
 
@@ -154,7 +151,7 @@ export const VOICE_FEATURES = [
   "Everything in Standard",
   "Studio narration in a real human voice",
   "Sleep sessions, meditations and frequencies, narrated",
-  "A narration a day — three in one sitting if you want them",
+  "Around fifty narrations a month — four in a day if you want them",
   "Sentence-by-sentence highlighting as it reads",
 ] as const;
 
@@ -205,23 +202,24 @@ export const SAMPLE_TRACK_TITLE = "Tomorrow is not here yet";
  *
  * The voice figures, at ~20c a listen on Flash and a 15% store fee:
  *
- *   30/month costs $5.85.
- *   Voice monthly nets $12.74 — $6.89 left at the ceiling.
- *   Voice yearly nets $8.50/month — $2.65 left at the ceiling.
+ *   45/month costs $8.78.
+ *   Voice monthly nets $16.99/month — $8.21 left at the ceiling.
+ *   Voice yearly nets $10.62/month — $1.84 left at the ceiling.
  *
- * The yearly plan is what sets this number, and it is why 30 rather than 45.
- * At 45 the ceiling costs $8.78, which is more than a yearly subscriber pays
- * per month — so the plan lost money precisely when somebody loved it. A cap
- * has to be survivable on the cheapest plan that carries it, not on the
+ * THE YEARLY PLAN SETS THIS NUMBER, not the monthly one. Sixty a month was
+ * asked for and does not survive: at $149.99 a year the ceiling would cost
+ * $11.70 against $10.62 of revenue, so the plan would lose a dollar a month
+ * precisely when somebody loved it. That mistake has been made twice in this
+ * file already — check the cheapest plan that carries the allowance, never the
  * dearest.
  *
- * The daily cap of 3 sits inside the monthly one so a single evening can't
- * consume the month, while still allowing a proper session.
+ * The daily cap of 4 sits inside the monthly one so a single evening cannot
+ * consume the month, while still allowing a long session.
  */
 export const NARRATION_ALLOWANCE: Record<PlanTier, { perDay: number; perMonth: number }> = {
   free: { perDay: 0, perMonth: 0 },
   standard: { perDay: 0, perMonth: 0 },
-  voice: { perDay: 3, perMonth: 30 },
+  voice: { perDay: 4, perMonth: 45 },
 };
 
 /**

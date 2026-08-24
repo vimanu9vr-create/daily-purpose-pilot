@@ -96,7 +96,7 @@ describe("narration allowance", () => {
    * somebody loves it.
    */
   it("survives a worst-case month on the cheapest plan that includes voice", () => {
-    const cheapestVoicePerMonth = 119.99 / 12;
+    const cheapestVoicePerMonth = 149.99 / 12;
     const netRevenue = cheapestVoicePerMonth * (1 - STORE_FEE);
 
     expect(costOf(NARRATION_ALLOWANCE.voice.perMonth)).toBeLessThan(netRevenue);
