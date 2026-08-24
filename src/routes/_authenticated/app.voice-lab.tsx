@@ -165,19 +165,32 @@ function Maintenance() {
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
           Narrate 3 sleep &amp; meditation tracks
         </Button>
+
+        {/*
+          Affirmation tracks used to be withheld, and the note said they cost
+          about nine times over for the same words. True while PASSES was 3 and
+          the whole set was written into each script three times; not true now
+          that it is one pass with the repeats coming from the player. The
+          reason to withhold them went with it.
+
+          Still a separate button, so the cheap shared tracks and the per-user
+          ones are never spent in the same click.
+        */}
+        <Button
+          variant="glass"
+          className="rounded-full"
+          disabled={running || (byKind["affirmation"]?.count ?? 0) === 0}
+          onClick={() => void warm(["affirmation"])}
+        >
+          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
+          Narrate 3 affirmation tracks
+        </Button>
       </div>
 
-      {/*
-        Affirmations are deliberately not offered. Their bodies are a short set
-        of lines repeated to fill the stated runtime — 18 distinct lines
-        stretched past 200 — so narrating one verbatim pays roughly nine times
-        for the same words. All 22 would be about 69,000 characters against
-        roughly 5,000 for the lines that actually differ.
-      */}
       <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
-        Affirmation tracks aren&rsquo;t offered here on purpose: their text is a short set of lines
-        repeated to fill the runtime, so narrating them as-is pays about nine times over for the
-        same words.
+        Sleep, meditation and frequency tracks are shared by title — narrated once, then served to
+        everyone who ever opens them. Affirmation tracks are built from your own affirmations, so
+        each person&rsquo;s are their own. Do the shared ones first.
       </p>
 
       {error && <p className="mt-4 text-[13px] text-destructive">{error}</p>}
