@@ -58,14 +58,25 @@ const WORDS_PER_SECOND = 1.75;
 const GAP_SECONDS = 2.4;
 
 /**
- * How many times the set is heard.
+ * How many times the set is written INTO THE SCRIPT.
  *
- * Three is the number real affirmation audio settles on: enough for a line to
- * stop being new and start being familiar, not so many that you notice the
- * loop. Fixed rather than derived, because deriving it from a target length is
- * what produced nine passes of four lines.
+ * Three is still the number of times a line should be HEARD — enough to stop
+ * being new and start being familiar. It does not have to be paid for three
+ * times. The player already returns to the narration through a session, so the
+ * repetition can come from replaying one recording rather than from recording
+ * the same words three times over.
+ *
+ * The arithmetic: the 21 silent affirmation tracks are 66,528 characters at
+ * three passes, about $6.05. At one pass they are nearer $2.20 — and that is
+ * PER USER, because these are assembled from each person's own affirmations
+ * rather than shared by title the way the sleep tracks are.
+ *
+ * What made three passes look necessary was that a plain restart sounded like
+ * a tape rewinding, so each pass needed its own bridge line to seem deliberate.
+ * The player now resumes past the opening rather than from the top, which
+ * removes the rewind and with it the reason to bake the repeats in.
  */
-export const PASSES = 3;
+export const PASSES = 1;
 
 /** How long a set of lines actually runs, in seconds. Honest by construction. */
 export function trackSeconds(lines: string[], passes = PASSES): number {

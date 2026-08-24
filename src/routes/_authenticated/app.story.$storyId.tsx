@@ -164,7 +164,23 @@ function StoryPlayer() {
     // Don't start a pass that would be cut off by the end of the session.
     if (remainingSeconds < RETURN_AFTER_SECONDS + 60) return;
 
-    const id = window.setTimeout(() => narration.play(0), RETURN_AFTER_SECONDS * 1000);
+    /**
+     * Come back at the LINES, not at the opening.
+     *
+     * "Settle where you are. There's nothing to get right here" is a way in.
+     * Hearing it again eight minutes into a session is a tape rewinding, and it
+     * is also the thing that made baking three passes into the audio look
+     * necessary — the repeats needed their own bridges because a plain restart
+     * sounded wrong.
+     *
+     * Restarting past the opening removes that need, which is what lets a track
+     * be narrated once and repeated by the player instead of paid for three
+     * times. See PASSES in affirmation-tracks.ts.
+     */
+    const OPENING_SENTENCES = 2;
+    const resumeAt = sentences.length > OPENING_SENTENCES ? OPENING_SENTENCES : 0;
+
+    const id = window.setTimeout(() => narration.play(resumeAt), RETURN_AFTER_SECONDS * 1000);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSession, bed.isRunning, narration.isPlaying, studio.available]);

@@ -89,8 +89,30 @@ describe("buildTrackScript", () => {
     expect(buildTrackScript(seed).startsWith("Settle where you are.")).toBe(true);
   });
 
-  it("marks each return so a repeat doesn't sound like a tape rewinding", () => {
+  /**
+   * The script is now ONE pass, and the repetition comes from the player.
+   *
+   * Three passes were baked into the text, so a ten-minute track was three
+   * times the characters and three times the ElevenLabs bill — per user, since
+   * these are assembled from each person's own affirmations rather than shared
+   * by title like the sleep tracks. 21 silent tracks were $6.05 at three
+   * passes and are nearer $2.20 at one.
+   *
+   * The player already returns to the narration through a session, and now
+   * resumes past the opening rather than from the top, so a repeat no longer
+   * sounds like a tape rewinding — which was the only reason the passes needed
+   * to be in the text with their own bridge lines.
+   */
+  it("writes one pass, leaving the repeats to the player", () => {
+    expect(PASSES).toBe(1);
     const script = buildTrackScript(seed);
+    expect(script).not.toMatch(/Again, slower\./);
+  });
+
+  it("still bridges properly if more passes are ever asked for", () => {
+    // The mechanism stays, so raising PASSES remains a one-line decision
+    // rather than a rewrite.
+    const script = buildTrackScript(seed, 3);
     expect(script).toMatch(/Again, slower\./);
     expect(script).toMatch(/Once more\./);
   });
