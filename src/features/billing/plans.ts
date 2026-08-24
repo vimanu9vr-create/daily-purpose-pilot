@@ -78,7 +78,7 @@ export const STANDARD_PLANS: Plan[] = [
     tier: "standard",
     name: "Monthly",
     productId: "com.manifestai.standard.monthly",
-    priceDisplay: "$6.99",
+    priceDisplay: "$5.99",
     cadence: "per month",
     blurb: "Cancel any time.",
   },
@@ -87,10 +87,10 @@ export const STANDARD_PLANS: Plan[] = [
     tier: "standard",
     name: "Yearly",
     productId: "com.manifestai.standard.yearly",
-    priceDisplay: "$49.99",
+    priceDisplay: "$45.99",
     cadence: "per year",
-    blurb: "Works out at $4.17 a month.",
-    highlight: "Save 40%",
+    blurb: "Works out at $3.83 a month.",
+    highlight: "Save 36%",
   },
   {
     /**

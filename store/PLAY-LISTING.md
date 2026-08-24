@@ -232,8 +232,8 @@ each before this goes to real testers.
 
   | Product id | Type | Price |
   | --- | --- | --- |
-  | `com.manifestai.standard.monthly` | Subscription | $6.99 / month |
-  | `com.manifestai.standard.yearly` | Subscription | $49.99 / year |
+  | `com.manifestai.standard.monthly` | Subscription | $5.99 / month |
+  | `com.manifestai.standard.yearly` | Subscription | $45.99 / year |
   | `com.manifestai.standard.lifetime` | One-time | $79.99 |
   | `com.manifestai.voice.monthly` | Subscription | $19.99 / month |
   | `com.manifestai.voice.yearly` | Subscription | $149.99 / year |

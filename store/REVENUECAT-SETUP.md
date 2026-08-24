@@ -18,8 +18,8 @@ for character or the plan will not appear on the device.
 
 | Product ID | Type | Price |
 | --- | --- | --- |
-| `com.manifestai.standard.monthly` | Auto-renewable subscription | $6.99 |
-| `com.manifestai.standard.yearly` | Auto-renewable subscription | $49.99 |
+| `com.manifestai.standard.monthly` | Auto-renewable subscription | $5.99 |
+| `com.manifestai.standard.yearly` | Auto-renewable subscription | $45.99 |
 | `com.manifestai.standard.lifetime` | Non-consumable | $79.99 |
 | `com.manifestai.voice.monthly` | Auto-renewable subscription | $19.99 |
 | `com.manifestai.voice.yearly` | Auto-renewable subscription | $149.99 |
