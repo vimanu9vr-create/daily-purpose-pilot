@@ -161,6 +161,43 @@ export function useStartProgramme() {
 }
 
 /**
+ * Abandon a programme and everything in it.
+ *
+ * There was no way to do this at all — not a button, not a hook. A programme
+ * could only ever be started, so three programmes written by the old templated
+ * version were going to sit on the affirmations screen indefinitely showing
+ * "DAY 1 OF 7", with no way for anybody to clear them.
+ *
+ * The days are deliberately written once, at creation, so that day fourteen
+ * cannot fail on day fourteen. The cost of that choice is that a programme
+ * never improves when the writer does — which makes being able to delete one
+ * the other half of the design, not a nice-to-have.
+ *
+ * `programme_days` goes with it explicitly rather than relying on a cascade,
+ * because whether that cascade exists is not something this file can see.
+ */
+export function useDeleteProgramme() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (programmeId: string) => {
+      const { error: daysError } = await supabase
+        .from("programme_days")
+        .delete()
+        .eq("programme_id", programmeId);
+      if (daysError) throw daysError;
+
+      const { error } = await supabase.from("programmes").delete().eq("id", programmeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: programmeKeys.all });
+    },
+    onError: (error) => reportError(error, { feature: "programmes", phase: "delete" }),
+  });
+}
+
+/**
  * Marks a day done, and the programme finished if that was the last one.
  *
  * Only ever sets `completed_at`. There is no un-complete and no reset: nothing

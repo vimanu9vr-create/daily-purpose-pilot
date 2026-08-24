@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import { useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
@@ -11,6 +11,7 @@ import { programmeProgress, type ProgrammeLength } from "@/features/programmes/p
 import {
   useProgrammeDays,
   useProgrammes,
+  useDeleteProgramme,
   useStartProgramme,
   type Programme,
 } from "@/features/programmes/use-programmes";
@@ -164,34 +165,58 @@ function ProgrammeRow({ programme }: { programme: Programme }) {
   const { data: days } = useProgrammeDays(programme.id);
   const done = (days ?? []).filter((day) => day.completed_at).length;
   const progress = programmeProgress(done, programme.length_days as ProgrammeLength);
+  const remove = useDeleteProgramme();
 
   return (
-    <Link
-      to="/app/programme/$programmeId"
-      params={{ programmeId: programme.id }}
-      className="flex items-center gap-4 rounded-[24px] border border-glass-border bg-card/50 p-3 transition hover:bg-card/70"
-    >
-      <DreamCover
-        fallbackSrc={coverImage(programme.id, themeFor(programme.title))}
-        desireId={programme.desire_id}
-        index={0}
-        className="h-16 w-16 shrink-0 rounded-[18px] object-cover"
-      />
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-[17px]">{programme.title}</p>
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-primary"
-            style={{ width: `${progress.percent}%` }}
-          />
+    <div className="relative">
+      {/*
+        Abandoning a programme was impossible — no button, no hook. One could
+        only ever be started, so three written by the old templated version were
+        going to sit here indefinitely with no way to clear them.
+
+        It sits outside the Link rather than inside it: a delete control nested
+        in a navigation target is a mis-tap waiting to happen on a phone.
+      */}
+      <button
+        type="button"
+        onClick={() => {
+          if (progress.current > 1 && !window.confirm(`Abandon “${programme.title}”?`)) return;
+          remove.mutate(programme.id);
+        }}
+        disabled={remove.isPending}
+        aria-label={`Abandon ${programme.title}`}
+        className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/70 text-muted-foreground transition hover:text-destructive disabled:opacity-40"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+
+      <Link
+        to="/app/programme/$programmeId"
+        params={{ programmeId: programme.id }}
+        className="flex items-center gap-4 rounded-[24px] border border-glass-border bg-card/50 p-3 pr-11 transition hover:bg-card/70"
+      >
+        <DreamCover
+          fallbackSrc={coverImage(programme.id, themeFor(programme.title))}
+          desireId={programme.desire_id}
+          index={0}
+          className="h-16 w-16 shrink-0 rounded-[18px] object-cover"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-[17px]">{programme.title}</p>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${progress.percent}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-[12px] text-muted-foreground">
+            {progress.isFinished
+              ? `All ${programme.length_days} days done`
+              : `Day ${progress.current} of ${programme.length_days}`}
+          </p>
         </div>
-        <p className="mt-1.5 text-[12px] text-muted-foreground">
-          {progress.isFinished
-            ? `All ${programme.length_days} days done`
-            : `Day ${progress.current} of ${programme.length_days}`}
-        </p>
-      </div>
-      {progress.isFinished && <Check className="h-5 w-5 shrink-0 text-primary" />}
-    </Link>
+        {progress.isFinished && <Check className="h-5 w-5 shrink-0 text-primary" />}
+      </Link>
+    </div>
   );
 }
