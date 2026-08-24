@@ -134,3 +134,31 @@ describe("programmeTitle", () => {
     expect(programmeTitle("financial freedom", 21)).toBe("21 days — financial freedom");
   });
 });
+
+describe("a 21-day programme is not the 7-day three times", () => {
+  /**
+   * Reported as "7 day and 21 days are the same", and the data agreed: the
+   * 21-day had twenty-one days and SEVEN distinct sets of lines. Days 8–14
+   * were byte-identical to 1–7, and 15–21 repeated them again.
+   *
+   * The arc walking the stages three times is deliberate and fine. What was
+   * broken is that nothing told the writer which pass it was on, so it was
+   * asked the same seven questions three times and gave the same answers.
+   */
+  it("asks the writer twenty-one different questions", () => {
+    const themes = buildProgramme("I am earning $10k weekly", 21).map((day) => day.writerTheme);
+    expect(new Set(themes).size).toBe(21);
+  });
+
+  it("still shows short repeated headings to the reader", () => {
+    // The display theme is a heading, and "Saying it plainly" is the right
+    // heading on day 8 as much as day 1. Only the writer needs the depth.
+    const shown = buildProgramme("anything", 21).map((day) => day.theme);
+    expect(new Set(shown).size).toBe(7);
+  });
+
+  it("keeps every 7-day theme unique, since it walks the arc once", () => {
+    const themes = buildProgramme("anything", 7).map((day) => day.writerTheme);
+    expect(new Set(themes).size).toBe(7);
+  });
+});

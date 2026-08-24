@@ -111,7 +111,7 @@ export function useStartProgramme() {
 
       const { data: written, error: writeError } = await supabase.functions.invoke(
         "ai-affirmations",
-        { body: { desireId, stages: skeleton.map((day) => day.theme) } },
+        { body: { desireId, stages: skeleton.map((day) => day.writerTheme) } },
       );
 
       const days_ = (written as { days?: { intention?: string; lines?: string[] }[] } | null)?.days;

@@ -402,7 +402,8 @@ Deno.serve(async (req: Request) => {
         ? [
             `WRITE A ${stages.length}-DAY PROGRAMME, not a single set.`,
             `Each day has its own theme, in this order: ${stages.map((s, i) => `${i + 1}. ${s}`).join("; ")}.`,
-            `For each day write ONE intention and FOUR affirmations, both belonging to that day's theme AND to their one subject. Every day must read differently from every other day — the themes are what makes them differ, so anything that would fit any day is wrong.`,
+            `For each day write ONE intention and FOUR affirmations, both belonging to that day's theme AND to their one subject.`,
+            `NO TWO DAYS MAY SHARE A LINE. Some themes recur later in the programme with a note about which week they are in — a recurring theme is the same ground revisited by somebody further along, so it gets different words, not the same words again. Reusing a line from an earlier day is the failure this exists to prevent.`,
             `The intention is one sentence of second person addressed to them — what today is for. Never paste their subject in as a phrase; write around its nouns and numbers, because what they typed may be a whole sentence and dropping it into a slot produces gibberish.`,
             `At least two lines a day must contain something concrete from their subject — its noun, its number, the room it changes. A day with no trace of what they typed is the failure this replaces.`,
             `Return ONLY JSON: {"days":[{"intention":"...","lines":["...","...","...","..."]}]} with exactly ${stages.length} entries in the order given. No markdown fence.`,

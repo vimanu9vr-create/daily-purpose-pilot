@@ -41,6 +41,19 @@ export type ProgrammeDay = {
   dayNumber: number;
   /** Shown as the day's title. */
   theme: string;
+  /**
+   * The theme as the WRITER sees it — never repeated within a programme.
+   *
+   * A 21-day programme walks the seven stages three times. Sound as an arc,
+   * broken as a product: days 8–14 had lines byte-identical to days 1–7, and
+   * 15–21 repeated them again. Reported as "7 day and 21 days are the same",
+   * which was exactly right.
+   *
+   * The display theme stays short because it is a heading. This one carries
+   * where in the arc the day sits, so the writer is asked twenty-one different
+   * questions rather than seven asked three times.
+   */
+  writerTheme: string;
   /** One line of context, so the day isn't just a label. */
   intention: string;
   /** The affirmations for this day. */
@@ -154,6 +167,18 @@ const DEPTH_PREFIX: Record<number, string> = {
   2: "Last time, and for keeps:",
 };
 
+/**
+ * The same wording problem, solved for the writer instead of the reader.
+ *
+ * DEPTH_PREFIX changed only the intention sentence, so the LINES stayed
+ * identical across all three passes — which is the half of the day somebody
+ * actually reads out loud.
+ */
+const DEPTH_LABEL: Record<number, string> = {
+  1: "second week, further in, assuming the first week already happened",
+  2: "third week, this is settled now rather than new",
+};
+
 function capitalise(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -175,6 +200,7 @@ export function buildProgramme(desireTitle: string, length: ProgrammeLength): Pr
     days.push({
       dayNumber: index + 1,
       theme: stage.theme,
+      writerTheme: round === 0 ? stage.theme : `${stage.theme} — ${DEPTH_LABEL[round] ?? "again"}`,
       intention: [prefix, stage.intention(goal)].filter(Boolean).join(" "),
       lines: stage.lines(goal),
     });
