@@ -728,13 +728,55 @@ Deno.serve(async (req: Request) => {
       .replace(/```$/, "")
       .trim();
 
+    /**
+     * Parse, salvage, or refuse — but never hand back raw JSON.
+     *
+     * The catch below used to accept anything over eighty characters as prose,
+     * on the reasoning that a model which ignored the JSON instruction had
+     * still done the work. That reasoning is right and the implementation was
+     * wrong: a TRUNCATED or malformed JSON reply also lands in the catch, and
+     * it is definitely over eighty characters. One story in the feed reads:
+     *
+     *   {"title": "Afternoon on the Coast", "body": "The deadbolts slide back…
+     *
+     * Saved, titled "Today's moment", and shown to somebody as a visualisation.
+     * The fallback meant to rescue a good answer published a broken one.
+     *
+     * So: real prose is still accepted, JSON-shaped text never is. When it is
+     * JSON-shaped but unparseable the body field is pulled out by hand, which
+     * recovers the common case of a reply cut off mid-object.
+     */
     try {
       const parsed = JSON.parse(cleaned) as { title?: string; body?: string };
       if (parsed.body?.trim()) {
         return json({ title: parsed.title ?? "Today's moment", body: parsed.body }, 200);
       }
     } catch {
-      // Model returned prose instead of JSON — usable as-is.
+      const looksLikeJson = cleaned.startsWith("{") || /"body"\s*:/.test(cleaned);
+
+      if (looksLikeJson) {
+        // Pull the body out of a reply that never finished. The lazy quantifier
+        // stops at the first unescaped quote, so an unterminated string still
+        // yields everything written before it was cut off.
+        const body = cleaned.match(/"body"\s*:\s*"((?:[^"\\]|\\.)*)/)?.[1];
+        const title = cleaned.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1];
+
+        const unescaped = body
+          ?.replace(/\\n/g, "\n")
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, "\\")
+          .trim();
+
+        if (unescaped && unescaped.length > 80) {
+          console.warn("salvaged a truncated JSON reply");
+          return json({ title: title || "Today's moment", body: unescaped }, 200);
+        }
+
+        console.error("unparseable JSON reply, refusing", cleaned.slice(0, 200));
+        return json({ error: "empty" }, 502);
+      }
+
+      // Genuinely prose. The model ignored the format and wrote the story anyway.
       if (cleaned.length > 80) return json({ title: "Today's moment", body: cleaned }, 200);
     }
 

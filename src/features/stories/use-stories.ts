@@ -122,21 +122,19 @@ export function useCreateDesire() {
       void queryClient.invalidateQueries({ queryKey: storyKeys.desires });
 
       /**
-       * Write affirmations for it immediately.
+       * Affirmations are NOT written here any more. Home writes them.
        *
-       * Typing what you want is the main thing this app asks of a person, and
-       * until now it produced stories but no affirmations — the affirmations
-       * screen still said "add a goal first", because it read a different
-       * table. Making the user go and press a second button to get the thing
-       * they came for is a design failure even when it works.
+       * Both did, which is how "My first million" ended up with twelve rather
+       * than six: this fired on creation, and Home — which selects a brand new
+       * dream the moment it exists — saw zero affirmations for it and fired
+       * again before the first call had finished. Two full sets, and the
+       * swipe deck showing each line twice.
        *
-       * Fire-and-forget: if it fails the library affirmations still show, and
-       * nobody is told about a background job they didn't start.
+       * Home is the right owner of the two. It backfills any dream that has
+       * none, which covers dreams created before that feature existed as well
+       * as new ones, and there is no delay in practice because selecting the
+       * new dream is what triggers it.
        */
-      void supabase.functions
-        .invoke("ai-affirmations", { body: { desireId: desire.id, category: desire.category } })
-        .then(() => queryClient.invalidateQueries({ queryKey: ["affirmations"] }))
-        .catch(() => undefined);
     },
     onError: (error: Error) => toast.error(error.message || "Couldn't save that desire"),
   });
