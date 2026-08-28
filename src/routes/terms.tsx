@@ -9,7 +9,7 @@ export const Route = createFileRoute("/terms")({
 
 function Terms() {
   return (
-    <LegalPage title="Terms of Use" updated="3 August 2026">
+    <LegalPage title="Terms of Use" updated="28 August 2026">
       <p>
         These terms cover your use of ManifestAI. Using the app means you accept them. They are
         written plainly on purpose.
@@ -72,11 +72,24 @@ function Terms() {
 
       <h2>Subscriptions</h2>
       <p>
-        Some features may require a paid subscription. Subscriptions purchased on iPhone are billed
-        through your Apple ID, renew automatically unless cancelled at least 24 hours before the
-        period ends, and are managed in your Apple account settings. Refunds for those purchases are
-        handled by Apple under their policies. Prices and what each plan includes are shown before
-        you buy.
+        Some features require a paid subscription. There are two plans: Standard, which unlocks
+        everything written, and Voice, which adds studio narration read aloud. What each includes,
+        and its price, are shown before you buy. Voice carries a limit on how many narrations can be
+        generated in a day and in a month, because studio audio costs money each time it is made;
+        the limit is stated on the plan rather than discovered later.
+      </p>
+      <p>
+        Subscriptions are sold by the app store you installed from, not by us. On Android that is
+        Google Play, billed to your Google account and managed under Payments &amp; subscriptions.
+        On iPhone that is Apple, billed to your Apple ID and managed in your Apple account settings.
+        Subscriptions renew automatically unless cancelled at least 24 hours before the current
+        period ends. Lifetime is a single payment and does not renew.
+      </p>
+      <p>
+        Cancelling stops the next renewal; it does not refund the period you are already in, and you
+        keep access until that period ends. Refunds are handled by whichever store took the payment,
+        under that store&rsquo;s own policies — we cannot issue them ourselves. If you pay and the
+        plan does not unlock, contact us and we will put it right.
       </p>
 
       <h2>Availability</h2>
