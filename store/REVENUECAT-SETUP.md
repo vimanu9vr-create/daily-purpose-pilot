@@ -39,9 +39,16 @@ review it. They can stay in "Ready to Submit" while you test in sandbox.
 
 [app.revenuecat.com](https://app.revenuecat.com), create a project.
 
-Add an app: **App Store**. It asks for your bundle ID — `com.manifestai.app` —
-and an **App Store Connect API key**, which you generate in App Store Connect
-under Users and Access → Integrations. RevenueCat needs it to verify receipts.
+**Launching on Play first? Add the Play Store app, not the App Store one.**
+RevenueCat wants your package name — `com.manifestai.app` — and a Google Play
+service account credential, which you create in Google Cloud and grant access
+to in Play Console under Users and permissions.
+
+For the App Store later, add a second app in the same project: same bundle ID,
+plus an **App Store Connect API key** from Users and Access → Integrations.
+
+One project, two apps, one entitlement. Both post to the same webhook, and the
+`subscriptions` row does not care which store the money came from.
 
 ---
 
@@ -128,14 +135,19 @@ reaches the database.
 
 ## 7. The app's key
 
-RevenueCat → API keys → the **public** Apple key (starts `appl_`). Not the
-secret key.
+RevenueCat → API keys → the **public** key for each platform. Not the secret
+key.
 
-Add to `.env`:
+There is a SEPARATE key per store, and configuring with the wrong one fails
+outright — the app would tell somebody tapping Subscribe that purchases
+"aren't switched on yet". Add whichever you are shipping; both is fine.
 
 ```
+VITE_REVENUECAT_ANDROID_KEY=goog_xxxxxxxxxxxx
 VITE_REVENUECAT_IOS_KEY=appl_xxxxxxxxxxxx
 ```
+
+The app picks by platform at runtime, so nothing else changes.
 
 Then rebuild — Vite bakes env vars in, so a running dev server won't pick it up.
 

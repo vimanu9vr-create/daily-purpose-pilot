@@ -54,7 +54,7 @@ class WebStore implements PurchaseStore {
   async purchase(): Promise<PurchaseResult> {
     return {
       status: "unavailable",
-      message: "Subscriptions are available in the ManifestAI app on iPhone.",
+      message: "Subscriptions are available in the ManifestAI app on your phone.",
     };
   }
 
@@ -74,9 +74,9 @@ class WebStore implements PurchaseStore {
 export const PREMIUM_ENTITLEMENT = "premium";
 
 /**
- * StoreKit via RevenueCat.
+ * The store on a real device, via RevenueCat. Apple OR Google.
  *
- * RevenueCat sits between the app and Apple: it validates receipts, tracks
+ * RevenueCat sits between the app and the store: it validates receipts, tracks
  * renewals, cancellations, refunds and billing-grace periods, and posts each
  * change to our webhook. That webhook is what writes the `subscriptions` row.
  *
@@ -84,8 +84,20 @@ export const PREMIUM_ENTITLEMENT = "premium";
  * here, after a successful purchase, we refresh from our own database rather
  * than trusting what the SDK just told us — a jailbroken device can lie to the
  * SDK, but it can't forge a server-to-server webhook.
+ *
+ * ## This was called AppleStore and read only the iOS key
+ *
+ * Which would have been found on the day of the Play launch, by somebody
+ * tapping Subscribe and being told the app "isn't switched on yet". RevenueCat
+ * issues a SEPARATE key per platform — `appl_…` for the App Store, `goog_…`
+ * for Play — and configuring with the wrong one fails outright.
+ *
+ * Google Play is the first launch target, so the Android key is the one that
+ * actually has to work. Same for `manageUrl`: pointing an Android user at
+ * apps.apple.com to cancel is the complaint that fills Stella's one-star
+ * reviews, and it would have been ours too.
  */
-class AppleStore implements PurchaseStore {
+class NativeStore implements PurchaseStore {
   readonly isNative = true;
   private configured = false;
 
@@ -93,7 +105,11 @@ class AppleStore implements PurchaseStore {
   private async ensureConfigured(userId?: string): Promise<void> {
     if (this.configured) return;
 
-    const apiKey = import.meta.env["VITE_REVENUECAT_IOS_KEY"] as string | undefined;
+    const apiKey = (
+      platform() === "android"
+        ? import.meta.env["VITE_REVENUECAT_ANDROID_KEY"]
+        : import.meta.env["VITE_REVENUECAT_IOS_KEY"]
+    ) as string | undefined;
     if (!apiKey) throw new Error("not_configured");
 
     const { Purchases, LOG_LEVEL } = await import("@revenuecat/purchases-capacitor");
@@ -181,8 +197,19 @@ class AppleStore implements PurchaseStore {
   }
 
   manageUrl(): string {
-    return "https://apps.apple.com/account/subscriptions";
+    // Each store cancels in its own place, and sending somebody to the wrong
+    // one reads as deliberately hiding the exit.
+    return platform() === "android"
+      ? "https://play.google.com/store/account/subscriptions"
+      : "https://apps.apple.com/account/subscriptions";
   }
+}
+
+/** "ios" | "android" | "web", straight from Capacitor. */
+function platform(): string {
+  if (typeof window === "undefined") return "web";
+  const cap = (window as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor;
+  return cap?.getPlatform?.() ?? "web";
 }
 
 let instance: PurchaseStore | null = null;
@@ -194,6 +221,6 @@ export function purchaseStore(): PurchaseStore {
     typeof window !== "undefined" &&
     Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor);
 
-  instance = isCapacitor ? new AppleStore() : new WebStore();
+  instance = isCapacitor ? new NativeStore() : new WebStore();
   return instance;
 }
