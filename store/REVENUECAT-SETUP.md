@@ -40,7 +40,7 @@ review it. They can stay in "Ready to Submit" while you test in sandbox.
 [app.revenuecat.com](https://app.revenuecat.com), create a project.
 
 **Launching on Play first? Add the Play Store app, not the App Store one.**
-RevenueCat wants your package name — `com.manifestai.app` — and a Google Play
+RevenueCat wants your package name — `com.manifestai888.app` — and a Google Play
 service account credential, which you create in Google Cloud and grant access
 to in Play Console under Users and permissions.
 

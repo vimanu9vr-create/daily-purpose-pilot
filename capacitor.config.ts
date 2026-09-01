@@ -11,7 +11,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * offline. The bundle ships inside the app.
  */
 const config: CapacitorConfig = {
-  appId: "com.manifestai.app",
+  appId: "com.manifestai888.app",
   appName: "ManifestAI",
   webDir: "dist-native/client",
 

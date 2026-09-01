@@ -20,11 +20,77 @@ Everything else below is ready to paste.
 
 ## Store listing
 
+There are two versions of the copy below. **Use the closed-test version now.**
+
+The narration is not working yet — the text-to-speech account is out of credits
+until 5 September, so every promise of a voice is currently a promise a tester
+cannot check. A listing that oversells earns one-star reviews from people who
+feel misled; a listing that undersells is just a listing. Swap in the production
+copy the day the audio is real, not before.
+
 **App name** (30 characters max — this is 10)
 
 ```
 ManifestAI
 ```
+
+### Closed test — use this now
+
+**Short description** (80 max — this is 71)
+
+```
+Manifestation stories written from your own words, not off a shelf.
+```
+
+**Full description**
+
+```
+Tell ManifestAI what you actually want — in your own words — and it writes short
+manifestation stories about it.
+
+Not a library everyone else is reading. Every story is written from the sentence
+you typed.
+
+WHAT YOU GET
+
+Stories written for your dream
+Type "I want to buy a Defender" and you get stories set in a life where that's
+already true — an ordinary afternoon, months in, when it has stopped being new.
+Written fresh, never picked off a shelf.
+
+Affirmations in your own words
+Six written from each dream, with one marked as the line to carry around all
+day — the short, physical one you can say out loud without wincing.
+
+Sleep sessions, meditations and healing frequencies
+Full-length sessions that run for the time they promise. An 18-minute track is
+18 minutes.
+
+A coach that already knows
+It has read what you wrote, so you never start by explaining yourself again.
+
+Vision boards, journal, gratitude and streaks
+The daily practice around the stories, in one place.
+
+WHAT THIS APP WILL NOT DO
+
+It will not tell you that thinking about something makes it happen. There's no
+evidence for that, and pretending otherwise would be selling you something.
+
+What it does is give you two minutes inside the life you want, and one small
+thing to do about it. Visualisation helps you notice and take chances to act.
+That's the honest mechanism, and it's the one this app is built on.
+
+ManifestAI is a personal development tool for reflection and visualisation. It
+is not therapy, medical advice, or a guarantee of results.
+```
+
+Note what left: every mention of narration, and the whole PRICING block. The
+pricing paragraph goes because there is no purchase path on any platform yet —
+describing plans nobody can buy is the same kind of untruth as describing a
+voice nobody can hear.
+
+### Production — swap in once narration works
 
 **Short description** (80 max — this is 74)
 
@@ -45,7 +111,7 @@ WHAT YOU GET
 
 Stories written for your dream
 Type "I want to buy a Defender" and you get stories set in a life where that's
-already true — an ordinary Tuesday, months in, when it has stopped being new.
+already true — an ordinary afternoon, months in, when it has stopped being new.
 Written fresh, never picked off a shelf.
 
 A real human voice
@@ -61,7 +127,7 @@ Full-length sessions that run for the time they promise. An 18-minute track is
 18 minutes.
 
 A coach that already knows
-It has read your goals, so you never start by explaining yourself again.
+It has read what you wrote, so you never start by explaining yourself again.
 
 WHAT THIS APP WILL NOT DO
 
@@ -87,6 +153,10 @@ meditations read aloud rather than read by you.
 ManifestAI is a personal development tool for reflection and visualisation. It
 is not therapy, medical advice, or a guarantee of results.
 ```
+
+Before swapping the production copy in, check two things are actually true: the
+library tracks have audio, and a purchase completes and lands a row on
+`subscriptions`. Both have been claimed prematurely once already.
 
 ---
 
@@ -159,7 +229,7 @@ health topics. Say yes. It'll land at PEGI 3 / Everyone, which is right.
 
 ## Building the AAB
 
-The package is already configured: `com.manifestai.app`, versionCode 1,
+The package is already configured: `com.manifestai888.app`, versionCode 1,
 versionName 1.0, minSdk 24, targetSdk 36.
 
 **Create the signing key once.** Keep the file and the passwords safe — losing
@@ -175,11 +245,17 @@ Then tell Gradle about it, in `android/keystore.properties` (this file must
 never be committed — check it's in `.gitignore` first):
 
 ```
-storeFile=../manifestai-release.keystore
+storeFile=../../manifestai-release.keystore
 storePassword=YOUR_PASSWORD
 keyAlias=manifestai
 keyPassword=YOUR_PASSWORD
 ```
+
+Two levels up, not one. `storeFile` is read by `file()` inside
+`android/app/build.gradle`, so it resolves relative to `android/app/` rather
+than to the directory the properties file sits in. A single `../` quietly
+looks in `android/` and fails with "Keystore file not found" — which reads
+like the keystore is missing when it is sitting at the repo root all along.
 
 The Gradle side is already wired — `android/app/build.gradle` reads that file
 and signs the release build with it. If the file is missing the build still
@@ -216,15 +292,17 @@ gets you something.
 
 ## Before you upload — things that are currently untrue in the listing
 
-The description above sells four things that don't work yet. Fix or remove
-each before this goes to real testers.
+The **production** copy sells four things that don't work yet. The closed-test
+copy above already has the first two removed, which is why it exists.
 
-- **Sleep and meditation sessions.** Thirty library tracks have no audio at
-  all, including all seven sleep and meditation ones. Run the narration at
-  `/app/voice-lab`.
-- **The subscription.** No payment path exists on any platform. Either wire
-  Google Play Billing through RevenueCat before uploading, or cut the pricing
-  paragraph and ship it free for the test.
+- **Narration.** Thirty library tracks have no audio at all, including all
+  seven sleep and meditation ones. The ElevenLabs account is out of credits and
+  cannot be topped up until 5 September. Removed from the closed-test copy;
+  render at `/app/voice-lab` once credits land, then restore the wording.
+- **The subscription.** No payment path exists on any platform. Removed from
+  the closed-test copy. Twelve testers on a free build tell you whether the
+  writing lands, which is the thing genuinely unknown; billing can wait for
+  production.
 
   When you do wire it, five products need creating — the ids are in
   `src/features/billing/plans.ts` and they must match character for character

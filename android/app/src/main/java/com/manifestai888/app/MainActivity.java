@@ -1,4 +1,4 @@
-package com.manifestai.app;
+package com.manifestai888.app;
 
 import com.getcapacitor.BridgeActivity;
 

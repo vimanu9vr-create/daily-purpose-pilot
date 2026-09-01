@@ -19,10 +19,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.manifestai.app"
+    namespace = "com.manifestai888.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.manifestai.app"
+        applicationId "com.manifestai888.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
