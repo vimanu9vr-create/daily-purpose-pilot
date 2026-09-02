@@ -35,8 +35,27 @@ import { supabase } from "@/integrations/supabase/client";
 let session: Session | null = null;
 let ready: Promise<void> | null = null;
 
-/** Belt and braces: if the auth listener never fires, don't hang the app. */
+/**
+ * Belt and braces: if the auth listener never fires, don't hang the app.
+ *
+ * Two numbers, because the two waits are not the same thing.
+ *
+ * Normally we are waiting only for localStorage to be read, which is
+ * instantaneous, and a short ceiling stops a broken listener showing a blank
+ * screen.
+ *
+ * Coming back from Google we are waiting on a network round trip that
+ * exchanges the code for a session. Four seconds was a guess and it was wrong:
+ * on mobile data that exchange regularly takes longer, and when it did the gate
+ * gave up and sent somebody who was midway through signing in back to the
+ * sign-in screen. Production logs caught one person doing exactly that five
+ * times in five minutes — five successful logins on the server, five bounces on
+ * the device, no error anywhere.
+ *
+ * Waiting longer costs a spinner. Giving up early costs the person.
+ */
 const READY_TIMEOUT_MS = 4000;
+const OAUTH_READY_TIMEOUT_MS = 25_000;
 
 function begin(): Promise<void> {
   if (ready) return ready;
@@ -71,18 +90,34 @@ function begin(): Promise<void> {
 
     // If the listener somehow never fires, fall back to a direct read rather
     // than leaving the guard waiting forever on a blank screen.
-    window.setTimeout(() => {
-      if (settled) return;
-      void supabase.auth
-        .getSession()
-        .then(({ data }) => {
-          session = data.session;
-        })
-        .catch(() => {
-          // Leave `session` as-is; the guard treats unknown as "let them in".
-        })
-        .finally(done);
-    }, READY_TIMEOUT_MS);
+    //
+    // getSession() is asked twice a second apart when a code is in the URL. The
+    // exchange may simply not have landed at the first attempt, and a second
+    // look costs nothing next to throwing away a sign-in that was about to
+    // succeed.
+    window.setTimeout(
+      () => {
+        if (settled) return;
+        const read = () => supabase.auth.getSession().then(({ data }) => data.session);
+
+        void read()
+          .then(async (found) => {
+            if (found) return found;
+            if (!awaitingOAuth) return null;
+            await new Promise((r) => window.setTimeout(r, 1000));
+            return read();
+          })
+          .then((found) => {
+            session = found;
+          })
+          .catch(() => {
+            // Leave `session` as-is rather than asserting a sign-out we can't
+            // prove — a failed read is a network problem, not a logged-out user.
+          })
+          .finally(done);
+      },
+      awaitingOAuth ? OAUTH_READY_TIMEOUT_MS : READY_TIMEOUT_MS,
+    );
   });
 
   return ready;
