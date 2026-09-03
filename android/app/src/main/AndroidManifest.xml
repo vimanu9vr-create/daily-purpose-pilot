@@ -44,11 +44,22 @@
          morning affirmation silently never appears. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Narration keeps playing when the screen locks. mediaPlayback is the
-         only service type Google accepts for this, and declaring the wrong one
-         is a Play policy rejection. -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!--
+        FOREGROUND_SERVICE and FOREGROUND_SERVICE_MEDIA_PLAYBACK were declared
+        here so narration could keep playing with the screen locked. They have
+        been removed, because the app does not do that.
+
+        There is no Service in this project, no MediaSession, and no call to
+        startForeground anywhere. Audio is a plain HTMLAudioElement inside the
+        Capacitor WebView. Declaring the permission never made background
+        playback work — it only made Play demand a video demonstrating a
+        feature that does not exist, which is a rejection waiting to happen.
+
+        To actually support playback with the screen off, add a media-session
+        plugin that runs a real foreground service, then put these two back and
+        record the video Play asks for. Permission first, feature never, is the
+        wrong order.
+    -->
 
     <!-- Lets audio survive Doze while a session is actually playing. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
