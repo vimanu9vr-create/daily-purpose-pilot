@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
+import { isNative } from "@/lib/native";
 
 /**
  * A single, shared view of "am I signed in?".
@@ -123,9 +124,39 @@ function begin(): Promise<void> {
   return ready;
 }
 
+/**
+ * Keep the token alive across the app being backgrounded.
+ *
+ * Supabase refreshes the access token on a timer. Android freezes that timer
+ * the moment the app leaves the foreground, so an app left overnight wakes up
+ * holding a token that expired hours ago, and the first request fails in a way
+ * that looks exactly like being signed out.
+ *
+ * Stopping the loop on pause and restarting it on resume is the pattern
+ * Supabase documents for Capacitor: on resume it refreshes immediately rather
+ * than waiting for the next tick.
+ *
+ * Web browsers manage this themselves, so this only runs natively. Failure to
+ * load the plugin is ignored — a missing app-state listener is a worse token
+ * lifetime, not a broken app.
+ */
+async function watchAppState(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const { App } = await import("@capacitor/app");
+    await App.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) void supabase.auth.startAutoRefresh();
+      else void supabase.auth.stopAutoRefresh();
+    });
+  } catch {
+    // Plugin unavailable. The timer still runs while the app is open.
+  }
+}
+
 /** Start listening as early as possible, so the gate is usually already open. */
 export function primeAuthSession(): void {
   void begin();
+  void watchAppState();
 }
 
 /**
