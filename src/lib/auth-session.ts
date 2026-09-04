@@ -58,6 +58,34 @@ let ready: Promise<void> | null = null;
 const READY_TIMEOUT_MS = 4000;
 const OAUTH_READY_TIMEOUT_MS = 25_000;
 
+/**
+ * Put a freshly signed-in person inside the app, from wherever they landed.
+ *
+ * Where an OAuth provider returns you is decided by Supabase, not by us: it
+ * honours the app's `redirectTo` only if that exact URL sits in the project's
+ * Redirect URLs allow-list, and silently substitutes the Site URL when it does
+ * not. Get that list wrong — or change the domain, or add a preview
+ * deployment — and everyone who signs in is dropped on the marketing page,
+ * signed in, being asked to sign in.
+ *
+ * The route guards on `/` and `/auth` already redirect anyone holding a
+ * session, but they only run when those routes are *entered*. Arriving on `/`
+ * with a code in the URL means the guard ran before the exchange finished, and
+ * nothing re-runs it afterwards.
+ *
+ * So this listens for the sign-in itself and moves the person then. It only
+ * acts on the two public pages, so it can never fight navigation inside the
+ * app, and a full-document navigation is used deliberately: this runs outside
+ * the router, and correctness matters more here than preserving SPA state on
+ * the one navigation a person makes twice a year.
+ */
+function landSignedInUser(): void {
+  if (typeof window === "undefined") return;
+  const path = window.location.pathname.replace(/\/+$/, "");
+  if (path !== "" && path !== "/auth") return;
+  window.location.replace("/app");
+}
+
 function begin(): Promise<void> {
   if (ready) return ready;
 
@@ -83,8 +111,9 @@ function begin(): Promise<void> {
     };
 
     // Fires INITIAL_SESSION once storage has been read, then on every change.
-    supabase.auth.onAuthStateChange((_event, next) => {
+    supabase.auth.onAuthStateChange((event, next) => {
       session = next;
+      if (event === "SIGNED_IN" && next) landSignedInUser();
       if (awaitingOAuth && !next) return;
       done();
     });
