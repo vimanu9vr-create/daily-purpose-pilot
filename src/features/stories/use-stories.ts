@@ -622,10 +622,26 @@ export function useGenerateStories() {
        * all of them. `allSettled` rather than `all` because one story failing
        * should not discard the seventeen that succeeded.
        */
+      /**
+       * A request that has NOT been sent yet.
+       *
+       * `send` is a function rather than a promise, and that is the whole point.
+       * It used to hold `fetch(...)` — the call already made — and the wave loop
+       * below then "sent them in small groups" by awaiting them in groups. That
+       * does nothing. A fetch starts the moment it is called; awaiting it later
+       * only changes when you look at the answer.
+       *
+       * So the batching that the comment below describes, and that was written
+       * specifically to stop mass 429s, has never actually happened: every
+       * request in the run went out in the same instant. Pressing "Write new
+       * ones now" on this account fired about 240 simultaneous calls and 14
+       * survived. The rate limiting was real, the fix for it was real, and it
+       * was attached to the wrong end of the operation.
+       */
       type Pending = {
         desire: (typeof active)[number];
         variant: number;
-        request: Promise<Response> | null;
+        send: (() => Promise<Response | null>) | null;
       };
 
       const pending: Pending[] = [];
@@ -695,17 +711,40 @@ export function useGenerateStories() {
           ? active
           : rotated.slice(0, DESIRE_BATCH);
 
+      /**
+       * A ceiling on one run, taken out of DEPTH rather than out of breadth.
+       *
+       * "All of them" above is right about which dreams get written for, and it
+       * left the multiplication unbounded: forty dreams at six stories each is
+       * 240 requests for one press. Against Gemini's free tier that is a wall,
+       * and it is also more writing than anybody will read.
+       *
+       * The budget is spent on fewer stories per dream instead of fewer dreams,
+       * so the button still keeps its promise — every dream gets something new —
+       * while the run stays a size the provider will actually serve. Never below
+       * one, or a large enough list would quietly write nothing at all.
+       */
+      const MAX_STORIES_PER_RUN = 24;
+      const depth = Math.max(
+        1,
+        Math.min(perDesire, Math.floor(MAX_STORIES_PER_RUN / Math.max(1, targets.length))),
+      );
+
       for (const desire of targets) {
-        for (let variant = 0; variant < perDesire; variant += 1) {
+        for (let variant = 0; variant < depth; variant += 1) {
           pending.push({
             desire,
             variant,
-            request: token
-              ? fetch(`${supabaseUrl}/functions/v1/ai-moment`, {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({ desireId: desire.id, variant }),
-                }).catch(() => null as unknown as Response)
+            send: token
+              ? () =>
+                  fetch(`${supabaseUrl}/functions/v1/ai-moment`, {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ desireId: desire.id, variant }),
+                  }).catch(() => null)
               : null,
           });
         }
@@ -732,7 +771,8 @@ export function useGenerateStories() {
         // spending the allowance in one burst means it mostly doesn't have to.
         if (start > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
         const wave = pending.slice(start, start + WAVE);
-        responses.push(...(await Promise.allSettled(wave.map((item) => item.request))));
+        // Called HERE, not when `pending` was built. See the note on `send`.
+        responses.push(...(await Promise.allSettled(wave.map((item) => item.send?.() ?? null))));
       }
 
       /**
