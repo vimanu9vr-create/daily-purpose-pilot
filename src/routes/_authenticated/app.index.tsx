@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUp, Loader2, Pencil, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageTransition } from "@/components/page-transition";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ import {
   useAffirmationsByDesire,
   useGenerateAffirmations,
 } from "@/features/affirmations/use-affirmations";
+import { useEnsureTodaysActions, useTodaysActions } from "@/features/actions/use-actions";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({ meta: [{ title: "ManifestAI" }] }),
@@ -193,6 +194,59 @@ function HomeFeed() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDesire?.id, milestonesFor.isPending, milestonesFor.data?.length]);
+
+  /**
+   * And today's action. Same rule again, and the one that was missing.
+   *
+   * `useEnsureTodaysActions` was written, tested, exported — and never called
+   * from anywhere in the app. The edge function existed, the hook existed, the
+   * card that renders an action existed. Nothing ever asked for one, so the
+   * `actions` table stayed empty, Home never showed the card, and the practice
+   * fell through to its hardcoded line every single day:
+   *
+   *     "Write down the very next physical step toward this. Not the plan —
+   *      the step."
+   *
+   * Which is the app telling somebody to do the one job the app is for. The
+   * step that closes the practice, the only thing in this product no competitor
+   * attempts, has been a placeholder for its whole life because of a missing
+   * call site.
+   *
+   * Asked for all active dreams rather than just the selected one, because the
+   * practice picks its own dream and the weekly report counts across all of
+   * them — scoping this to whatever chip happens to be selected would make the
+   * practice's action depend on where somebody last tapped on Home.
+   */
+  const todaysActions = useTodaysActions();
+  const ensureActions = useEnsureTodaysActions();
+  /**
+   * Asked once per visit, deliberately.
+   *
+   * A successful write invalidates the query, which changes the dependency,
+   * which runs this again — and if the writer managed four dreams out of five,
+   * the fifth is still missing, so it would ask again, and again, for as long
+   * as the screen stayed open. One dream the writer cannot handle would mean an
+   * unbounded loop against a paid API.
+   *
+   * Once per mount is the right frequency anyway: actions are a daily thing,
+   * and reopening the app is what a new day looks like.
+   */
+  const askedForActions = useRef(false);
+  useEffect(() => {
+    if (askedForActions.current || !desires?.length || todaysActions.isPending) return;
+    const covered = new Set((todaysActions.data ?? []).map((action) => action.desire_id));
+    if (desires.every((desire) => covered.has(desire.id))) return;
+    askedForActions.current = true;
+    ensureActions.mutate(
+      desires.map((desire) => ({
+        id: desire.id,
+        title: desire.title,
+        category: desire.category,
+        description: desire.description,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desires, todaysActions.isPending, todaysActions.data?.length]);
 
   /**
    * Write for a dream the moment someone selects one with nothing under it.

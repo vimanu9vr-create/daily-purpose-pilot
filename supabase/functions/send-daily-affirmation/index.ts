@@ -1,7 +1,11 @@
-// Sends the morning affirmation push.
+// Sends the morning push: the day's practice, or an affirmation if there is no
+// programme running.
 //
-// Designed to be called every 15 minutes by pg_cron. It works out which users
-// are currently at their chosen local time, and sends to each of their devices.
+// Called hourly by pg_cron. It works out which users are currently at their
+// chosen local time, and sends to each of their devices. (The schedule was
+// every 15 minutes until the Vault migration; the function has always decided
+// who is due from each person's own time, so three of every four runs did
+// nothing.)
 //
 // Requires these secrets:
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (a mailto: URL)
@@ -33,6 +37,24 @@ type Profile = {
   notify_minute: number;
   notifications_enabled: boolean;
   last_notified_on: string | null;
+};
+
+/**
+ * The programme someone is in the middle of, with its days embedded.
+ *
+ * Fetched in one PostgREST call rather than two round trips per profile —
+ * this runs inside a loop over everyone due at the same minute, and the loop
+ * is the part that will hurt first as the user count grows.
+ */
+type ProgrammeWithDays = {
+  id: string;
+  title: string;
+  length_days: number;
+  programme_days: {
+    day_number: number;
+    intention: string;
+    completed_at: string | null;
+  }[];
 };
 
 type Subscription = {
@@ -107,7 +129,34 @@ Deno.serve(async (req: Request) => {
     const diagnostics: { sub: string; status: number | string; detail: string }[] = [];
 
     for (const profile of due) {
-      // Pick an affirmation the user hasn't seen most recently.
+      // What the notification is FOR is the practice, not the affirmation.
+      //
+      // The old copy was "Morning, Sam" over a floating line of text, linking
+      // to the affirmations list. It asked for nothing, so there was nothing to
+      // come back to — a nice sentence on a lock screen is read and dismissed.
+      // Naming the specific day and the five minutes gives the notification a
+      // job: it is the thing that reopens the practice, which is the only
+      // behaviour the product is actually built around.
+      //
+      // Day numbers come from the programme, where "day 6" means the sixth day
+      // someone has DONE, not the sixth day since they started. That is
+      // deliberate upstream (see the programmes migration) and this must not
+      // quietly reintroduce calendar counting, or the notification becomes a
+      // way of telling people they fell behind.
+      const programmeRes = await fetch(
+        `${supabaseUrl}/rest/v1/programmes?select=id,title,length_days,programme_days(day_number,intention,completed_at)&user_id=eq.${profile.id}&completed_at=is.null&order=created_at.desc&limit=1`,
+        { headers: admin },
+      );
+      const programmes = programmeRes.ok
+        ? ((await programmeRes.json()) as ProgrammeWithDays[])
+        : [];
+      const nextDay = (programmes[0]?.programme_days ?? [])
+        .filter((day) => !day.completed_at)
+        .sort((a, b) => a.day_number - b.day_number)[0];
+
+      // Pick an affirmation the user hasn't seen most recently. Still the
+      // fallback body, and still the whole message for anyone not in a
+      // programme.
       const affirmationsRes = await fetch(
         `${supabaseUrl}/rest/v1/affirmations?select=id,text&user_id=eq.${profile.id}&order=last_shown_at.asc.nullsfirst,created_at.asc&limit=1`,
         { headers: admin },
@@ -116,7 +165,10 @@ Deno.serve(async (req: Request) => {
         ? ((await affirmationsRes.json()) as { id: string; text: string }[])
         : [];
       const affirmation = affirmations[0];
-      if (!affirmation) continue;
+
+      // Nothing to say at all. Previously this skipped on a missing
+      // affirmation alone, which would have silenced somebody mid-programme.
+      if (!nextDay && !affirmation) continue;
 
       const subsRes = await fetch(
         `${supabaseUrl}/rest/v1/push_subscriptions?select=*&user_id=eq.${profile.id}`,
@@ -126,12 +178,25 @@ Deno.serve(async (req: Request) => {
       if (subs.length === 0) continue;
 
       const firstName = profile.display_name?.trim().split(" ")[0];
-      const title = firstName ? `Morning, ${firstName}` : "Your affirmation for today";
+
+      // Titles are truncated around 40 characters on Android, so the number
+      // and the commitment go first and the name is dropped when there's a day
+      // to name. "Day 6" is more motivating than being greeted by software.
+      const title = nextDay
+        ? `Your day ${nextDay.day_number} practice is ready`
+        : firstName
+          ? `${firstName}, your 5 minutes are ready`
+          : "Your practice is ready — 5 minutes";
+
+      const body = nextDay?.intention ?? affirmation?.text ?? "Five minutes, five steps.";
+
       const payload = JSON.stringify({
         title,
-        body: affirmation.text,
-        url: "/app/affirmations",
-        tag: "daily-affirmation",
+        body,
+        // Always the practice. The affirmations list is somewhere to browse;
+        // the practice is somewhere to finish, and finishing is what we need.
+        url: "/app/practice",
+        tag: "daily-practice",
       });
 
       for (const sub of subs) {
@@ -148,7 +213,7 @@ Deno.serve(async (req: Request) => {
               // yet. Leave failure_count alone so the row survives setup.
               continue;
             }
-            await sendFcm(fcmProjectId, fcmToken, token, title, affirmation.text);
+            await sendFcm(fcmProjectId, fcmToken, token, title, body);
           } else {
             if (!webPushReady) continue;
             await webpush.sendNotification(
@@ -203,12 +268,17 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Mark both so tomorrow's pick rotates and today isn't sent twice.
-      await fetch(`${supabaseUrl}/rest/v1/affirmations?id=eq.${affirmation.id}`, {
-        method: "PATCH",
-        headers: { ...admin, Prefer: "return=minimal" },
-        body: JSON.stringify({ last_shown_at: new Date().toISOString() }),
-      });
+      // Mark both so tomorrow's pick rotates and today isn't sent twice. Only
+      // rotate the affirmation if it was the one actually sent — burning it on
+      // a day the programme supplied the words would silently cycle somebody
+      // through their affirmations without them ever having read one.
+      if (affirmation && !nextDay) {
+        await fetch(`${supabaseUrl}/rest/v1/affirmations?id=eq.${affirmation.id}`, {
+          method: "PATCH",
+          headers: { ...admin, Prefer: "return=minimal" },
+          body: JSON.stringify({ last_shown_at: new Date().toISOString() }),
+        });
+      }
       await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile.id}`, {
         method: "PATCH",
         headers: { ...admin, Prefer: "return=minimal" },
@@ -348,7 +418,7 @@ async function sendFcm(
         message: {
           token: deviceToken,
           notification: { title, body },
-          data: { url: "/app/affirmations" },
+          data: { url: "/app/practice" },
           android: {
             priority: "high",
             notification: { channel_id: "daily-affirmation", sound: "default" },

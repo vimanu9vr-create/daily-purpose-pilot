@@ -249,7 +249,7 @@ const MOMENTS = [
 function sceneFor(variant: number | undefined, subjectTitle: string): string {
   let hash = 0;
   for (const char of subjectTitle) hash = (hash * 31 + char.charCodeAt(0)) | 0;
-  const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
+  const index = Math.abs(hash) + step(variant, 1);
   return MOMENTS[index % MOMENTS.length]!;
 }
 
@@ -290,7 +290,7 @@ const REGISTERS = [
 function registerFor(variant: number | undefined, subjectTitle: string): string {
   let hash = 0;
   for (const char of subjectTitle) hash = (hash * 17 + char.charCodeAt(0)) | 0;
-  const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
+  const index = Math.abs(hash) + step(variant, 3);
   return REGISTERS[index % REGISTERS.length]!;
 }
 
@@ -333,8 +333,74 @@ const TIMES = [
 function timeFor(variant: number | undefined, subjectTitle: string): string {
   let hash = 0;
   for (const char of subjectTitle) hash = (hash * 13 + char.charCodeAt(0)) | 0;
-  const index = Math.abs(hash) + (typeof variant === "number" ? Math.abs(variant) : 0);
+  const index = Math.abs(hash) + step(variant, 5);
   return TIMES[index % TIMES.length]!;
+}
+
+/**
+ * WHERE the scene happens.
+ *
+ * ## The axis that was missing, and what it cost
+ *
+ * MOMENTS, REGISTERS and TIMES all worked. Reading six live stories written for
+ * a desire called "dream job offer", the senses genuinely varied — one was
+ * built from space, one from sound, one from smell, one from weight. And all
+ * six were about paper on a desk:
+ *
+ *     "Thick parchment feels dense between thumb and forefinger…"
+ *     "Thick white bond paper fans across the walnut desk…"
+ *     "Thick white stationery rests heavy against the mahogany desk…"
+ *     "Thick cream stationery rests beside the polished walnut blotter…"
+ *
+ * Four of six opened on the texture of paper. Varying the sense only changed
+ * how the letter was described; it never moved the camera off the letter.
+ *
+ * The reason is that every existing axis is about the subject. Given a desire,
+ * the model finds its most literal artefact — the offer letter, the keys, the
+ * bank balance — and every angle becomes another angle on that same object.
+ * Nothing in the prompt was about anywhere else, so there was nowhere else to
+ * go.
+ *
+ * The same fix as the last three, one level further out: assign a place rather
+ * than forbid an object. A scene set on a bus cannot open on a blotter. The
+ * artefact can still appear — it should, it's what they want — but it has to
+ * arrive in a life rather than be the whole frame.
+ *
+ * Deliberately ordinary places. The point is a life this is already true in,
+ * not a montage of the reward.
+ */
+const SETTINGS = [
+  "somewhere in the home that is not a desk — a kitchen, a hallway, a bathroom",
+  "outdoors and moving — walking, or on the way somewhere",
+  "in transit — a bus, a train, the passenger seat",
+  "a shop, a queue, an errand being run",
+  "somebody else's home",
+  "in bed, either side of sleep",
+  "a table with other people at it",
+  "a place they pass through often and never look at",
+];
+
+function settingFor(variant: number | undefined, subjectTitle: string): string {
+  let hash = 0;
+  for (const char of subjectTitle) hash = (hash * 11 + char.charCodeAt(0)) | 0;
+  const index = Math.abs(hash) + step(variant, 7);
+  return SETTINGS[index % SETTINGS.length]!;
+}
+
+/**
+ * How far a given variant moves each axis.
+ *
+ * Every selector used to advance by exactly one per variant, which meant the
+ * axes travelled in lockstep: REGISTERS and TIMES are both eight long, so
+ * whichever sense went with whichever hour on variant 0 went together on every
+ * variant after it. Four axes moving as one produce far fewer real combinations
+ * than four axes moving independently.
+ *
+ * The strides are coprime with the list lengths, so each axis still visits
+ * every one of its values before repeating — they just stop arriving together.
+ */
+function step(variant: number | undefined, stride: number): number {
+  return typeof variant === "number" ? Math.abs(variant) * stride : 0;
 }
 
 /**
@@ -665,10 +731,11 @@ Deno.serve(async (req: Request) => {
       subjectBlock.join("\n"),
       ...(aboutThem.length > 0 ? [aboutThem.join("\n")] : []),
       [
-        "The three lines below choose the ANGLE on the subject above. They are not the subject. If any of them pulls the story away from it, ignore that line and keep the subject.",
+        "The four lines below choose the ANGLE on the subject above. They are not the subject. If any of them pulls the story away from it, ignore that line and keep the subject.",
         `WHICH MOMENT OF ALREADY HAVING IT: ${sceneFor(variant, subject.title)}`,
         `WHICH SENSE TO NOTICE IT THROUGH: ${registerFor(variant, subject.title)}`,
         `WHEN IN THE DAY THIS HAPPENS: ${timeFor(variant, subject.title)} — this is the time anchor, so there is no need to name a day of the week.`,
+        `WHERE THIS HAPPENS: ${settingFor(variant, subject.title)}. Open the story here. What they want is still unmistakably true and present, but it reaches them in this place rather than being the object on the table in front of them.`,
       ].join("\n"),
       [
         `Before you answer, check both of these.`,

@@ -24,10 +24,17 @@ import { cn } from "@/lib/utils";
  * with a real per-listen bill and folding it into a single price means readers
  * subsidise listeners. See `plans.ts` for the arithmetic.
  *
- * The screen opens on Voice, and `?tier=` lets the player deep-link somebody
- * straight to it from the moment they pressed play and found it locked — which
- * is the moment they most want it, and the worst possible moment to make them
- * hunt through a pricing page.
+ * The screen opens on STANDARD. It used to open on Voice, which meant the first
+ * price anybody saw was $149.99 a year — the most expensive number in the
+ * product — with the $45.99 plan hidden behind a toggle they had to notice and
+ * press. Opening on the cheaper plan is not modesty; a first number that large
+ * ends the visit for people who would happily have paid the smaller one, and
+ * Voice is still one tap away for anybody who wants it.
+ *
+ * `?tier=voice` still deep-links straight to Voice, and the player uses it from
+ * the moment somebody pressed play and found narration locked. That IS the
+ * moment they want it, and the worst possible moment to make them hunt — but it
+ * is a moment we can detect, rather than a guess applied to every visitor.
  */
 /** The tiers you can actually buy. "free" isn't one of them. */
 type PaidTier = Exclude<PlanTier, "free">;
@@ -49,9 +56,9 @@ function Upgrade() {
   const { tier: currentTier, hasVoice } = useSubscription();
   const awaitEntitlement = useAwaitEntitlement();
 
-  const [tier, setTier] = useState<PaidTier>(openTo ?? "voice");
+  const [tier, setTier] = useState<PaidTier>(openTo ?? "standard");
   const [selected, setSelected] = useState<PlanId>(
-    (openTo ?? "voice") === "standard" ? "standard_yearly" : "voice_yearly",
+    (openTo ?? "standard") === "standard" ? "standard_yearly" : "voice_yearly",
   );
   const [busy, setBusy] = useState(false);
 

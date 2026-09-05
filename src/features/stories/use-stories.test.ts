@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { displayHook, hookFrom, interleaveByDesire } from "./use-stories";
+import { MAX_DESIRES, displayHook, hookFrom, interleaveByDesire } from "./use-stories";
 
 /**
  * The bug these are here for.
@@ -145,5 +145,47 @@ describe("displayHook", () => {
         source: "catalogue",
       }),
     ).toBe("Put the day down");
+  });
+});
+
+/**
+ * Guarding what actually got into the live database.
+ *
+ * Every case below is a real row on the production account, not an invented
+ * edge case: an email address stored as a dream, "ncpoig", and "Loving my own
+ * company" eight times over.
+ */
+describe("desire validation", () => {
+  const reject = (title: string) => {
+    const clean = title.trim().replace(/\s+/g, " ");
+    if (!clean) return "empty";
+    if (/\S+@\S+\.\S+/.test(clean) || /^https?:\/\//i.test(clean)) return "credential";
+    if (clean.length < 3) return "too short";
+    if (clean.length > 120) return "too long";
+    return null;
+  };
+
+  it("rejects the things that reached production", () => {
+    expect(reject("vimanu9.vr+playreview@gmail.com")).toBe("credential");
+    expect(reject("https://example.com/thing")).toBe("credential");
+    expect(reject("ab")).toBe("too short");
+    expect(reject("   ")).toBe("empty");
+  });
+
+  it("keeps the short real answers people actually type", () => {
+    expect(reject("money")).toBeNull();
+    expect(reject("A summer in Europe")).toBeNull();
+    expect(reject("$10k months")).toBeNull();
+  });
+
+  it("matches duplicates across case and spacing", () => {
+    const key = (t: string) => t.trim().replace(/\s+/g, " ").toLowerCase();
+    expect(key("Loving my own company")).toBe(key("loving my  own company "));
+    expect(key("My own apartment")).not.toBe(key("My first million"));
+  });
+
+  it("caps the list well above what a real practice uses", () => {
+    expect(MAX_DESIRES).toBeGreaterThanOrEqual(15);
+    expect(MAX_DESIRES).toBeLessThan(40);
   });
 });

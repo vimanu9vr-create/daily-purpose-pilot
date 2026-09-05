@@ -5,9 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/page-transition";
-import { useTodaysActions, useToggleAction } from "@/features/actions/use-actions";
+import {
+  useEnsureTodaysActions,
+  useTodaysActions,
+  useToggleAction,
+} from "@/features/actions/use-actions";
 import { useDailyAffirmation } from "@/features/affirmations/use-affirmations";
-import { desirePhraseOr } from "@/features/moments/desire-phrase";
+import { desireNounPhraseOr } from "@/features/moments/desire-phrase";
 import { useCreateEntry } from "@/features/journal/use-journal";
 import { useProfile } from "@/features/onboarding/use-profile";
 import { useDesires } from "@/features/stories/use-stories";
@@ -66,9 +70,40 @@ function Practice() {
   const action = actions?.find((a) => a.desire_id === desire?.id) ?? actions?.[0] ?? null;
   const affirmation = dailyAffirmation?.text ?? null;
 
+  /**
+   * Make sure there is an action to close on, without relying on Home.
+   *
+   * The morning notification now opens this screen directly, so a large share
+   * of sessions will never touch Home — and Home is where actions get written.
+   * Depending on it would mean the people most likely to practise daily are the
+   * ones most likely to reach a practice with nothing at the end of it.
+   *
+   * Fires once, on the first render that finds nothing for today. The unique
+   * index on (user, desire, date) makes a duplicate request harmless, so the
+   * race with Home doing the same thing costs nothing.
+   */
+  const ensureActions = useEnsureTodaysActions();
+  const askedForAction = useRef(false);
+  useEffect(() => {
+    if (askedForAction.current || !desires?.length || !actions || actions.length > 0) return;
+    askedForAction.current = true;
+    ensureActions.mutate(
+      desires.map((d) => ({
+        id: d.id,
+        title: d.title,
+        category: d.category,
+        description: d.description,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desires, actions]);
+
   const intention = useMemo(() => {
     if (!desire) return "I'm allowed to want what I want, and to work toward it.";
-    const phrase = desirePhraseOr(desire.title);
+    // Noun phrase, not bare phrase. This slot needs the article: a desire
+    // titled "Dream job offer" was producing "for whom dream job offer is
+    // ordinary", on the one screen carrying the whole personalisation promise.
+    const phrase = desireNounPhraseOr(desire.title);
     return `I am becoming the kind of person for whom ${phrase} is ordinary.`;
   }, [desire]);
 
@@ -195,7 +230,7 @@ function Practice() {
                 <p>Let your eyes close, if that's comfortable.</p>
                 <p>
                   Picture an ordinary moment — months from now — where{" "}
-                  {desire ? desirePhraseOr(desire.title) : "this"} is simply part of your life.
+                  {desire ? desireNounPhraseOr(desire.title) : "this"} is simply part of your life.
                 </p>
                 <p>Not the celebration. A Tuesday.</p>
                 <p>What do you notice first?</p>
@@ -244,11 +279,38 @@ function Practice() {
                 <p className="text-center text-sm text-muted-foreground">
                   One thing you can actually do today.
                 </p>
+                {/*
+                 * No canned action here any more.
+                 *
+                 * This slot used to fall back to "Write down the very next
+                 * physical step toward this. Not the plan — the step." — which
+                 * is indistinguishable from a real action, so a user could not
+                 * tell a written action from a missing one, and neither could
+                 * I. It sat on this screen every day because nothing was ever
+                 * calling the writer.
+                 *
+                 * `use-actions.ts` already made this call for Home and said
+                 * why: "A fallback you cannot distinguish from success hides
+                 * the outage from the only person who could act on it." The
+                 * practice was the one place still doing it.
+                 *
+                 * So: the real action, or an honest wait. Never a template
+                 * wearing an action's clothes.
+                 */}
                 <div className="mt-5 rounded-[28px] border border-glass-border bg-card/70 p-6">
-                  <p className="text-pretty text-[16px] leading-relaxed">
-                    {action?.body ??
-                      "Write down the very next physical step toward this. Not the plan — the step."}
-                  </p>
+                  {action ? (
+                    <p className="text-pretty text-[16px] leading-relaxed">{action.body}</p>
+                  ) : ensureActions.isPending ? (
+                    <p className="flex items-center gap-2.5 text-[15px] leading-relaxed text-muted-foreground">
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                      Working out today&rsquo;s one thing…
+                    </p>
+                  ) : (
+                    <p className="text-pretty text-[15px] leading-relaxed text-muted-foreground">
+                      Today&rsquo;s action didn&rsquo;t come through. The rest of the practice still
+                      counts — and there&rsquo;ll be one waiting tomorrow.
+                    </p>
+                  )}
                   {action && (
                     <button
                       type="button"

@@ -7,13 +7,25 @@ import { PageTransition } from "@/components/page-transition";
 import { useTodaysActions } from "@/features/actions/use-actions";
 import { usePracticeStreak, useTodaysPractice } from "@/features/practice/use-practice";
 
-export const Route = createFileRoute("/_authenticated/app/practice/done")({
+export const Route = createFileRoute("/_authenticated/app/practice_/done")({
   head: () => ({ meta: [{ title: "Practice complete — ManifestAI" }] }),
   component: PracticeDone,
 });
 
 /**
  * The completion screen.
+ *
+ * The trailing underscore in the filename — `app.practice_.done.tsx` — is
+ * load-bearing. Without it this route is a CHILD of `app.practice.tsx`, and
+ * that file renders the practice wizard rather than an `<Outlet />`. So the
+ * route matched, the URL became /app/practice/done, the document title became
+ * "Practice complete", and this component never rendered: the last step of the
+ * practice just stayed on screen. Nothing errored, and the session was still
+ * recorded, so the only visible symptom was that finishing a practice appeared
+ * to do nothing. Opening the URL directly started a fresh practice instead.
+ *
+ * The underscore opts the route out of that nesting. If this file is ever
+ * renamed, keep it — or the completion screen silently vanishes again.
  *
  * Kept quiet on purpose. Confetti and "AMAZING WORK!!" would undercut the one
  * claim this app is careful about: that showing up repeatedly is what does the

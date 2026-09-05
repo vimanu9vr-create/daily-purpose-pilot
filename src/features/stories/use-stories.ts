@@ -98,6 +98,21 @@ export function useDesires() {
   });
 }
 
+/**
+ * How many dreams one person may keep at once.
+ *
+ * Deliberately generous — nobody with a real practice reaches twenty — but not
+ * unbounded. The live account has forty, and forty dreams is not forty times
+ * the focus: it is a chip row nobody can read, forty sets of stories to
+ * generate, and a separate daily action for each.
+ */
+export const MAX_DESIRES = 20;
+
+/** Collapse whitespace and case, so the same dream retyped later matches. */
+function desireKey(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export function useCreateDesire() {
   const userId = useUserId();
   const queryClient = useQueryClient();
@@ -105,13 +120,69 @@ export function useCreateDesire() {
   return useMutation({
     mutationFn: async ({ title, description }: { title: string; description?: string }) => {
       if (!userId) throw new Error("Not signed in");
+
+      const clean = title.trim().replace(/\s+/g, " ");
+      if (!clean) throw new Error("Type what you want first.");
+
+      /**
+       * An email address is not a dream.
+       *
+       * The live account has `vimanu9.vr+playreview@gmail.com` in the chip row
+       * as a desire, sitting next to "A summer in Europe". Somebody typed into
+       * the wrong box — easy to do, because Home's input is the first thing on
+       * the screen and looks like a search field — and the app accepted it,
+       * wrote six stories about it, and has shown it back ever since.
+       */
+      if (/\S+@\S+\.\S+/.test(clean) || /^https?:\/\//i.test(clean)) {
+        throw new Error("That looks like an email or a link. What is it you actually want?");
+      }
+
+      /**
+       * Long enough to be a desire, short enough to splice into a sentence.
+       *
+       * "ncpoig" is in the live data. So is "money", which is a perfectly real
+       * answer — hence a floor of three characters rather than a word count.
+       * The ceiling is what keeps `desirePhrase` able to do its job.
+       */
+      if (clean.length < 3) throw new Error("A few more words — what does it look like?");
+      if (clean.length > 120) {
+        throw new Error("Shorter, if you can. One thing you want, in a line.");
+      }
+
+      const { data: existing, error: readError } = await supabase
+        .from("desires")
+        .select("id,title")
+        .eq("user_id", userId);
+      if (readError) throw readError;
+
+      /**
+       * No duplicates.
+       *
+       * "Loving my own company" appears EIGHT times on the live account and
+       * "My own apartment" four. Each copy gets its own stories, affirmations,
+       * milestones and daily action — so a duplicate is not clutter in the chip
+       * row, it is a second set of everything, competing for the same attention
+       * and doubling what the feed costs to generate.
+       */
+      const already = (existing ?? []).find((row) => desireKey(row.title) === desireKey(clean));
+      if (already) {
+        throw new Error(`You already have that one — it's in your list as "${already.title}".`);
+      }
+
+      // Name the fix rather than just refusing.
+      if ((existing ?? []).length >= MAX_DESIRES) {
+        throw new Error(
+          `That's ${MAX_DESIRES} dreams already. Remove one you're no longer working on first.`,
+        );
+      }
+
       const { data, error } = await supabase
         .from("desires")
         .insert({
           user_id: userId,
-          title: title.trim(),
+          title: clean,
           description: description?.trim() || null,
-          category: themeFor(title),
+          category: themeFor(clean),
         })
         .select()
         .single();
