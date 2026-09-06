@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell, BellOff, Loader2, Share, Smartphone } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { AppPage } from "@/components/app/app-page";
 import { Button } from "@/components/ui/button";
@@ -41,15 +42,57 @@ function SettingsPage() {
     );
   }, [profile]);
 
+  /**
+   * Save the notification time — debounced, and say so when it lands.
+   *
+   * Two problems with the previous version, and the second is the one that
+   * cost real time.
+   *
+   * A `type="time"` input fires `change` while the value is still being
+   * assembled, so typing 17:30 sent as many as four updates, some of them for
+   * times the person never chose. Debouncing means one write for one decision.
+   *
+   * And it saved in complete silence. No toast, no spinner, nothing — so
+   * "saved correctly" and "didn't save at all" looked exactly the same on
+   * screen. Every profile in the database still sits on the 07:00 default,
+   * and there is no way to tell from the UI whether that is because nobody
+   * changed it or because changing it never worked. A write with no
+   * acknowledgement is a write you cannot trust, and it turns a five-second
+   * check into an afternoon of guessing.
+   */
+  const saveTimer = useRef<number | null>(null);
+
   function saveTime(next: string) {
     setTime(next);
-    const [h, m] = next.split(":").map(Number);
-    updateProfile.mutate({
-      notify_hour: h ?? 7,
-      notify_minute: m ?? 0,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
+
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      const parts = next.split(":");
+      const h = Number(parts[0]);
+      const m = Number(parts[1]);
+      // A half-typed time is not a decision. Writing one would store a value
+      // the person never chose, and the toast would confirm it.
+      if (!Number.isInteger(h) || !Number.isInteger(m)) return;
+      if (h < 0 || h > 23 || m < 0 || m > 59) return;
+
+      updateProfile.mutate(
+        {
+          notify_hour: h,
+          notify_minute: m,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        {
+          onSuccess: () => toast.success(`Saved — your practice reminder is set for ${next}.`),
+        },
+      );
+    }, 600);
   }
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, []);
 
   const notificationsOn = Boolean(profile?.notifications_enabled && isSubscribed);
 

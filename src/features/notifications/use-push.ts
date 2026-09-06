@@ -92,6 +92,61 @@ function usesKey(subscription: PushSubscription, key: ArrayBuffer): boolean {
   return a.every((byte, i) => byte === b[i]);
 }
 
+/**
+ * The VAPID public key, from the same place the private half lives.
+ *
+ * It used to be read from `VITE_VAPID_PUBLIC_KEY`, baked in at build time,
+ * while the private key sat in Supabase's function secrets. Two halves of one
+ * pair in two systems, with nothing keeping them together — and they came
+ * apart. A build variable on the host silently overrode the `.env` file (Vite
+ * gives real environment variables precedence), so the deployed app kept
+ * handing out a stale public key. The browser subscribed with the old one, the
+ * server signed with the new private one, and the push service rejected every
+ * send with "the VAPID credentials in the authorization header do not
+ * correspond to the credentials used to create the subscriptions".
+ *
+ * Nothing surfaced. The subscription existed, the send returned 200, and no
+ * notification ever arrived.
+ *
+ * Now the server is asked. One source, so a rotation can't half-happen.
+ *
+ * The build-time value is kept only as a fallback for the case where the
+ * function isn't deployed yet, and it is deliberately the LAST resort rather
+ * than the first — preferring it is what caused the problem.
+ */
+let cachedVapidKey: string | null = null;
+
+async function vapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+
+  try {
+    const { data, error } = await supabase.functions.invoke<{
+      publicKey?: string;
+      message?: string;
+    }>("push-config");
+    if (!error && data?.publicKey) {
+      cachedVapidKey = data.publicKey;
+      return cachedVapidKey;
+    }
+    // The function answered and said it isn't configured. That message names
+    // which secret is missing, so it is far more useful than ours.
+    if (data?.message) throw new Error(data.message);
+  } catch (error) {
+    // Network failure or the function isn't deployed. Fall through.
+    trail("push", "config-fetch-failed", { message: (error as Error).message });
+  }
+
+  const fallback = import.meta.env["VITE_VAPID_PUBLIC_KEY"] as string | undefined;
+  if (fallback) {
+    trail("push", "using-build-time-key");
+    return fallback;
+  }
+
+  throw new Error(
+    "Notifications aren't set up on the server yet. VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY need to be added to the Supabase function secrets.",
+  );
+}
+
 /** VAPID public keys are base64url; the browser wants raw bytes. */
 function urlBase64ToBytes(base64: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -153,10 +208,7 @@ export function useEnableNotifications() {
         return;
       }
 
-      const vapidKey = import.meta.env["VITE_VAPID_PUBLIC_KEY"] as string | undefined;
-      if (!vapidKey) {
-        throw new Error("Notifications aren't configured yet — the VAPID key hasn't been added.");
-      }
+      const vapidKey = await vapidPublicKey();
 
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
