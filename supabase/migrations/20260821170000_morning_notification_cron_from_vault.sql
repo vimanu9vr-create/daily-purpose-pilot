@@ -6,17 +6,17 @@
 -- in the last twenty-four hours alone. Nothing anywhere said so, because a
 -- cron job has nobody to tell.
 --
--- BEFORE RUNNING THIS, store the key once (Dashboard → Project Settings →
--- Vault → New secret), named exactly:
+-- BEFORE RUNNING THIS, store the key once in Vault (find it with Cmd+K →
+-- "Vault" in the Dashboard), named exactly:
 --
 --     service_role_key
 --
--- The value is your service role key, from Project Settings → API. Put it in
--- Vault rather than in this file: anything pasted into a migration is in git
--- forever, and anything pasted into cron.job is readable by whoever can read
--- that table and ends up in every backup.
+-- The value comes from Settings → API Keys. EITHER key type works — see the
+-- note on headers below. Put it in Vault rather than in this file: anything
+-- pasted into a migration is in git forever, and anything pasted into cron.job
+-- is readable by whoever can read that table and ends up in every backup.
 --
--- Two changes here:
+-- Three changes here:
 --
 -- 1. The key is read from Vault at call time, so it never appears in the job
 --    definition, this file, or a database dump.
@@ -24,6 +24,21 @@
 -- 2. Hourly rather than every fifteen minutes. The function already decides
 --    who is due from each person's chosen time, so three of every four calls
 --    were doing nothing.
+--
+-- 3. The key is sent on BOTH `Authorization` and `apikey`, because Supabase
+--    now has two kinds of key and they travel differently.
+--
+--    The legacy `service_role` key is a JWT — it starts `eyJ` — and belongs on
+--    `Authorization: Bearer`. The newer secret keys start `sb_secret_` and are
+--    not JWTs at all; Supabase's own documentation says they go on `apikey`,
+--    and that anything trying to verify one as a JWT will fail.
+--
+--    Sending both is not belt-and-braces for its own sake. It means this job
+--    does not silently break on the day the legacy keys are switched off — they
+--    are deprecated at the end of 2026 — and it means whoever sets this up
+--    cannot pick the wrong one. A cron job has nobody to tell when it starts
+--    failing, which is the entire reason this file exists, so the failure mode
+--    is worth designing out rather than documenting.
 
 create or replace function public.send_morning_affirmations()
 returns void
@@ -51,16 +66,46 @@ begin
     url     := 'https://pkxkksamenqcvsaulceq.supabase.co/functions/v1/send-daily-affirmation',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || service_key
+      -- Legacy JWT service_role keys are read from here.
+      'Authorization', 'Bearer ' || service_key,
+      -- New sb_secret_ keys are read from here. Whichever kind is in Vault,
+      -- one of these two is the one that counts and the other is ignored.
+      'apikey', service_key
     ),
     body    := '{}'::jsonb
   );
 end;
 $$;
 
--- Replace the old job. Unschedule by name is safer than by id, but the
--- original was created without one, so it has to go by id 1.
-select cron.unschedule(1);
+-- Replace the old job.
+--
+-- This line used to read `select cron.unschedule(1)`, on the belief that the
+-- original job had no name and so could only be removed by id. It does have a
+-- name — `daily-affirmation` — and hardcoding the id was fragile twice over: it
+-- breaks if the id is ever different, and `cron.unschedule` RAISES when it
+-- finds nothing rather than returning quietly. In a migration that means the
+-- whole transaction aborts and none of the work above gets applied, which
+-- looks exactly like the file having done nothing at all.
+--
+-- So: remove whatever is currently pointed at this job, by name, whatever it
+-- is called, and don't fail when there is nothing to remove. Re-running this
+-- file is then safe, which matters because the first attempt at it wasn't.
+do $$
+declare
+  job record;
+begin
+  for job in
+    select jobname
+    from cron.job
+    where jobname in ('daily-affirmation', 'morning-affirmations')
+       or command ilike '%send_morning_affirmations%'
+       or command ilike '%send-daily-affirmation%'
+  loop
+    perform cron.unschedule(job.jobname);
+    raise notice 'unscheduled %', job.jobname;
+  end loop;
+end;
+$$;
 
 select cron.schedule(
   'morning-affirmations',
