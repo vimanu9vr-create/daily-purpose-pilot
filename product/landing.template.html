@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Seven-Day Reset — a manifestation workbook that doesn't lie to you</title>
+<meta name="description" content="Seven days, one page each, plus the scripting method — and the honest reason most manifestation advice fails. 19 pages, instant download, $29.">
+<meta property="og:title" content="A manifestation workbook that doesn't lie to you">
+<meta property="og:description" content="Seven days. One page each. Plus the scripting method that works, and the reason most scripting doesn't.">
+<meta property="og:type" content="product">
+<meta property="og:image" content="og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="og.jpg">
+<link rel="preload" as="image" href="img/cover.jpg">
+<meta name="theme-color" content="#f7e9ec">
+<link rel="icon" href="data:,">
+<style>
+  /*
+    Structure follows what the conversion research actually supports rather
+    than what looks impressive:
+
+    - ONE goal. Buying the workbook. Nothing else is sold here at all —
+      the app lives on the thank-you page, where the buyer already is.
+    - Offer + price + button visible without scrolling, on a phone.
+    - A persistent button on mobile, because the decision is usually made
+      halfway down and nobody scrolls back up to act on it.
+    - Five real page previews. Preview content is the single biggest lever
+      on a digital product page after a walkthrough video.
+    - Objections answered where they arise, not quarantined in an FAQ.
+    - No fabricated testimonials. There are no customers yet, and invented
+      ones are both a lie and instantly recognisable as one.
+  */
+  :root{
+    --ink:#3b2530; --plum:#7a3f5e; --deep:#5d2f47; --rose:#f7e9ec;
+    --blush:#fdf6f7; --line:#e8d3da; --muted:#8a7079; --ember:#c0674a;
+    --white:#fffdfd;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{
+    margin:0;color:var(--ink);background:var(--rose);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,sans-serif;
+    font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased;
+    padding-bottom:0;
+  }
+  h1,h2,h3,.serif{font-family:Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.012em}
+  em{font-style:italic;color:var(--plum)}
+  a{color:var(--plum)}
+  .wrap{max-width:660px;margin:0 auto;padding:0 22px}
+
+  /* ------------------------------------------------------ above the fold */
+  header{background:linear-gradient(168deg,#fdf6f7 0%,#f7e9ec 46%,#edd1db 100%);padding:34px 0 40px}
+  .kicker{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--plum);margin-bottom:20px;text-align:center}
+  h1{font-size:40px;line-height:1.06;margin:0 0 16px;text-align:center}
+  .sub{font-size:19px;line-height:1.45;color:var(--deep);margin:0 auto 22px;max-width:500px;text-align:center}
+
+  .fold{display:grid;grid-template-columns:168px 1fr;gap:24px;align-items:center;margin-bottom:24px}
+  .fold figure{margin:0;align-self:center}
+  .fold img{
+    display:block;width:100%;height:auto;
+    aspect-ratio:210/297;          /* A4 — the page really is this shape */
+    object-fit:contain;
+    border-radius:5px;box-shadow:0 20px 44px -16px rgba(60,30,45,.5);
+  }
+  .ticks{list-style:none;margin:0;padding:0;font-size:16px;line-height:1.45}
+  .ticks li{position:relative;padding:0 0 11px 25px}
+  .ticks li:last-child{padding-bottom:0}
+  .ticks li:before{content:"✓";position:absolute;left:0;top:0;color:var(--plum);font-weight:700}
+
+  .buy{text-align:center}
+  .cta{
+    display:inline-block;background:var(--plum);color:#fff;text-decoration:none;
+    font-size:19px;font-weight:600;padding:18px 44px;border-radius:999px;
+    box-shadow:0 14px 30px -10px rgba(122,63,94,.62);transition:background .15s;
+  }
+  .cta:hover{background:var(--deep)}
+  .under-cta{font-size:13.5px;color:var(--muted);margin-top:12px;line-height:1.5}
+
+  /* ---------------------------------------------------------------- body */
+  section{padding:50px 0;border-top:1px solid var(--line)}
+  h2{font-size:29px;line-height:1.18;margin:0 0 18px}
+  h3{font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--plum);
+     font-family:-apple-system,sans-serif;font-weight:700;margin:0 0 12px}
+  p{margin:0 0 17px}
+  .lead{font-size:19px;color:var(--deep);line-height:1.5}
+  .small{font-size:14px;color:var(--muted);line-height:1.55}
+
+  .quote{
+    background:var(--blush);border-left:3px solid var(--plum);border-radius:0 10px 10px 0;
+    padding:18px 22px;margin:0 0 20px;font-family:Georgia,serif;font-style:italic;
+    font-size:19px;line-height:1.45;
+  }
+  .card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:24px 26px}
+
+  ul.plain{list-style:none;padding:0;margin:0}
+  ul.plain li{padding:12px 0 12px 28px;border-bottom:1px solid var(--line);position:relative}
+  ul.plain li:last-child{border-bottom:none}
+  ul.plain li:before{content:"";position:absolute;left:4px;top:21px;width:8px;height:8px;border-radius:50%;background:var(--plum);opacity:.42}
+  ul.plain b{font-weight:600}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  /* previews */
+  .walk{
+    width:100%;height:auto;display:block;aspect-ratio:1080/1350;object-fit:contain;border-radius:12px;
+    border:1px solid var(--line);background:var(--blush);
+    box-shadow:0 18px 40px -18px rgba(60,30,45,.45);
+  }
+  .peek{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .peek img{
+    display:block;width:100%;height:auto;
+    aspect-ratio:210/297;object-fit:contain;
+    border-radius:6px;border:1px solid var(--line);
+    box-shadow:0 12px 26px -14px rgba(60,30,45,.42);
+  }
+  .peek figcaption{font-size:12.5px;color:var(--muted);margin-top:7px;text-align:center;line-height:1.35}
+  figure{margin:0}
+
+  /* price */
+  .price-box{background:var(--white);border:2px solid var(--plum);border-radius:22px;padding:32px 26px;text-align:center}
+  .price{font-family:Georgia,serif;font-size:54px;line-height:1;margin:0 0 4px}
+  .price small{font-size:16px;color:var(--muted);font-family:-apple-system,sans-serif}
+  .price-note{font-size:14.5px;color:var(--muted);margin:0 0 22px}
+  .guarantee{margin-top:18px;font-size:14px;color:var(--muted);line-height:1.55}
+
+  details{border-bottom:1px solid var(--line);padding:15px 0}
+  details summary{cursor:pointer;font-weight:600;font-size:16.5px;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary:before{content:"+ ";color:var(--plum);font-weight:700}
+  details[open] summary:before{content:"– "}
+  details p{margin:11px 0 0;color:var(--muted);font-size:16px}
+
+  /* author */
+  .author{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
+  .mark{
+    width:56px;height:56px;border-radius:50%;background:var(--plum);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;
+    font-size:24px;flex:none;
+  }
+
+  /* testimonials */
+  .says{display:grid;gap:14px}
+  .say{
+    background:var(--white);border:1px solid var(--line);border-radius:16px;
+    padding:22px 24px;
+  }
+  .say p{
+    font-family:Georgia,serif;font-size:18px;line-height:1.5;margin:0 0 12px;
+  }
+  .say cite{
+    font-style:normal;font-size:14px;color:var(--muted);
+  }
+
+  .ghost{
+    display:inline-block;border:1.5px solid var(--plum);color:var(--plum);
+    text-decoration:none;font-size:16px;font-weight:600;padding:14px 30px;
+    border-radius:999px;
+  }
+  .ghost:hover{background:var(--plum);color:#fff}
+
+  .trust{
+    display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;
+    margin-top:16px;font-size:12.5px;color:var(--muted);
+  }
+  .trust span{position:relative;padding-left:16px}
+  .trust span:before{
+    content:"✓";position:absolute;left:0;top:0;color:var(--plum);font-weight:700;
+  }
+
+  footer{padding:36px 0 110px;text-align:center;font-size:13px;color:var(--muted)}
+  footer a{color:var(--muted)}
+
+  /* sticky mobile bar */
+  .bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;
+    transform:translateY(110%);transition:transform .25s ease;
+    background:rgba(253,246,247,.94);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+    align-items:center;gap:12px;justify-content:center;
+  }
+  .bar.on{transform:translateY(0)}
+  .bar .inner{display:flex;align-items:center;gap:14px;width:100%;max-width:660px}
+  .bar .bp{font-family:Georgia,serif;font-size:19px;flex:none}
+  .bar .bs{font-size:12px;color:var(--muted);line-height:1.25}
+  .bar a{
+    margin-left:auto;background:var(--plum);color:#fff;text-decoration:none;
+    font-size:15.5px;font-weight:600;padding:12px 22px;border-radius:999px;white-space:nowrap;
+  }
+
+  @media (max-width: 620px){
+    h1{font-size:32px}
+    .sub{font-size:17px}
+    h2{font-size:24px}
+    .fold{grid-template-columns:132px 1fr;gap:16px}
+    .ticks{font-size:15px}
+    .two{grid-template-columns:1fr}
+    .peek{grid-template-columns:1fr 1fr}
+    .cta{width:100%;padding:17px 20px}
+    footer{padding-bottom:130px}
+  }
+
+  /* Must stay AFTER the 620px block: both match on a small phone and the
+     later rule wins. Below 400px the two-column hero squeezes the tick list
+     to two or three words a line, so stack instead. */
+  @media (max-width: 400px){
+    .fold{grid-template-columns:1fr;gap:16px;justify-items:center}
+    .fold figure{width:160px}
+    .ticks{width:100%;font-size:15.5px}
+  }
+</style>
+<script src="https://gumroad.com/js/gumroad.js" defer></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "The Seven-Day Reset",
+  "description": "A seven-day manifestation workbook and scripting method that explains what visualisation actually does, rather than promising that thinking makes things happen.",
+  "brand": { "@type": "Brand", "name": "ManifestAI" },
+  "image": "og.jpg",
+  "offers": {
+    "@type": "Offer",
+    "price": "29.00",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock"
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- ============================================================ ABOVE FOLD -->
+<header>
+  <div class="wrap">
+    <div class="kicker">ManifestAI</div>
+    <h1>A manifestation workbook<br>that doesn&rsquo;t <em>lie to you</em></h1>
+    <p class="sub">Ten minutes a day for a week. By Sunday you&rsquo;ll have
+    written the sentence you&rsquo;ve been avoiding, and know exactly what to
+    do about it.</p>
+
+    <div class="fold">
+      <figure><img fetchpriority="high" width="420" height="594"
+        src="img/cover.jpg" alt="The Seven-Day Reset workbook cover"></figure>
+      <ul class="ticks">
+        <li>19 pages, written to be filled in</li>
+        <li>Seven days &middot; about ten minutes each</li>
+        <li>Five ruled scripting pages</li>
+        <li>Instant PDF &middot; print it or write on it</li>
+      </ul>
+    </div>
+
+    <div class="buy">
+      <a class="cta gumroad-button" data-gumroad-single-product="true" href="GUMROAD_URL">Get it &mdash; $29</a>
+      <div class="under-cta">One payment &middot; yours forever &middot; 30-day refund, no questions</div>
+      <div class="trust">
+        <span>Secure checkout by Gumroad</span>
+        <span>Download in seconds</span>
+        <span>No subscription</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============================================================== PROBLEM -->
+<section style="border-top:none">
+  <h2>You already suspect the <em>problem</em></h2>
+  <p class="lead">Every manifestation guide you have read told you that
+  thinking about something makes it arrive.</p>
+  <p>You tried it. You wrote the affirmations. You said them to a mirror and
+  felt faintly stupid. Somewhere around day four you stopped &mdash; and
+  quietly concluded that either it doesn&rsquo;t work, or something is wrong
+  with you.</p>
+  <p>Neither. You were handed a mechanism that isn&rsquo;t true, and your own
+  mind refused to pretend. That refusal is the reason &ldquo;I am a
+  millionaire&rdquo; does nothing while your account says otherwise. You
+  aren&rsquo;t persuading yourself. You are arguing with yourself, and you
+  always lose.</p>
+  <div class="quote">This workbook opens by telling you what actually happens.
+  It is smaller than what you were promised, and far more reliable.</div>
+</section>
+
+<!-- ============================================================ MECHANISM -->
+<section>
+  <h2>What it <em>really</em> does</h2>
+  <p>Describe a life in detail &mdash; not the headline, the texture of it
+  &mdash; and two well-documented things happen.</p>
+  <p><b>You start noticing.</b> Opportunities that were always in front of you
+  stop being filtered out, because your attention finally has a shape to match
+  against.</p>
+  <p><b>You act sooner.</b> Something rehearsed costs less to begin. The leap
+  shrinks because you have already stood at the edge of it.</p>
+  <p>Attention and follow-through. That is the whole mechanism, and every page
+  in here is built around it rather than around wishing.</p>
+</section>
+
+<!-- =============================================================== OUTCOME -->
+<section>
+  <h2>What you&rsquo;ll have by <em>Sunday</em></h2>
+  <p>Not a feeling. Five things written down, in your handwriting, that you
+  did not have on Monday.</p>
+  <ul class="plain">
+    <li><b>One sentence</b> naming what you actually want &mdash; the real
+    one, which most people never write.</li>
+    <li><b>A scene you can picture in two minutes</b> with your eyes shut,
+    detailed enough that your mind stops filing it as fiction.</li>
+    <li><b>The obstacle, named once</b> and finished with. Not the one you
+    say out loud &mdash; the one underneath it.</li>
+    <li><b>One line you can say to a mirror</b> without cringing, which is
+    the only kind that does anything.</li>
+    <li><b>A letter with a date on it</b>, and a reminder set for the day
+    you&rsquo;ll read it back.</li>
+  </ul>
+  <p style="margin-top:20px">Seventy minutes of your week, total. Ten minutes
+  a day.</p>
+</section>
+
+<!-- ================================================================ INSIDE -->
+<section>
+  <h2>What&rsquo;s <em>inside</em></h2>
+
+  <h3>Part One &mdash; Seven days</h3>
+  <ul class="plain">
+    <li><b>Day 1 &middot; Say it plainly, once.</b> The sentence you have been
+    avoiding writing down &mdash; and why the vagueness has been protecting you.</li>
+    <li><b>Day 2 &middot; The ordinary afternoon.</b> The visualisation nearly
+    everyone gets wrong, and the one detail that makes your mind accept it.</li>
+    <li><b>Day 3 &middot; The obstacle, written once.</b> Why writing it turns
+    weather into an object &mdash; and why it&rsquo;s never the one you&rsquo;d
+    say out loud.</li>
+    <li><b>Day 4 &middot; Evidence you already have.</b> Three things you
+    wanted and got, and the shape of how <em>you</em> in particular get things.</li>
+    <li><b>Day 5 &middot; The smallest next thing.</b> Small enough that not
+    doing it would be embarrassing. Ambitious first steps are procrastination
+    in a good coat.</li>
+    <li><b>Day 6 &middot; Say it out loud.</b> One line you can say to a mirror
+    without cringing &mdash; the constraint that makes affirmations work at all.</li>
+    <li><b>Day 7 &middot; A letter from a year out.</b> Written from the life
+    where it&rsquo;s already true and has stopped being interesting.</li>
+  </ul>
+
+  <div style="height:24px"></div>
+
+  <h3>Part Two &mdash; The Scripting Method</h3>
+  <ul class="plain">
+    <li><b>The four rules</b>, and the one that matters more than the other
+    three together.</li>
+    <li><b>Three mistakes</b> that turn scripting into daydreaming with a pen.</li>
+    <li><b>Three openings</b> for when the blank page is the problem.</li>
+    <li><b>Five scripting pages</b>, ruled and dated, with the rules printed at
+    the foot so you never drift.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== PREVIEWS -->
+<section>
+  <h2>Look <em>inside</em> before you buy</h2>
+  <p class="small" style="margin-bottom:18px">Thirty seconds, every page.
+  The opening and the first two days are shown in full &mdash; the rest is
+  blurred, because you&rsquo;re buying the words.</p>
+
+  <!--
+    preload="none" on purpose. A walkthrough is the biggest single lift on a
+    page like this, but 1.9 MB downloading before anyone asks for it costs
+    load time on exactly the mobile connections that abandon first. The poster
+    frame carries the promise; the file only moves when somebody taps.
+  -->
+  <video class="walk" controls playsinline preload="none"
+         poster="poster.jpg" width="1080" height="1350">
+    <source src="walkthrough.mp4" type="video/mp4">
+    Your browser can&rsquo;t play this &mdash; the page previews below show the
+    same thing.
+  </video>
+  <p class="small" style="margin:10px 0 22px;text-align:center">
+    23 seconds &middot; no sound &middot; every page
+  </p>
+
+  <div class="peek">
+    <figure><img loading="lazy" decoding="async" src="img/honest.jpg" alt="The opening page explaining the real mechanism"><figcaption>The honest first page</figcaption></figure>
+    <figure><img loading="lazy" decoding="async" src="img/day.jpg" alt="A day page with reading, a prompt and ruled lines"><figcaption>A day page</figcaption></figure>
+    <figure><img loading="lazy" decoding="async" src="img/method.jpg" alt="The scripting method rules"><figcaption>The four rules &mdash; blurred</figcaption></figure>
+  </div>
+  <div class="buy" style="margin:26px 0 30px">
+    <a class="cta gumroad-button" data-gumroad-single-product="true" href="GUMROAD_URL">Get it &mdash; $29</a>
+    <div class="under-cta">Instant download &middot; 30-day refund, no questions</div>
+  </div>
+
+  <div class="peek" style="grid-template-columns:1fr 1fr">
+    <figure><img loading="lazy" decoding="async" src="img/script.jpg" alt="A blank ruled scripting page"><figcaption>Five scripting pages, rules at the foot</figcaption></figure>
+    <figure><img src="img/cover.jpg" alt="Cover"><figcaption>Print at A4, or fill it in on a tablet</figcaption></figure>
+  </div>
+</section>
+
+<!-- ================================================================= WHO -->
+<section>
+  <h2>Who it&rsquo;s <em>for</em></h2>
+  <div class="two">
+    <div class="card">
+      <h3>This is for you if</h3>
+      <p style="margin:0">You want something specific and haven&rsquo;t said it
+      out loud. You&rsquo;ve tried manifestation and felt faintly embarrassed.
+      You&rsquo;d rather be told the truth about how it works than be sold a
+      miracle.</p>
+    </div>
+    <div class="card">
+      <h3>Skip it if</h3>
+      <p style="margin:0">You want to be told the universe will deliver. This
+      book says plainly that it won&rsquo;t, on the very first page, and
+      you&rsquo;ll find that irritating rather than useful.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ======================================================== TESTIMONIALS ===
+     UNCOMMENT THIS ONCE YOU HAVE REAL QUOTES. Not before.
+
+     Three is enough. What converts is specificity, not praise: "I wrote the
+     sentence on day one and realised I'd been avoiding it for a year" does
+     work that "Great workbook!" cannot. Ask permission, use a first name and
+     a real detail, and never edit a quote into something they did not say.
+
+     How to have five of these within a week, honestly: give the PDF free to
+     ten people who fit the audience, ask them to do Days 1 and 2, then ask
+     one question — "what did you notice?" Use their words. Say on the page
+     that they received it free; disclosed early feedback is still social
+     proof, and it is legal.
+-->
+<!--
+<section>
+  <h2>What people <em>say</em></h2>
+  <div class="says">
+
+    <div class="say">
+      <p>&ldquo;REAL QUOTE HERE &mdash; something specific that happened to
+      them, not praise for the product.&rdquo;</p>
+      <cite>First name, city &mdash; received a free copy</cite>
+    </div>
+
+    <div class="say">
+      <p>&ldquo;REAL QUOTE HERE.&rdquo;</p>
+      <cite>First name, city</cite>
+    </div>
+
+    <div class="say">
+      <p>&ldquo;REAL QUOTE HERE.&rdquo;</p>
+      <cite>First name, city</cite>
+    </div>
+
+  </div>
+</section>
+-->
+
+<!-- ============================================================= OBJECTION -->
+<section>
+  <h2>&ldquo;Why not just use a <em>notebook</em>?&rdquo;</h2>
+  <p>You could. People have been told to journal about their goals for
+  decades, and most of the notebooks are three pages long and then blank.</p>
+  <p>What&rsquo;s missing from a blank notebook isn&rsquo;t paper, it&rsquo;s
+  the question. Sitting down to &ldquo;write about what I want&rdquo; produces
+  either nothing or the polished version you&rsquo;ve already told people. The
+  work here is in the prompts &mdash; which question, in which order, and the
+  specific constraints that stop each one collapsing into a wish.</p>
+  <p>Day 2 is a visualisation almost everyone does wrong, with the one detail
+  that fixes it. Day 6 gives you a rule that makes affirmations survive contact
+  with your own scepticism. The scripting method has four rules and names the
+  three mistakes that turn it into daydreaming.</p>
+  <p style="margin-bottom:0">That&rsquo;s what $29 buys: the seven questions
+  worth answering and the reasons they work, laid out so you only have to turn
+  up. The paper is free.</p>
+</section>
+
+<!-- ============================================================== AUTHOR -->
+<section>
+  <div class="author">
+    <div class="mark serif">V</div>
+    <div>
+      <h3>Why this exists</h3>
+      <p style="margin-bottom:12px">I spent months reading what people in this
+      niche actually write in their reviews &mdash; thousands of them. The
+      complaint underneath nearly all the one-star ones is the same, and it is
+      never &ldquo;this didn&rsquo;t work&rdquo;. It is that it feels like
+      being lied to, and that pretending is exhausting.</p>
+      <p style="margin:0 0 14px">So I wrote the version that doesn&rsquo;t.
+      Same practice, honest mechanism, nothing promised that can&rsquo;t be
+      kept. If it isn&rsquo;t useful, ask for your money back and keep the file
+      &mdash; I&rsquo;d rather that than have you quietly resent it.</p>
+      <p style="margin:0;font-family:Georgia,serif;font-style:italic;color:var(--plum)">
+      &mdash; Viggnesh, who wrote it</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== PRICE -->
+<section>
+  <div class="price-box">
+    <h3>The Seven-Day Reset</h3>
+    <div class="price">$29<small> once</small></div>
+    <p class="price-note">19 pages &middot; instant PDF &middot; yours forever</p>
+    <a class="cta gumroad-button" data-gumroad-single-product="true" href="GUMROAD_URL">Get the workbook</a>
+    <div class="guarantee">If it doesn&rsquo;t earn its place in the first two
+    days, email me within 30 days and I&rsquo;ll refund it. You keep the file.</div>
+  </div>
+</section>
+
+<!-- ================================================================= FAQ -->
+<section>
+  <h2>Before you <em>ask</em></h2>
+  <details><summary>Is it printed or digital?</summary>
+    <p>Digital &mdash; a PDF you download straight away. Built for A4 if you
+    like writing by hand, which I&rsquo;d recommend. Works on a tablet too.</p></details>
+  <details><summary>How long does each day take?</summary>
+    <p>About ten minutes. Two minutes of reading, the rest is yours. Every day
+    ends with one small thing to do that evening.</p></details>
+  <details><summary>What if I miss a day?</summary>
+    <p>Carry on from where you stopped. Restarting from Day 1 is the single
+    most common way people quit, and the workbook says so on page one.</p></details>
+  <details><summary>Do I need to have done this before?</summary>
+    <p>No. It&rsquo;s easier if you haven&rsquo;t &mdash; less to unlearn.</p></details>
+  <details><summary>Is this therapy?</summary>
+    <p>No, and it doesn&rsquo;t pretend to be. It&rsquo;s a tool for reflection
+    and focus. If you&rsquo;re struggling with your mental health, please talk
+    to someone qualified &mdash; this is not a substitute.</p></details>
+</section>
+
+
+<!-- =========================================================== FINAL CTA -->
+<section>
+  <div class="price-box">
+    <h3>Start tonight</h3>
+    <div class="price">$29<small> once</small></div>
+    <p class="price-note">19 pages &middot; instant PDF &middot; yours forever</p>
+    <a class="cta gumroad-button" data-gumroad-single-product="true" href="GUMROAD_URL">Get the workbook</a>
+    <div class="guarantee">Ten minutes tonight and you&rsquo;ll have written
+    the sentence. If it isn&rsquo;t worth it, email me inside 30 days and
+    I&rsquo;ll refund you &mdash; keep the file either way.</div>
+  </div>
+</section>
+
+<!-- ======================================================= NOT READY YET -->
+<section>
+  <div class="card" style="text-align:center">
+    <h3>Not sure yet?</h3>
+    <p style="margin-bottom:20px">Take Day One free &mdash; the cover, the page
+    that explains how this actually works, and the first day in full. If it
+    does nothing for you, you&rsquo;ve lost nothing and I&rsquo;ve learned
+    something.</p>
+    <a class="ghost" href="FREE_SAMPLE_URL">Send me Day One, free</a>
+    <p class="small" style="margin:16px 0 0">One email, the PDF, and nothing
+    else unless you ask.</p>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    ManifestAI &middot; <a href="APP_URL/privacy">Privacy</a> &middot; <a href="APP_URL/terms">Terms</a><br><br>
+    A tool for reflection and visualisation. Not therapy, medical advice, or a
+    guarantee of results.
+  </div>
+</footer>
+
+<div class="bar">
+  <div>
+    <div class="bp">$29</div>
+    <div class="bs">19 pages &middot; instant</div>
+  </div>
+  <a class="gumroad-button" data-gumroad-single-product="true" href="GUMROAD_URL">Get the workbook</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>The Seven-Day Reset + The Scripting Method</title>
+<style>
+  /* ------------------------------------------------------------------ page */
+  @page {
+    size: A4;
+    margin: 20mm 18mm 18mm 18mm;
+    @bottom-center {
+      content: counter(page);
+      font-family: "DejaVu Sans", sans-serif;
+      font-size: 8pt;
+      letter-spacing: 0.12em;
+      color: #9a8189;
+    }
+  }
+  @page :first { margin: 0; @bottom-center { content: ""; } }
+
+  :root {
+    --ink:   #3b2530;   /* deep plum, the serif ink */
+    --plum:  #7a3f5e;
+    --rose:  #f7e9ec;   /* blush field */
+    --blush: #fdf6f7;
+    --line:  #e3ccd3;
+    --muted: #8d747d;
+    --ember: #c0674a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "DejaVu Serif", Georgia, serif;
+    color: var(--ink);
+    font-size: 10.5pt;
+    line-height: 1.62;
+  }
+
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+
+  /* ----------------------------------------------------------------- cover */
+  .cover {
+    height: 297mm; width: 210mm;
+    background: linear-gradient(170deg, #fdf6f7 0%, #f7e9ec 45%, #eed3dc 100%);
+    padding: 62mm 24mm 24mm 24mm;
+    position: relative;
+  }
+  .cover .kicker {
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 8.5pt; letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--plum); margin-bottom: 14mm;
+  }
+  .cover h1 {
+    font-size: 40pt; line-height: 1.04; margin: 0 0 8mm 0; font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .cover h1 em { font-style: italic; color: var(--plum); }
+  .cover .sub {
+    font-size: 13pt; line-height: 1.5; color: var(--plum); max-width: 120mm;
+    margin-bottom: 16mm;
+  }
+  .cover .rule { width: 34mm; height: 1.4pt; background: var(--plum); opacity: .5; margin-bottom: 10mm; }
+  .cover .parts { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: var(--ink); line-height: 2; }
+  .cover .parts span { display: block; }
+
+  /* Seven lines, one per day, shortening as the week goes on. */
+  .cover .days { margin-top: 26mm; }
+  .cover .days div {
+    height: 0.9pt; background: var(--plum); margin-bottom: 7mm;
+  }
+  .cover .days div:nth-child(1) { width: 96mm; opacity: .34 }
+  .cover .days div:nth-child(2) { width: 88mm; opacity: .31 }
+  .cover .days div:nth-child(3) { width: 80mm; opacity: .28 }
+  .cover .days div:nth-child(4) { width: 72mm; opacity: .25 }
+  .cover .days div:nth-child(5) { width: 64mm; opacity: .22 }
+  .cover .days div:nth-child(6) { width: 56mm; opacity: .19 }
+  .cover .days div:nth-child(7) { width: 48mm; opacity: .16 }
+  .cover .foot {
+    position: absolute; left: 24mm; bottom: 22mm;
+    font-family: "DejaVu Sans", sans-serif; font-size: 8pt;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted);
+  }
+
+  /* --------------------------------------------------------------- headings */
+  h2 {
+    font-size: 20pt; font-weight: 400; line-height: 1.15;
+    margin: 0 0 6mm 0; letter-spacing: -0.005em;
+  }
+  h2 em { font-style: italic; color: var(--plum); }
+  h3 {
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 8.5pt; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--plum); font-weight: 700; margin: 0 0 3mm 0;
+  }
+  .daymark {
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 8.5pt; letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4mm;
+  }
+
+  p { margin: 0 0 4.5mm 0; }
+  .lead { font-size: 12pt; line-height: 1.55; color: var(--plum); }
+  .small { font-size: 9pt; color: var(--muted); line-height: 1.5; }
+
+  /* ------------------------------------------------------------------ parts */
+  blockquote {
+    margin: 0 0 6mm 0; padding: 5mm 6mm;
+    background: var(--blush); border-left: 2pt solid var(--plum);
+    font-style: italic; font-size: 11pt; line-height: 1.5;
+  }
+  .box {
+    background: var(--blush); border: 0.8pt solid var(--line);
+    border-radius: 3mm; padding: 6mm 7mm; margin: 0 0 6mm 0;
+  }
+  .action {
+    background: #fbeee9; border: 0.8pt solid #edcdc0;
+    border-radius: 3mm; padding: 5mm 6mm; margin: 6mm 0 0 0;
+  }
+  .action h3 { color: var(--ember); }
+  .action p { margin: 0; }
+
+  /* writing lines */
+  .lines { margin: 4mm 0 0 0; }
+  .lines div {
+    border-bottom: 0.7pt solid var(--line);
+    height: 9.5mm;
+  }
+  .lines.tight div { height: 8mm; }
+
+  ol, ul { margin: 0 0 5mm 0; padding-left: 5mm; }
+  li { margin-bottom: 2.5mm; }
+
+  .divider { width: 20mm; height: 1pt; background: var(--line); margin: 7mm 0; }
+
+  /* ------------------------------------------------------- scripting pages */
+  .script .daymark { margin-bottom: 2mm; }
+  .scriptdate {
+    font-family: "DejaVu Sans", sans-serif; font-size: 8pt;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+    border-bottom: 0.7pt solid var(--line); width: 55mm;
+    padding-bottom: 1.5mm; margin-bottom: 7mm;
+  }
+  .scriptfoot {
+    margin-top: 6mm; font-family: "DejaVu Sans", sans-serif;
+    font-size: 7.5pt; letter-spacing: 0.16em; text-transform: uppercase;
+    color: #b79aa4; text-align: center;
+  }
+
+  /* section opener */
+  /* WeasyPrint cannot resolve `height:100%` on a flex child inside a paged
+     box, so vertical centring silently became top-alignment. A fixed inset
+     puts the opener where the eye expects it and renders identically. */
+  .opener { padding-top: 62mm; }
+  .opener h2 { font-size: 30pt; }
+  .opener .num {
+    font-family: "DejaVu Sans", sans-serif; font-size: 8.5pt;
+    letter-spacing: 0.34em; text-transform: uppercase; color: var(--plum);
+    margin-bottom: 6mm;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================== COVER -->
+<div class="page cover">
+  <div class="kicker">ManifestAI</div>
+  <h1>The Seven-Day<br><em>Reset</em></h1>
+  <div class="sub">A manifestation workbook that doesn&rsquo;t lie to you about how it works.</div>
+  <div class="rule"></div>
+  <div class="parts">
+    <span>Part One &mdash; Seven days, one page each</span>
+    <span>Part Two &mdash; The Scripting Method, with blank pages</span>
+  </div>
+  <div class="days">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+  <div class="foot">Print it, or write on it &mdash; both work</div>
+</div>
+
+<!-- ====================================================== BEFORE YOU START -->
+<div class="page">
+  <h3>Before you start</h3>
+  <h2>What this actually <em>does</em></h2>
+
+  <p class="lead">Most manifestation material tells you that thinking about something
+  makes it arrive. There is no evidence for that, and you have probably
+  suspected as much, which is why it has never quite worked for you.</p>
+
+  <p>Here is the honest version, and it is still worth your seven days.</p>
+
+  <p>When you describe a life in detail &mdash; not the headline, the
+  <em>texture</em> of it &mdash; two things happen that are well documented. You
+  start noticing opportunities that were always there and were previously
+  filtered out as irrelevant. And you lower the activation cost of acting,
+  because a thing you have rehearsed feels less like a leap.</p>
+
+  <p>That is the whole mechanism. Attention and follow-through. It is smaller
+  than what you were promised and considerably more reliable.</p>
+
+  <blockquote>You are not going to think a car into your driveway. You are
+  going to become someone who notices the listing, makes the call, and has
+  already imagined the conversation.</blockquote>
+
+  <div class="box">
+    <h3>How to use this</h3>
+    <p style="margin-bottom:3mm">One day per page. Ten minutes, not an hour.
+    Write by hand if you can &mdash; slower is the point.</p>
+    <p style="margin-bottom:0">If you miss a day, carry on from where you
+    stopped. Restarting from Day 1 is the most common way people quit.</p>
+  </div>
+
+  <p class="small">This workbook is a tool for reflection and focus. It is not
+  therapy, medical advice, or a guarantee of results. If you are struggling
+  with your mental health, please talk to someone qualified.</p>
+
+  <p class="small" style="margin-top:4mm">Written alongside ManifestAI &mdash;
+  <a href="https://daily-purpose-pilot.vimanu9-vr.workers.dev"
+     style="color:#7a3f5e; text-decoration:underline;">daily-purpose-pilot.vimanu9-vr.workers.dev</a></p>
+</div>
+
+<!-- ======================================================= PART ONE OPENER -->
+<div class="page">
+  <div class="opener">
+    <div class="num">Part One</div>
+    <h2>Seven days.<br>One page <em>each</em>.</h2>
+    <div class="divider"></div>
+    <p style="max-width:110mm">Each day gives you something to read, one
+    question to answer, and one small thing to do before bed. The reading takes
+    two minutes. The rest is yours.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 1 -->
+<div class="page">
+  <div class="daymark">Day One</div>
+  <h2>Say it plainly, <em>once</em></h2>
+
+  <p>Write down what you want in one sentence, as though telling a friend who
+  is in a hurry. Not the polished version. Not the version that sounds
+  acceptable to say out loud. The real one.</p>
+
+  <p>Most people never do this. They carry around a vague, shifting want, and
+  the vagueness protects them &mdash; you cannot fail at something you never
+  named. That protection is also why nothing moves.</p>
+
+  <p>Be specific about the thing and vague about the route. &ldquo;I want to
+  earn ten thousand a month&rdquo; is a good sentence. &ldquo;I want to earn
+  ten thousand a month by starting a dropshipping business in March&rdquo; is a
+  plan wearing a want&rsquo;s clothing, and plans made on Day 1 are almost
+  always wrong.</p>
+
+  <h3>Write it here</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Read your sentence back out loud. If you wince, that is usually a sign
+    it is the true one. Keep it.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 2 -->
+<div class="page">
+  <div class="daymark">Day Two</div>
+  <h2>The ordinary <em>afternoon</em></h2>
+
+  <p>Today you are not going to imagine getting the thing. You are going to
+  imagine a completely unremarkable afternoon several months after it has
+  already happened, when it has stopped being news.</p>
+
+  <p>This is the part almost everyone skips, and it is the part that works.
+  Picturing the moment of arrival &mdash; the keys, the message, the number on
+  the screen &mdash; is a fantasy about a single event. Picturing a Tuesday
+  afternoon where the thing is simply true is a rehearsal of a life.</p>
+
+  <blockquote>Where are your hands. What can you hear. What is slightly
+  annoying about the room. What did you just put down.</blockquote>
+
+  <p>Include one thing that is mildly irritating. Real life has friction in it,
+  and a scene without any is one your mind files as fiction.</p>
+
+  <h3>Describe that afternoon</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Before you sleep, run the scene once with your eyes closed. Two minutes.
+    Stop before it gets dramatic.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 3 -->
+<div class="page">
+  <div class="daymark">Day Three</div>
+  <h2>The obstacle, written down <em>once</em></h2>
+
+  <p>Name the thing that has actually stopped you. Once, in full, on paper.
+  Then you are done with it for the week.</p>
+
+  <p>There is a reason to write it rather than think it. Thoughts about
+  obstacles loop; they are designed to. Written down, an obstacle turns out to
+  be a specific sentence of a specific length, and it stops being weather and
+  becomes an object.</p>
+
+  <p>Most people find the obstacle is not the one they would have named aloud.
+  &ldquo;No money&rdquo; is often &ldquo;I would have to ask someone.&rdquo;
+  &ldquo;No time&rdquo; is often &ldquo;I do not want to be bad at it in
+  front of people.&rdquo;</p>
+
+  <h3>What has actually stopped you</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div></div>
+
+  <h3>And underneath that</h3>
+  <div class="lines tight"><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Nothing. You wrote the hard page. That is the day&rsquo;s work.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 4 -->
+<div class="page">
+  <div class="daymark">Day Four</div>
+  <h2>Evidence you <em>already</em> have</h2>
+
+  <p>List three times you wanted something and got it. They do not have to be
+  big. A job, a move, a friendship you started, a habit that stuck, a language
+  you can still order coffee in.</p>
+
+  <p>This is not a positivity exercise. It is a correction to a specific error:
+  people wanting change reliably underestimate how much change they have
+  already caused, because completed things stop feeling like achievements and
+  start feeling like facts about the world.</p>
+
+  <p>For each one, write the first small step you took. Not the plan &mdash;
+  the first actual movement. You are looking for the shape of how you, in
+  particular, get things.</p>
+
+  <h3>Three things I wanted and got</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Look at the three first steps. They usually rhyme. Notice how.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 5 -->
+<div class="page">
+  <div class="daymark">Day Five</div>
+  <h2>The smallest <em>next</em> thing</h2>
+
+  <p>What is the smallest action that would be evidence you are serious? Small
+  enough that not doing it would be slightly embarrassing.</p>
+
+  <p>Not &ldquo;build the website&rdquo;. Not &ldquo;get fit&rdquo;. Send one
+  message. Look up one price. Open one account. Write one paragraph. Ask one
+  person one question.</p>
+
+  <p>The instinct here is to pick something ambitious, because ambitious feels
+  like commitment. It is the opposite. A large first step is a way of putting
+  off the small one, and small ones are the only kind that get done on a
+  Tuesday when you are tired.</p>
+
+  <h3>The smallest next thing</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div></div>
+
+  <h3>When, exactly</h3>
+  <div class="lines tight"><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Do it, if it takes under ten minutes. Otherwise put the time in your
+    calendar now, while you are still the version of you who wrote this down.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 6 -->
+<div class="page">
+  <div class="daymark">Day Six</div>
+  <h2>Say it <em>out loud</em></h2>
+
+  <p>Write one line you could say to yourself in a mirror without cringing.
+  That constraint is the whole exercise.</p>
+
+  <p>Affirmations mostly fail because they are lies your own mind rejects on
+  contact. &ldquo;I am a millionaire&rdquo; does not work when your account
+  says otherwise; you are not persuading yourself, you are arguing with
+  yourself, and you will lose.</p>
+
+  <p>What works is a line that is true now and points where you are going.
+  Physical, present tense, no adjectives doing heavy lifting:</p>
+
+  <blockquote>I walk into rooms without checking if I belong.<br>
+  I answer the message the day it arrives.<br>
+  I put money away before I decide what is left.</blockquote>
+
+  <h3>Your line</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Say it out loud, once, standing up. If you cringe, make it smaller and
+    truer until you do not.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 7 -->
+<div class="page">
+  <div class="daymark">Day Seven</div>
+  <h2>A letter from a <em>year</em> out</h2>
+
+  <p>Write to yourself from twelve months ahead, in a life where the thing on
+  Day 1 is simply true and has stopped being interesting.</p>
+
+  <p>Write about the boring parts. What your mornings look like. What you
+  stopped doing. What turned out not to matter. What you were wrong about at
+  the start &mdash; there is always something, and naming it in advance is
+  oddly freeing.</p>
+
+  <p>Do not write about how it happened. You do not know, and guessing turns
+  the letter into a plan, which is a different and much less useful document.</p>
+
+  <h3>Dear me,</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Put a date twelve months from now at the top, and a reminder in your
+    phone to read it then. Most people never find it again. Be the exception.</p>
+  </div>
+</div>
+
+<!-- ======================================================= PART TWO OPENER -->
+<div class="page">
+  <div class="opener">
+    <div class="num">Part Two</div>
+    <h2>The Scripting <em>Method</em></h2>
+    <div class="divider"></div>
+    <p style="max-width:110mm">Scripting is writing your life in the present
+    tense, as though it has already happened. Done badly it is daydreaming with
+    a pen. Done well it is the single most useful page in this workbook.</p>
+  </div>
+</div>
+
+<!-- ============================================================= SCRIPTING -->
+<div class="page">
+  <h3>The method</h3>
+  <h2>Four rules, and the <em>one</em> that matters</h2>
+
+  <p><strong>Present tense, always.</strong> Not &ldquo;I will have&rdquo;.
+  &ldquo;I have.&rdquo; The future tense keeps the thing permanently one step
+  away, which is precisely the feeling you are trying to dissolve.</p>
+
+  <p><strong>Senses before facts.</strong> &ldquo;I have a house&rdquo; does
+  nothing. &ldquo;The second stair creaks and I have stopped noticing&rdquo;
+  does a great deal. Detail is what separates rehearsal from wishing.</p>
+
+  <p><strong>Ordinary, not triumphant.</strong> Write a Wednesday, not the
+  announcement. No applause, no moment of arrival. The life after the news.</p>
+
+  <p><strong>And the one that matters &mdash; include friction.</strong> One
+  thing that is mildly annoying. Traffic. A slow kettle. An email you are
+  putting off. A scene with no friction reads as fantasy and your mind treats
+  it accordingly. One irritation and the whole page becomes plausible.</p>
+
+  <div class="divider"></div>
+
+  <h3>Three mistakes</h3>
+  <ul>
+    <li><strong>Writing the moment of getting it.</strong> That is a fantasy
+    about an event. Write the life instead.</li>
+    <li><strong>Writing the route.</strong> &ldquo;The investment pays off in
+    March.&rdquo; You do not know, and inventing a route narrows what you will
+    notice &mdash; the opposite of the point.</li>
+    <li><strong>Writing too much.</strong> Half a page, three times a week,
+    beats four pages once. This is a rehearsal, not a novel.</li>
+  </ul>
+</div>
+
+<!-- ============================================================== PROMPTS -->
+<div class="page">
+  <h3>To get you started</h3>
+  <h2>Three <em>openings</em></h2>
+
+  <p>If the blank page is the problem, start with one of these and keep going.
+  Do not plan the sentence after. That is the exercise.</p>
+
+  <div class="box">
+    <p style="margin-bottom:0"><em>It is an ordinary Thursday afternoon and the
+    thing I wanted has been true for about six months now. I am standing in&hellip;</em></p>
+  </div>
+
+  <div class="box">
+    <p style="margin-bottom:0"><em>The part nobody warned me about is how
+    normal it feels. This morning I&hellip;</em></p>
+  </div>
+
+  <div class="box">
+    <p style="margin-bottom:0"><em>Someone asked me about it today and I
+    realised I had almost forgotten to be pleased. I told them&hellip;</em></p>
+  </div>
+
+  <div class="divider"></div>
+
+  <p class="small">Set a timer for eight minutes. Stop when it goes, even
+  mid-sentence &mdash; especially mid-sentence. Wanting to finish it tomorrow
+  is what brings you back to the page.</p>
+</div>
+
+<!-- ======================================================= SCRIPTING PAGES -->
+<div class="page script">
+  <div class="daymark">Scripting &mdash; One</div>
+  <div class="scriptdate">Date</div>
+  <div class="lines">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; Two</div>
+  <div class="scriptdate">Date</div>
+  <div class="lines">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; Three</div>
+  <div class="scriptdate">Date</div>
+  <div class="lines">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; Four</div>
+  <div class="scriptdate">Date</div>
+  <div class="lines">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; Five</div>
+  <div class="scriptdate">Date</div>
+  <div class="lines">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<!-- =============================================================== DAY 8 -->
+<div class="page">
+  <div class="daymark">Day Eight</div>
+  <h2>What happens <em>now</em></h2>
+
+  <p class="lead">You have a sentence, a scene, an obstacle named once, a line
+  you can say out loud, and a letter with a date on it. That is more than most
+  people who buy something like this ever produce.</p>
+
+  <p>The difficulty from here is not motivation. It is that Day 8 looks
+  identical to Day 30, and a blank page asks you to start from nothing every
+  single time. Almost everyone stops in the second week, and almost nobody
+  stops because they stopped wanting the thing.</p>
+
+  <div class="divider"></div>
+
+  <h3>If you want the writing done for you</h3>
+
+  <p>I built an app for exactly this problem. You type the same sentence you
+  wrote on Day 1, and it writes short manifestation stories from it &mdash;
+  ordinary afternoons in a life where it is already true, the same shape as
+  Day 2, a new one whenever you open it. It writes your affirmations in your
+  own words rather than handing you someone else&rsquo;s. It keeps the letter,
+  the obstacle and the streak so you are not starting from a blank page on a
+  Tuesday when you are tired.</p>
+
+  <p>It is not a library everyone else is reading. Every story comes from the
+  sentence you typed.</p>
+
+  <div class="box" style="text-align:center; padding:8mm 7mm;">
+    <div style="font-family:'DejaVu Sans',sans-serif; font-size:8.5pt; letter-spacing:0.28em; text-transform:uppercase; color:#7a3f5e; margin-bottom:4mm;">ManifestAI</div>
+    <div style="font-size:13pt; line-height:1.4; margin-bottom:5mm;">Free to start. No card needed.</div>
+    <a href="https://daily-purpose-pilot.vimanu9-vr.workers.dev/auth?mode=signup" style="display:inline-block; font-family:'DejaVu Sans',sans-serif; font-size:11pt; font-weight:700; color:#7a3f5e; text-decoration:underline; word-break:break-all;">daily-purpose-pilot.vimanu9-vr.workers.dev</a><div style="margin-top:3mm; font-family:'DejaVu Sans',sans-serif; font-size:8.5pt; color:#8d747d;">Tap the address above, or type it into any browser.</div>
+  </div>
+
+  <p class="small">Same promise as this workbook: it will not tell you that
+  thinking about something makes it happen. It gives you two minutes inside the
+  life you want and one small thing to do about it.</p>
+</div>
+</body>
+</html>
