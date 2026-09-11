@@ -4,12 +4,13 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
-import { primeAuthSession } from "@/lib/auth-session";
+import { primeAuthSession, registerNavigator } from "@/lib/auth-session";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
@@ -132,14 +133,23 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  const navigate = useNavigate();
+
   // Start listening for the stored session immediately, so the auth gate is
   // already open by the time any protected route asks.
+  //
+  // The navigator is handed over first. Signing in moves the person into the
+  // app, and that move has to go through the router: inside the native build
+  // there is no server behind the WebView, only one bundled index.html, so a
+  // document-level navigation to /app resolves to nothing and shows a blank
+  // screen.
   useEffect(() => {
+    registerNavigator((to) => void navigate({ to, replace: true }));
     primeAuthSession();
     // Async failures — audio, push, network — happen outside React's error
     // boundary and would otherwise disappear entirely.
     void startTelemetry();
-  }, []);
+  }, [navigate]);
 
   // Register the service worker so the app is installable and can receive push.
   useEffect(() => {

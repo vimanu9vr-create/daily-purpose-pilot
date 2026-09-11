@@ -79,11 +79,39 @@ const OAUTH_READY_TIMEOUT_MS = 25_000;
  * the router, and correctness matters more here than preserving SPA state on
  * the one navigation a person makes twice a year.
  */
+let navigateTo: ((path: string) => void) | null = null;
+
+/**
+ * Lets the router do the navigating.
+ *
+ * The first version of `landSignedInUser` called `window.location.replace`,
+ * which works on the web and produces a blank screen in the Android app. There
+ * is no server inside the app — the bundle is one `index.html` — so asking the
+ * WebView for `/app` as a *document* returns nothing at all, and the person
+ * stares at white. Every route in the native build has to be reached through
+ * the router, never through the address bar.
+ *
+ * `__root` registers the router's navigate here on mount.
+ */
+export function registerNavigator(navigate: (path: string) => void): void {
+  navigateTo = navigate;
+}
+
 function landSignedInUser(): void {
   if (typeof window === "undefined") return;
   const path = window.location.pathname.replace(/\/+$/, "");
   if (path !== "" && path !== "/auth") return;
-  window.location.replace("/app");
+
+  if (navigateTo) {
+    navigateTo("/app");
+    return;
+  }
+
+  // No router yet — only possible on the web, where the document load that
+  // registers it has not finished. A hard navigation is safe there and is
+  // never reached natively, because the app boots the router before any
+  // sign-in can complete.
+  if (!isNative()) window.location.replace("/app");
 }
 
 function begin(): Promise<void> {

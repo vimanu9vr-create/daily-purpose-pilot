@@ -1,4 +1,5 @@
-# ManifestAI — Phase 1: Beta Tester Acquisition System
+npx supabase functions deploy push-config --project-ref pkxkksamenqcvsaulceq --use-api
+git add -A && git commit -m "Serve the VAPID public key from one source; confirm notification time saves" && git push# ManifestAI — Phase 1: Beta Tester Acquisition System
 
 6 September 2026. Objective: **20–25 applicants → 15–20 genuine testers → 12+ continuously opted in for 14 days → production access.**
 
