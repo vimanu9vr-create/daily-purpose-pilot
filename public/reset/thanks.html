@@ -9,7 +9,8 @@
 <link rel="icon" href="data:,">
 <style>
   /*
-    Where Gumroad sends a buyer after payment.
+    Where a buyer lands after paying, via the button on Lemon Squeezy's
+    confirmation modal.
 
     Two jobs, in this order:
 
@@ -17,10 +18,12 @@
        offered no button at all, which is the worst possible failure on this
        page — somebody has paid and can't find what they bought.
 
-       The download button points at Gumroad rather than at a PDF sitting on
-       this server, and that is deliberate: a direct link to the file would be
-       a public link to a paid product, guessable by anyone. Gumroad already
-       gates it to the person who paid.
+       Lemon Squeezy's confirmation modal already offers the file, so by the
+       time someone reaches this page they may well have it. The button here is
+       the safety net, and it points at Lemon Squeezy rather than at a PDF
+       sitting on this server — a direct link to the file would be a public
+       link to a paid product, guessable by anyone. Lemon Squeezy gates it to
+       the person who paid.
 
     2. THE UPSELL, once. Not "here is another thing" but the specific moment
        their workbook runs out — day eight — and what to do about it.
@@ -109,11 +112,11 @@
   <div class="wrap">
     <div class="tick">✓</div>
     <h1>Paid. Here&rsquo;s your workbook.</h1>
-    <p class="sub">19 pages, yours permanently. Download it now &mdash; it also
-    went to your email.</p>
-    <a class="cta" href="https://app.gumroad.com/library">Download the PDF</a>
-    <div class="under">Opens your Gumroad library &middot; re-download any time,
-    on any device</div>
+    <p class="sub">19 pages, yours permanently. The download link is in the
+    window you just came from &mdash; and in your email.</p>
+    <a class="cta" href="https://app.lemonsqueezy.com/my-orders">Download the PDF</a>
+    <div class="under">Opens your orders &middot; sign in with the email you paid
+    with &middot; re-download any time, on any device</div>
   </div>
 </header>
 
@@ -121,10 +124,10 @@
 
 <section style="border-top:none">
   <h3>If the download doesn&rsquo;t start</h3>
-  <p style="margin-bottom:0">Check your email for a receipt from Gumroad
-  &mdash; the file is attached to it, and it sometimes lands in spam or the
-  Promotions tab. Still stuck? Reply to that email and I&rsquo;ll send it to
-  you directly.</p>
+  <p style="margin-bottom:0">Check your email for a receipt from Lemon Squeezy
+  &mdash; the download link is in it, and it sometimes lands in spam or the
+  Promotions tab. Still stuck? Reply to that email and I&rsquo;ll send the file
+  to you directly.</p>
 </section>
 
 <!-- ================================================== 2. GET THEM STARTED -->
@@ -187,11 +190,12 @@
 <section class="rate">
   <h3>One small favour</h3>
   <p style="margin-bottom:20px">Once you&rsquo;ve done a couple of days &mdash;
-  not before &mdash; a rating decides whether anyone else ever finds this.</p>
-  <a class="ghost" href="https://manifestanything.gumroad.com/l/rsfoc">Leave a rating</a>
+  not before &mdash; hit reply on your receipt and answer one question:
+  <em>what did you notice?</em> One line is plenty. It&rsquo;s the only feedback
+  that tells me whether this actually works on someone who isn&rsquo;t me.</p>
   <p class="small" style="margin-top:18px">And if it isn&rsquo;t working for
-  you, reply to your receipt instead. A refund is easier than a bad review,
-  for both of us.</p>
+  you, say that instead and I&rsquo;ll refund you. A refund is easier than a
+  quiet grudge, for both of us.</p>
 </section>
 
 </div>
