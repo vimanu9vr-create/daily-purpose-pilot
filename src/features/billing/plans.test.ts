@@ -32,9 +32,19 @@ describe("plan tiers", () => {
   });
 
   it("treats anything unrecognised as free rather than as paid", () => {
-    for (const unknown of [null, undefined, "", "premium", "voice_weekly", "STANDARD_MONTHLY"]) {
+    // "voice_weekly" used to sit in this list as a plausible-looking id that
+    // didn't exist. It exists now, so it moved to the test below — leaving it
+    // here would have forced a real plan to grant nothing.
+    for (const unknown of [null, undefined, "", "premium", "voice_daily", "STANDARD_MONTHLY"]) {
       expect(tierOf(unknown)).toBe("free");
     }
+  });
+
+  it("grants the right tier on the weekly plans", () => {
+    expect(tierOf("standard_weekly")).toBe("standard");
+    expect(tierOf("voice_weekly")).toBe("voice");
+    expect(includesVoice("standard_weekly")).toBe(false);
+    expect(includesVoice("voice_weekly")).toBe(true);
   });
 
   it("declares its own tier on every plan, matching what tierOf derives", () => {

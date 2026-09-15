@@ -58,7 +58,10 @@ function Upgrade() {
 
   const [tier, setTier] = useState<PaidTier>(openTo ?? "standard");
   const [selected, setSelected] = useState<PlanId>(
-    (openTo ?? "standard") === "standard" ? "standard_yearly" : "voice_yearly",
+    // Monthly, not yearly. Pre-selecting the year made the cheapest-looking
+    // option require the biggest commitment, and people bounce rather than
+    // hunt for the small one.
+    (openTo ?? "standard") === "standard" ? "standard_monthly" : "voice_monthly",
   );
   const [busy, setBusy] = useState(false);
 
@@ -67,7 +70,7 @@ function Upgrade() {
 
   function chooseTier(next: PaidTier) {
     setTier(next);
-    setSelected(next === "voice" ? "voice_yearly" : "standard_yearly");
+    setSelected(next === "voice" ? "voice_monthly" : "standard_monthly");
   }
 
   /**

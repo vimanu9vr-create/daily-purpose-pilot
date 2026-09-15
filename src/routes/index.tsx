@@ -92,11 +92,22 @@ const features = [
  * signed up saw a different price to the one that sold them. Deriving it means
  * that can't happen twice.
  */
+const standardWeekly = planById("standard_weekly");
+const voiceWeekly = planById("voice_weekly");
 const standardYearly = planById("standard_yearly");
 const voiceYearly = planById("voice_yearly");
 
 /**
- * Three columns, one per tier, each showing its yearly price.
+ * Three columns, one per tier, each showing its SMALLEST price.
+ *
+ * This used to show the yearly figure, so the first number a stranger saw was
+ * $149.99. On a page whose job is to get somebody to press "Start free", that
+ * is the wrong number in the wrong place — it asks for a year-long decision
+ * from someone who has not yet read a single sentence the app wrote for them.
+ *
+ * The yearly price still exists and is still the better deal; it just belongs
+ * on the upgrade screen, where the person reading it already knows what they
+ * would be buying.
  *
  * It used to render every plan as its own column, which meant five near
  * identical cards listing the same four perks — so the page answered "how often
@@ -118,26 +129,29 @@ const tiers = [
     cta: "Start free",
     featured: false,
     badge: null as string | null,
+    footnote: null as string | null,
   },
   {
     name: "Standard",
-    price: standardYearly?.priceDisplay ?? "$29.99",
-    period: standardYearly?.cadence ?? "per year",
+    price: standardWeekly?.priceDisplay ?? "$2.49",
+    period: standardWeekly?.cadence ?? "per week",
     blurb: "Everything written, with no limits. You do the reading.",
     perks: [...STANDARD_FEATURES].slice(0, 4),
     cta: "Get Standard",
     featured: false,
-    badge: standardYearly?.highlight ?? null,
+    badge: null,
+    footnote: `or ${standardYearly?.priceDisplay ?? "$45.99"} a year`,
   },
   {
     name: "Voice",
-    price: voiceYearly?.priceDisplay ?? "$99.99",
-    period: voiceYearly?.cadence ?? "per year",
+    price: voiceWeekly?.priceDisplay ?? "$6.99",
+    period: voiceWeekly?.cadence ?? "per week",
     blurb: "Everything in Standard, read aloud in a real human voice.",
     perks: [...VOICE_FEATURES],
     cta: "Get Voice",
     featured: true,
-    badge: voiceYearly?.highlight ?? null,
+    badge: null,
+    footnote: `or ${voiceYearly?.priceDisplay ?? "$149.99"} a year`,
   },
 ];
 
@@ -376,6 +390,9 @@ function Landing() {
                         <span className="font-display text-4xl font-semibold">{tier.price}</span>
                         <span className="text-sm text-muted-foreground">{tier.period}</span>
                       </div>
+                      {tier.footnote && (
+                        <p className="mt-1.5 text-xs text-muted-foreground">{tier.footnote}</p>
+                      )}
                       <ul className="mt-7 space-y-3 text-sm">
                         {tier.perks.map((perk) => (
                           <li key={perk} className="flex items-start gap-3">

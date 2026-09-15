@@ -43,9 +43,11 @@ export type PlanTier = "free" | "standard" | "voice";
 
 export type PlanId =
   | "free"
+  | "standard_weekly"
   | "standard_monthly"
   | "standard_yearly"
   | "standard_lifetime"
+  | "voice_weekly"
   | "voice_monthly"
   | "voice_yearly"
   /**
@@ -73,6 +75,26 @@ export type Plan = {
 };
 
 export const STANDARD_PLANS: Plan[] = [
+  {
+    /**
+     * Weekly exists because of what the number looks like, not what it costs.
+     *
+     * "$2.49 a week" reads as nothing; "$45.99 a year" reads as a decision. For
+     * somebody who has never heard of this app, the second one ends the visit.
+     *
+     * Be honest about the trade though: at $2.49 a week somebody pays about
+     * $10.79 a month against $5.99 on the monthly plan. It converts better and
+     * costs the user more, which is why it is offered ALONGSIDE monthly and
+     * never instead of it. Anyone who looks can see both and choose.
+     */
+    id: "standard_weekly",
+    tier: "standard",
+    name: "Weekly",
+    productId: "com.manifestai.standard.weekly",
+    priceDisplay: "$2.49",
+    cadence: "per week",
+    blurb: "Try it for a week. Cancel any time.",
+  },
   {
     id: "standard_monthly",
     tier: "standard",
@@ -114,6 +136,15 @@ export const STANDARD_PLANS: Plan[] = [
 ];
 
 export const VOICE_PLANS: Plan[] = [
+  {
+    id: "voice_weekly",
+    tier: "voice",
+    name: "Weekly",
+    productId: "com.manifestai.voice.weekly",
+    priceDisplay: "$6.99",
+    cadence: "per week",
+    blurb: "Hear the voice for a week. Cancel any time.",
+  },
   {
     id: "voice_monthly",
     tier: "voice",
@@ -206,7 +237,9 @@ export const SAMPLE_TRACK_TITLE = "Tomorrow is not here yet";
  *   Voice monthly nets $16.99/month — $8.21 left at the ceiling.
  *   Voice yearly nets $10.62/month — $1.84 left at the ceiling.
  *
- * THE YEARLY PLAN SETS THIS NUMBER, not the monthly one. Sixty a month was
+ * THE YEARLY PLAN SETS THIS NUMBER, not the monthly or weekly one. Weekly at
+ * $6.99 nets about $25.75 a month, far above the ceiling's cost — it is the
+ * dearest plan, not the cheapest, so it does not constrain this figure. Sixty a month was
  * asked for and does not survive: at $149.99 a year the ceiling would cost
  * $11.70 against $10.62 of revenue, so the plan would lose a dollar a month
  * precisely when somebody loved it. That mistake has been made twice in this
@@ -230,10 +263,12 @@ export const NARRATION_ALLOWANCE: Record<PlanTier, { perDay: number; perMonth: n
  */
 export function tierOf(planId: string | null | undefined): PlanTier {
   switch (planId) {
+    case "standard_weekly":
     case "standard_monthly":
     case "standard_yearly":
     case "standard_lifetime":
       return "standard";
+    case "voice_weekly":
     case "voice_monthly":
     case "voice_yearly":
     case "monthly":
