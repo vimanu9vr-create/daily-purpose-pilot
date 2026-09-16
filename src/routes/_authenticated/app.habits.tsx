@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Check, Flame, Plus, X } from "lucide-react";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { Check, Flame, Plus, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
 import { AppPage } from "@/components/app/app-page";
@@ -13,6 +13,7 @@ import {
   useArchiveHabit,
   useCreateHabit,
   useHabitStats,
+  useSetHabitDesire,
   useToggleHabitToday,
 } from "@/features/habits/use-habits";
 import { formatDayLabel } from "@/lib/dates";
@@ -24,31 +25,62 @@ export const Route = createFileRoute("/_authenticated/app/habits")({
 });
 
 function Habits() {
-  const { rows, completedToday, total, consistency, isPending, error } = useHabitStats();
+  const { rows, completedToday, total, consistency, desires, isPending, error } = useHabitStats();
   const toggle = useToggleHabitToday();
   const createHabit = useCreateHabit();
   const archiveHabit = useArchiveHabit();
+  const setHabitDesire = useSetHabitDesire();
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState<string>(HABIT_ICONS[0]);
   const [targetPerWeek, setTargetPerWeek] = useState(7);
+  const [desireId, setDesireId] = useState<string | null>(null);
 
   function submitHabit() {
     const trimmed = name.trim();
     if (!trimmed) return;
     createHabit.mutate(
-      { name: trimmed, icon, targetPerWeek },
+      { name: trimmed, icon, targetPerWeek, desireId },
       {
         onSuccess: () => {
           setName("");
           setIcon(HABIT_ICONS[0]);
           setTargetPerWeek(7);
+          setDesireId(null);
           setAdding(false);
         },
       },
     );
   }
+
+  /**
+   * Grouped by the dream each habit serves, with the unattached ones last.
+   *
+   * A flat list of ticks is a habit tracker; anybody has one. Showing the habits
+   * underneath the thing they are FOR is the whole argument of this app — that
+   * the visualisation and the daily action are the same project, not two
+   * separate screens that happen to live in one download.
+   */
+  const groups = (() => {
+    const byDesire = new Map<string, typeof rows>();
+    const loose: typeof rows = [];
+    for (const row of rows) {
+      const key = row.habit.desire_id;
+      if (!key || !row.desireTitle) {
+        loose.push(row);
+        continue;
+      }
+      byDesire.set(key, [...(byDesire.get(key) ?? []), row]);
+    }
+    const ordered = [...byDesire.entries()].map(([id, items]) => ({
+      id,
+      title: items[0]?.desireTitle ?? "",
+      items,
+    }));
+    if (loose.length > 0) ordered.push({ id: "none", title: "", items: loose });
+    return ordered;
+  })();
 
   return (
     <AppPage
@@ -91,7 +123,7 @@ function Habits() {
               </span>
               <h2 className="mt-6 font-display text-xl font-semibold">No habits tracked yet</h2>
               <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-                Choose two or three habits that directly support your goal. Weekly targets leave
+                Two or three, each attached to something you actually want. Weekly targets leave
                 room for the days life gets in the way.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -113,71 +145,109 @@ function Habits() {
             </section>
           )}
 
-          {total > 0 && (
-            <ul className="mt-6 space-y-3">
-              {rows.map(({ habit, doneToday, streak, week }) => (
-                <li
-                  key={habit.id}
-                  className="group flex items-center gap-4 rounded-3xl glass-panel p-4"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggle.mutate({ habitId: habit.id, done: !doneToday })}
-                    aria-pressed={doneToday}
-                    aria-label={`Mark ${habit.name} ${doneToday ? "not done" : "done"} today`}
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg transition-all duration-200",
-                      doneToday
-                        ? "surface-gradient text-primary-foreground shadow-glow"
-                        : "border border-border text-foreground hover:bg-accent/50",
-                    )}
-                  >
-                    {doneToday ? <Check className="h-5 w-5" /> : (habit.icon ?? "✨")}
-                  </button>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{habit.name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {streak > 0 ? (
-                        <span className="text-ember">
-                          🔥 {streak} day{streak === 1 ? "" : "s"}
-                        </span>
-                      ) : (
-                        "No streak yet"
-                      )}
-                      <span className="mx-1.5 text-muted-foreground/40">·</span>
-                      {habit.target_per_week}× per week
+          {total > 0 &&
+            groups.map((group) => (
+              <section key={group.id} className="mt-6">
+                {group.title ? (
+                  <div className="mb-2.5 flex items-center gap-2 px-1">
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {group.title}
                     </p>
                   </div>
+                ) : (
+                  groups.length > 1 && (
+                    <p className="mb-2.5 px-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground/60">
+                      Not tied to a dream
+                    </p>
+                  )
+                )}
+                <ul className="space-y-3">
+                  {group.items.map(({ habit, doneToday, streak, week }) => (
+                    <li
+                      key={habit.id}
+                      className="group flex items-center gap-4 rounded-3xl glass-panel p-4"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggle.mutate({ habitId: habit.id, done: !doneToday })}
+                        aria-pressed={doneToday}
+                        aria-label={`Mark ${habit.name} ${doneToday ? "not done" : "done"} today`}
+                        className={cn(
+                          "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg transition-all duration-200",
+                          doneToday
+                            ? "surface-gradient text-primary-foreground shadow-glow"
+                            : "border border-border text-foreground hover:bg-accent/50",
+                        )}
+                      >
+                        {doneToday ? <Check className="h-5 w-5" /> : (habit.icon ?? "✨")}
+                      </button>
 
-                  <div className="hidden items-end gap-1 sm:flex" aria-hidden>
-                    {week.map(({ date, done }) => (
-                      <div key={date} className="flex flex-col items-center gap-1">
-                        <span
-                          className={cn(
-                            "h-2.5 w-2.5 rounded-full transition-colors",
-                            done ? "surface-gradient" : "bg-muted",
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{habit.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {streak > 0 ? (
+                            <span className="text-ember">
+                              🔥 {streak} day{streak === 1 ? "" : "s"}
+                            </span>
+                          ) : (
+                            "No streak yet"
                           )}
-                        />
-                        <span className="text-[9px] text-muted-foreground/60">
-                          {formatDayLabel(date)}
-                        </span>
+                          <span className="mx-1.5 text-muted-foreground/40">·</span>
+                          {habit.target_per_week}× per week
+                        </p>
                       </div>
-                    ))}
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => archiveHabit.mutate(habit.id)}
-                    className="shrink-0 rounded-lg p-1.5 text-muted-foreground/50 opacity-0 transition hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
-                    aria-label={`Archive ${habit.name}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                      <div className="hidden items-end gap-1 sm:flex" aria-hidden>
+                        {week.map(({ date, done }) => (
+                          <div key={date} className="flex flex-col items-center gap-1">
+                            <span
+                              className={cn(
+                                "h-2.5 w-2.5 rounded-full transition-colors",
+                                done ? "surface-gradient" : "bg-muted",
+                              )}
+                            />
+                            <span className="text-[9px] text-muted-foreground/60">
+                              {formatDayLabel(date)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {desires.length > 0 && (
+                        <select
+                          value={habit.desire_id ?? ""}
+                          onChange={(event) =>
+                            setHabitDesire.mutate({
+                              habitId: habit.id,
+                              desireId: event.target.value || null,
+                            })
+                          }
+                          aria-label={`Which dream does ${habit.name} serve?`}
+                          className="hidden shrink-0 rounded-lg border border-border bg-transparent px-2 py-1 text-xs text-muted-foreground opacity-0 transition focus-visible:opacity-100 group-hover:opacity-100 sm:block"
+                        >
+                          <option value="">No dream</option>
+                          {desires.map((desire) => (
+                            <option key={desire.id} value={desire.id}>
+                              {desire.title}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => archiveHabit.mutate(habit.id)}
+                        className="shrink-0 rounded-lg p-1.5 text-muted-foreground/50 opacity-0 transition hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+                        aria-label={`Archive ${habit.name}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
 
           <section className="mt-6">
             {adding ? (
@@ -197,6 +267,36 @@ function Habits() {
                     <X />
                   </Button>
                 </div>
+
+                {desires.length > 0 && (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                      What is this for?
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {desires.map((desire) => (
+                        <button
+                          key={desire.id}
+                          type="button"
+                          onClick={() => setDesireId(desireId === desire.id ? null : desire.id)}
+                          aria-pressed={desireId === desire.id}
+                          className={cn(
+                            "max-w-full truncate rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors",
+                            desireId === desire.id
+                              ? "surface-gradient text-primary-foreground shadow-glow"
+                              : "border border-border hover:bg-accent/50",
+                          )}
+                        >
+                          {desire.title}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground/70">
+                      Optional — but a habit attached to something you actually want is the one
+                      you'll still be doing in March.
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-4">
                   <p className="mb-2 text-xs font-medium text-muted-foreground">Icon</p>

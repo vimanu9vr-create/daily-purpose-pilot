@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { useDesires } from "@/features/stories/use-stories";
 import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -81,6 +82,7 @@ export function useHabitLogs() {
 export function useHabitStats() {
   const habits = useHabits();
   const logs = useHabitLogs();
+  const desires = useDesires();
   const today = toISODate();
   const week = lastNDays(7);
 
@@ -91,10 +93,18 @@ export function useHabitStats() {
     byHabit.set(log.habit_id, set);
   }
 
+  const titleByDesire = new Map((desires.data ?? []).map((d) => [d.id, d.title]));
+
   const rows = (habits.data ?? []).map((habit) => {
     const dates = byHabit.get(habit.id) ?? new Set<string>();
     return {
       habit,
+      /**
+       * What this habit is FOR. Null when it serves no particular desire, or
+       * when the desire it served has since been deleted — the habit outlives
+       * it rather than vanishing with it, so the streak survives.
+       */
+      desireTitle: habit.desire_id ? (titleByDesire.get(habit.desire_id) ?? null) : null,
       dates,
       doneToday: dates.has(today),
       streak: currentStreak(dates),
@@ -110,6 +120,7 @@ export function useHabitStats() {
     completedToday,
     total: rows.length,
     consistency,
+    desires: desires.data ?? [],
     isPending: habits.isPending || logs.isPending,
     error: habits.error ?? logs.error,
   };
@@ -124,19 +135,48 @@ export function useCreateHabit() {
       name,
       icon,
       targetPerWeek,
+      desireId,
     }: {
       name: string;
       icon: string;
       targetPerWeek: number;
+      /** Which dream this habit serves. Null is allowed and means "just a habit". */
+      desireId?: string | null;
     }) => {
       if (!userId) throw new Error("Not signed in");
-      const { error } = await supabase
-        .from("habits")
-        .insert({ user_id: userId, name, icon, target_per_week: targetPerWeek });
+      const { error } = await supabase.from("habits").insert({
+        user_id: userId,
+        name,
+        icon,
+        target_per_week: targetPerWeek,
+        desire_id: desireId ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: habitKeys.all }),
     onError: (error: Error) => toast.error(error.message || "Couldn't add that habit"),
+  });
+}
+
+/**
+ * Move a habit to a different dream, or detach it entirely.
+ *
+ * Kept separate from archiving because the two are opposites: this preserves
+ * the habit and its whole log, and only changes what it is understood to be
+ * for.
+ */
+export function useSetHabitDesire() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ habitId, desireId }: { habitId: string; desireId: string | null }) => {
+      const { error } = await supabase
+        .from("habits")
+        .update({ desire_id: desireId })
+        .eq("id", habitId);
+      if (error) throw error;
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: habitKeys.all }),
+    onError: (error: Error) => toast.error(error.message || "Couldn't move that habit"),
   });
 }
 

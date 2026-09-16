@@ -203,3 +203,70 @@ with why it won't embarrass them.
 Add the free Day One product to the programme too, even at $0. It costs you
 nothing, and it lets an affiliate send people to something free — which most of
 them would rather do than push a paid link at their audience cold.
+
+---
+
+# Creator outreach — the app
+
+A different job from the workbook. There's no affiliate programme on the app,
+because subscriptions run through the app stores rather than Lemon Squeezy. So
+you have no commission to offer.
+
+What you have instead is better, and it's the thing the app actually does:
+**write them an affirmation for their own goal, before asking for anything.**
+
+Creators are pitched every day. Almost nobody ever gives them something first.
+
+## The cold DM
+
+> Hi [name] — you mentioned [the specific thing they said they're working
+> towards] in your last post.
+>
+> I build a manifestation app. I put your goal into it to see what it'd write,
+> and this came back:
+>
+> *"[paste the actual line the app generated]"*
+>
+> That's not a template — it wrote it from your words. Thought you might want it
+> whether or not you ever look at the app.
+>
+> No pitch attached. If you're curious I'll send you a free lifetime account, no
+> strings and no obligation to post anything.
+
+**Do the work before you send it.** Actually open the app, actually type their
+goal, actually paste what came back. A generic version of this reads as a mail
+merge and dies on arrival — the whole power of it is that it's about their life
+and could not have been sent to anyone else.
+
+**Don't ask for a post.** Not in the first message, not in the second. The ones
+who genuinely like it will mention it unprompted, and an unprompted mention
+converts several times better than a negotiated one, because their audience can
+tell the difference.
+
+## If they reply
+
+> Here you go — free lifetime, nothing to cancel: [link]
+>
+> Genuinely no obligation to mention it. If you use it for a week and it's
+> rubbish, I'd rather hear that than have you post about it out of politeness.
+
+## What to give away
+
+**Standard lifetime, not Voice.**
+
+Standard costs essentially nothing to serve — the text runs on a free tier, so
+handing out fifty accounts costs fifty times nothing. Voice bills real money per
+listen, roughly 20c a narration, and fifty creators with unlimited narration is a
+bill that arrives every month whether anybody ever posts or not.
+
+If someone with a genuinely large audience asks for Voice, give it to them
+individually. Don't make it the standing offer.
+
+## If they have no stated goal to work from
+
+Some accounts post quotes and nothing personal. Skip them — without a specific
+goal the message has no power, and you're back to a generic pitch.
+
+Better use of that time: reply to their audience instead. The comment sections
+under quote accounts are full of people writing exactly what they want, in
+public, with no one answering them.
