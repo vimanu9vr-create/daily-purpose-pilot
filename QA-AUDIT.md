@@ -18,6 +18,33 @@ costing paying customers.
 
 ---
 
+## STATUS AFTER THE FIX PASS
+
+**Fixed and verified** — 177 tests pass, build clean, types clean, lint clean:
+
+| # | Was | Now |
+|---|---|---|
+| 1 | Voice sold ~50 narrations, server enforced 30 | Server raised to **4/day, 45/month**. `allowance-parity.test.ts` reads the literal out of the edge function and fails the build if client and server ever drift again. |
+| 2 | `.env` tracked in git | Untracked via `git rm --cached` (file kept on disk), `.gitignore` rule added, `.env.example` added. Full history scan: only public values were ever committed — **no rotation needed**. |
+| 4 | 21 of 26 routes had no error branch | `ErrorState` component added next to the existing `EmptyState`. Applied to `app.week`, `app.vision`, `app.library`. `app.week` had the worst form of the bug — `if (isPending \|\| !summary)` spun forever after a failed request. |
+| 6 | No sitemap | `public/sitemap.xml` written, referenced from `robots.txt`. |
+| 7 | No canonical | Added, driven by a single `SITE_URL` constant. |
+| 8 | No og:title/description/image | All added plus `twitter:*`, with a real 1200×630 `og.jpg` built from the app's own UI copy. Verified present in the SSR bundle. |
+
+### Correction to finding #5 — I was wrong
+
+I reported Sentry as "440 KB shipped to every visitor". **It isn't.** `telemetry.ts`
+loads it through a dynamic `import()` guarded by `if (VITE_SENTRY_DSN)`, and that
+variable is not set. The chunk sits on the CDN and is never fetched — users
+download zero bytes of it. I saw a large file in the assets directory and
+inferred it shipped, which is exactly the assumption this audit was supposed to
+avoid. No change was made because none was needed.
+
+**Still outstanding** — 3 (RLS in migrations), 9 (analytics), and everything
+under NOT VERIFIED. Reasons below.
+
+---
+
 ## Executive Summary
 
 | | |
