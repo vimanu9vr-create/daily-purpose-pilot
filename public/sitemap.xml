@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Static rather than generated: this app has four public URLs and every other
+  route sits behind auth, so a build-time generator would be more moving parts
+  than the problem deserves. Update by hand when a public page is added.
+-->
+<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://daily-purpose-pilot.vimanu9-vr.workers.dev/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://daily-purpose-pilot.vimanu9-vr.workers.dev/get</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://daily-purpose-pilot.vimanu9-vr.workers.dev/reset/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://daily-purpose-pilot.vimanu9-vr.workers.dev/auth</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>

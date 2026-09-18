@@ -76,6 +76,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+/**
+ * The canonical origin, in one place.
+ *
+ * Taken from the deployment that actually exists rather than an aspirational
+ * custom domain — an incorrect canonical is worse than none. When a domain is
+ * registered, change this single line and the canonical, og:url and both image
+ * URLs all follow.
+ */
+const SITE_URL = "https://daily-purpose-pilot.vimanu9-vr.workers.dev";
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -87,8 +97,43 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "ManifestAI blends AI coaching, journaling, affirmations and habit tracking into one calm daily practice.",
       },
+      /**
+       * Open Graph and Twitter cards.
+       *
+       * `og:type` and `twitter:card` were here on their own, which is the
+       * worst of both worlds: the card renders, and renders empty. Every link
+       * shared to WhatsApp, Instagram DMs, Facebook or X previewed as a bare
+       * URL with no title, no description and no image — including the one in
+       * the bio that all the traffic goes through.
+       *
+       * The image is absolute because relative URLs are not resolved by most
+       * crawlers, and it is a real 1200x630 file rather than the app icon,
+       * which social platforms crop badly.
+       */
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "ManifestAI" },
+      { property: "og:title", content: "ManifestAI — one goal in, it writes the rest" },
+      {
+        property: "og:description",
+        content:
+          "Not \u201cI am abundant.\u201d The specific line, written from your own words, for the thing you actually want. Free to start in your browser.",
+      },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:image", content: `${SITE_URL}/og.jpg` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content: "ManifestAI, asking what do you want to manifest",
+      },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "ManifestAI — one goal in, it writes the rest" },
+      {
+        name: "twitter:description",
+        content:
+          "The specific line, written from your own words, for the thing you actually want.",
+      },
+      { name: "twitter:image", content: `${SITE_URL}/og.jpg` },
       { name: "theme-color", content: "#f7e9ec" },
       // Lets iOS run this full screen once it's on the Home Screen — which is
       // also the precondition for web push working at all on iPhone.
@@ -99,6 +144,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      // Canonical. Without it the same page served from a future custom domain
+      // and from workers.dev would compete with itself in search results.
+      { rel: "canonical", href: SITE_URL },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/icons/icon-180.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

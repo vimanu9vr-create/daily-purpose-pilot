@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ImagePlus, Loader2, Plus, Sparkles, Type, X } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { ErrorState } from "@/components/app/app-page";
 import { PageTransition } from "@/components/page-transition";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/_authenticated/app/vision")({
  * someone else made.
  */
 function Vision() {
-  const { data: boards, isPending } = useVisionBoards();
+  const { data: boards, isPending, error, refetch } = useVisionBoards();
   const { data: desires } = useDesires();
   const createBoard = useCreateBoard();
   const addItem = useAddItem();
@@ -100,6 +101,22 @@ function Vision() {
       <PageTransition>
         <div className="flex min-h-[50vh] items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </PageTransition>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageTransition>
+        <div className="mx-auto w-full max-w-5xl pt-4">
+          <ErrorState
+            title="Your boards didn't load"
+            body="We couldn't reach your vision boards just now. Your images are safe — this is only today's load."
+            error={error}
+            context="app.vision"
+            onRetry={() => void refetch()}
+          />
         </div>
       </PageTransition>
     );

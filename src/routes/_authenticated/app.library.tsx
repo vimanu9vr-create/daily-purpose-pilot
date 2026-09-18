@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Headphones } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ErrorState } from "@/components/app/app-page";
 import { PageTransition } from "@/components/page-transition";
 import { NumberList } from "@/features/numbers/number-card";
 import { coverIndexFor } from "@/features/stories/dream-cover";
@@ -52,7 +53,7 @@ function toCard(story: Story) {
 }
 
 function Library() {
-  const { data: stories, isPending } = useStories();
+  const { data: stories, isPending, error, refetch } = useStories();
   const { data: hasTracks } = useHasTracks();
   const seedTracks = useSeedTracks();
   const { data: hasAffirmationTracks } = useHasAffirmationTracks();
@@ -185,7 +186,19 @@ function Library() {
         </div>
       )}
 
-      {!isPending && visible.length === 0 && (
+      {!isPending && error && (
+        <div className="mt-8">
+          <ErrorState
+            title="The library didn't load"
+            body="We couldn't reach your saved stories and tracks. Nothing has been lost."
+            error={error}
+            context="app.library"
+            onRetry={() => void refetch()}
+          />
+        </div>
+      )}
+
+      {!isPending && !error && visible.length === 0 && (
         <section className="mt-12 rounded-3xl glass-panel px-8 py-14 text-center">
           <Headphones className="mx-auto h-6 w-6 text-primary" />
           <h2 className="mt-4 font-display text-2xl">

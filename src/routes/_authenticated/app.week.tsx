@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
+import { ErrorState } from "@/components/app/app-page";
 import { PageTransition } from "@/components/page-transition";
 import { Button } from "@/components/ui/button";
 import { useCreateEntry } from "@/features/journal/use-journal";
@@ -28,17 +29,38 @@ export const Route = createFileRoute("/_authenticated/app/week")({
  */
 function Week() {
   const navigate = useNavigate();
-  const { data: summary, isPending } = useWeeklySummary();
+  const { data: summary, isPending, error, refetch } = useWeeklySummary();
   const createEntry = useCreateEntry();
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
-  if (isPending || !summary) {
+  /**
+   * WAS `if (isPending || !summary)`, which spun forever on a failed request:
+   * the query settles, `summary` stays undefined, and the condition is still
+   * true. The spinner said "loading" long after the app had given up.
+   */
+  if (isPending) {
     return (
       <PageTransition>
         <div className="flex min-h-[50vh] items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </PageTransition>
+    );
+  }
+
+  if (error || !summary) {
+    return (
+      <PageTransition>
+        <div className="mx-auto w-full max-w-5xl pt-4">
+          <ErrorState
+            title="Your week didn't load"
+            body="We couldn't reach your practice history just now. It's usually the connection rather than anything wrong."
+            error={error}
+            context="app.week"
+            onRetry={() => void refetch()}
+          />
         </div>
       </PageTransition>
     );
