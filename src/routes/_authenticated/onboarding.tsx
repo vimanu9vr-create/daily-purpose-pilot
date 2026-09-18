@@ -324,7 +324,7 @@ function Onboarding() {
                     title="How long do you have each day?"
                     hint="Be honest rather than ambitious. A practice you actually do beats one you plan."
                   />
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2">
                     {PRACTICE_LENGTHS.map((minutes) => (
                       <button
                         key={minutes}

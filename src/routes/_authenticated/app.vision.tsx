@@ -173,7 +173,7 @@ function Vision() {
 
           <section className="mt-6">
             {unboarded.length > 0 && <p className="eyebrow">Or an area of life</p>}
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-3">
               {BOARD_CATEGORIES.map((category) => (
                 <button
                   key={category.id}
@@ -199,7 +199,7 @@ function Vision() {
 
       {(boards?.length ?? 0) > 0 && (
         <>
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-7 grid grid-cols-2 gap-3">
             {boards!.map((board) => (
               <BoardTile key={board.id} board={board} onOpen={() => setOpenId(board.id)} />
             ))}

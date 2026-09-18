@@ -201,7 +201,7 @@ function Library() {
 
       {/* Expanded single section */}
       {expanded && (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3">
           {expanded.map((story) => (
             <div key={story.id} className="[&>div]:!w-full">
               <StoryCard
