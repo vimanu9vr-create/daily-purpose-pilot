@@ -59,10 +59,28 @@ const OPENING_SENTENCES = 2;
 // See NOTES.md §9.
 type Tier = "free" | "standard" | "voice";
 
+/**
+ * MUST MATCH `src/features/billing/plans.ts`. A drift test enforces it —
+ * `src/features/billing/allowance-parity.test.ts` reads this literal out of
+ * this file and fails the build if the two disagree.
+ *
+ * It exists because they DID disagree, silently, for as long as it took to
+ * notice: this file said 3/30 while the app sold "around fifty narrations a
+ * month — four in a day". A Voice subscriber using what they had paid for hit
+ * a wall 40% early, and nothing anywhere said why.
+ *
+ * The 30 was not arbitrary — it was correct against the OLD yearly price of
+ * $99.99, which netted about $7.08 a month. Yearly is now $149.99, netting
+ * $10.62, and 45 listens cost $8.76. The repricing happened and this number
+ * never followed it.
+ *
+ * Deno cannot import from `src/`, so parity is enforced by test rather than by
+ * a shared module. Change one, change the other, or CI stops you.
+ */
 const NARRATION_ALLOWANCE: Record<Tier, { perDay: number; perMonth: number }> = {
   free: { perDay: 0, perMonth: 0 },
   standard: { perDay: 0, perMonth: 0 },
-  voice: { perDay: 3, perMonth: 30 },
+  voice: { perDay: 4, perMonth: 45 },
 };
 
 /**

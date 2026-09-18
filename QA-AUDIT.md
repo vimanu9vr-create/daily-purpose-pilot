@@ -1,0 +1,216 @@
+# END-TO-END QA REPORT — ManifestAI
+
+Audited: the repository at `f6f4f16`..`94698e3`, the production Supabase project
+`pkxkksamenqcvsaulceq`, and the public pages on
+`daily-purpose-pilot.vimanu9-vr.workers.dev`.
+
+**Read this first.** A large part of what you asked for could not be tested, and
+I would rather say so than invent results. I cannot create an account (I have no
+inbox and won't register on your behalf), so **no authenticated flow was
+exercised** — no signup, no onboarding, no manifestation lifecycle, no data
+persistence, no cross-user isolation. Two live probes were blocked mid-audit: a
+direct REST call to check whether RLS actually stops an anonymous reader, and a
+console/network read on `/app`. Both are listed under NOT VERIFIED with the
+exact test you can run yourself in under a minute.
+
+What follows is everything I *did* verify, and it found one issue that is
+costing paying customers.
+
+---
+
+## Executive Summary
+
+| | |
+| --- | --- |
+| **Production readiness** | Close, but not ready for paid traffic until #1 is fixed |
+| **Critical blockers** | 0 confirmed. 1 unconfirmed but high-consequence (RLS enforcement) |
+| **Major issues** | 1 — the app promises more narration than the server allows |
+| **Minor issues** | 6 — secrets hygiene, RLS reproducibility, SEO, bundle weight, error states |
+| **Security concerns** | 1 latent (`.env` tracked, `.gitignore` has no env rule) |
+| **UX concerns** | Error states exist on 5 of 26 authenticated routes |
+
+---
+
+## 1. VERIFIED WORKING
+
+Each of these was actually executed, not inferred.
+
+- **Build succeeds.** `vite build` completes in 1.37s, Nitro output generated, Cloudflare worker config written.
+- **174 unit tests pass** across 15 files. TypeScript compiles with zero errors. ESLint passes with zero errors.
+- **RLS is enabled on all 22 public tables.** Confirmed from Supabase's own metadata via `list_tables`, not from the code.
+- **16 of 17 edge functions verify the caller's JWT.** The seventeenth, `push-config`, deliberately does not — it serves only the VAPID *public* key, which ships in every subscription request anyway. Documented at length in the function itself. Not a finding.
+- **`revenuecat-webhook` is authenticated** by a shared secret in the `Authorization` header.
+- **The service-role key never reaches the browser.** It appears only in `src/integrations/supabase/client.server.ts`, read from `process.env`, which is server-only. No `VITE_`-prefixed secret exists anywhere in `src/`.
+- **Password reset is fully implemented** — both halves. `src/routes/forgot-password.tsx` calls `resetPasswordForEmail`, and `src/routes/reset-password.tsx` exists to set the new one. You asked me to flag this as missing if it were; it isn't.
+- **Google and Apple OAuth are wired** in `src/routes/auth.tsx` alongside email/password.
+- **Public pages render correctly in a real browser** — landing page at `/`, workbook page at `/reset/`, thank-you page at `/reset/thanks.html`. Screenshotted, not assumed.
+- **Landing pricing is live and correct** — $2.49 and $6.99 per week with the yearly price as small print.
+- **Every `<img>` in the app has an `alt` attribute.**
+- **Icon-only buttons carry `aria-label`** across 12 route files.
+- **The narration spend cap exists and is enforced server-side** in `narrate-story`, not just in the client. (Its *value* is wrong — see #1.)
+
+---
+
+## 2. BROKEN
+
+| # | Feature | Problem | Severity | Evidence | Fix |
+|---|---|---|---|---|---|
+| 1 | Voice narration allowance | The app sells "around fifty narrations a month — four in a day" but the server cuts subscribers off at **30/month and 3/day**. A Voice subscriber who uses what they paid for hits a wall 40% early. | **P1** | `src/features/billing/plans.ts:255` → `voice: { perDay: 4, perMonth: 45 }` and `:185` → "Around fifty narrations a month". `supabase/functions/narrate-story/index.ts:65` → `voice: { perDay: 3, perMonth: 30 }` | Decide which is true and make both match. The plans.ts comment argues 45 is affordable against the yearly plan; if that maths still holds, raise the server. If not, lower the marketing copy. Do not ship the mismatch. |
+| 2 | Secrets hygiene | `.env` is tracked in git across 5 commits and `.gitignore` contains no env rule. | **P2** | `git ls-files` returns `.env`; `grep env .gitignore` returns nothing | See "Security findings" — the current contents are harmless, the pattern is not. |
+| 3 | RLS reproducibility | 22 tables have RLS enabled, but only **one** policy is defined in migrations (`narration_spend_own_read`). The rest were created in the dashboard and exist nowhere in version control. | **P2** | `grep -c "create policy" supabase/migrations/*.sql` → 1 | Dump the live policies and commit them as a migration. Right now a restore from this repo produces an app where every table is either locked or, worse, differently permissioned than you think. |
+| 4 | Error states | 5 of 26 authenticated routes render anything when a query fails. The other 21 render a permanent skeleton or an empty screen. | **P3** | `grep -lc "error &&\|isError" src/routes/_authenticated/*.tsx` → 5 of 26 | At minimum add the pattern already used in `app.habits.tsx` to the routes a new user hits first: index, practice, vision, journal. |
+| 5 | Client bundle weight | Sentry ships **440 KB raw / 142 KB gzipped** to every visitor. That is the single largest client asset, larger than the app's own entry chunk. | **P3** | `.output/public/assets/prod-DMkOm_a7.js`, confirmed to contain Sentry | Lazy-load Sentry after first paint, or drop to `@sentry/browser`'s minimal build. On the mobile traffic you're driving from Instagram this is the most expensive thing on the page. |
+| 6 | SEO — no sitemap | `public/sitemap.xml` does not exist. | **P3** | `ls public/` | Generate one covering `/`, `/get`, `/reset/`, `/auth`. |
+| 7 | SEO — no canonical | No canonical URL tag anywhere in `__root.tsx`. | **P3** | `grep canonical src/routes/__root.tsx` → nothing | Add one. Matters more once you have a custom domain and both it and `workers.dev` resolve. |
+| 8 | Social sharing | `og:type` and `twitter:card` are present, but **`og:title`, `og:description`, `og:image` and `twitter:image` are all absent.** Every link anyone shares — including the one in your Instagram bio — renders as a bare URL with no image. | **P3** | `grep "og:title\|og:image" src/routes/__root.tsx` → no matches | Add the four tags. You already have `og.jpg` built for the workbook page; make an equivalent for the app. This is the cheapest conversion fix on the list. |
+
+---
+
+## 3. NOT VERIFIED
+
+| Feature | Why it could not be verified |
+|---|---|
+| **RLS actually enforced at runtime** | Two attempts blocked. The sandbox cannot reach `supabase.co` (allowlisted network, `curl` returned HTTP 000), and the tool-level fetch was denied by the safety classifier. **This is the single most important unverified item.** See the test below. |
+| Signup, login, logout, session persistence | I will not create accounts on your behalf and have no inbox to confirm an email. |
+| Onboarding flow | Behind auth. |
+| Manifestation / affirmation / journal lifecycle (create → save → refresh → edit → delete) | Behind auth. |
+| Data persistence across logout/login | Behind auth. |
+| **Cross-user data isolation** | Requires two accounts. Not testable by me. Depends entirely on the RLS policies that aren't in version control. |
+| All AI endpoints end to end | Require a valid JWT. Code review only: all 16 verify auth and most reference rate limiting. |
+| Console errors and failed network requests on `/app` | Browser read blocked by the classifier. |
+| Mobile viewports at 320/375/390/414/768/1024 | `resize_window` resized the browser window but the page continued rendering at desktop width, so any screenshot would have been misleading. I did not want to report a layout finding I hadn't actually seen. |
+| Browser compatibility (Safari, Firefox, Edge) | Only Chrome available. |
+| Real-world page load timing | Requires a live profiling run against `/app`. |
+
+### The RLS test — run this yourself, it takes 30 seconds
+
+Open a **private/incognito window** (so you are not logged in) and paste this
+into the address bar:
+
+```
+https://pkxkksamenqcvsaulceq.supabase.co/rest/v1/desires?select=title&limit=5&apikey=sb_publishable_HreDAA4wnMELA_10F3dfPQ_-Epz3eYh
+```
+
+- **`[]` (empty array)** → RLS is working. Anonymous readers see nothing. Good.
+- **Any rows of real data** → **P0 BLOCKER.** Every user's private dreams are readable by anyone with your publishable key, which ships in your app bundle and is therefore public. Stop and fix before another person signs up.
+
+Repeat with `journals`, `moments` and `profiles` — those are the most sensitive.
+
+---
+
+## 4. MISSING FEATURES
+
+| Feature | Importance | Recommendation |
+|---|---|---|
+| Sitemap | Low now, medium later | One static file. |
+| OG image / title / description | **High** | Every share of your bio link currently previews as a naked URL. Fix before you drive more traffic. |
+| Canonical URL | Low | Add with the custom domain. |
+| Analytics | **High** | There is no analytics in the codebase. You cannot see where users drop off, which means the conversion funnel below is reasoning, not measurement. |
+
+---
+
+## 5. SECURITY FINDINGS
+
+| Issue | Severity | Evidence | Fix |
+|---|---|---|---|
+| `.env` committed to git, no `.gitignore` rule | **P2 (latent, not current)** | `git ls-files` → `.env`, across 5 commits. Contents inspected without printing values: `SUPABASE_PROJECT_ID`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, three `VITE_` duplicates, `VITE_VAPID_PUBLIC_KEY`. **All seven are public by design** — they ship in the browser bundle regardless. | Nothing is currently leaked. But you are about to add Brevo SMTP credentials and the private VAPID key, and with no `.gitignore` rule those get committed the moment you save. Add `.env` to `.gitignore` and `git rm --cached .env` now, before the next secret goes in. |
+| RLS policies absent from version control | **P2** | 1 policy in migrations vs 22 tables with RLS on | Export and commit them. The security of every table currently depends on dashboard state nobody can review. |
+| Webhook secret compared with `!==` | **P4** | `revenuecat-webhook/index.ts:98` | Timing-safe comparison is the textbook fix. Realistically negligible for a webhook secret; noted for completeness, not urgency. |
+| Service-role key exposure | **None found** | Only in `client.server.ts`, server-side | No action. |
+
+---
+
+## 6. PERFORMANCE FINDINGS
+
+| Issue | Impact | Recommendation |
+|---|---|---|
+| Sentry: 440 KB raw / 142 KB gzip on the client | Largest asset on the page. On 4G this is roughly a second of the load budget, spent on error reporting rather than the product. | Lazy-load after first paint. |
+| `index` chunk 404 KB raw / 120 KB gzip | Entry cost before anything renders | Acceptable, but worth checking what's in it once Sentry moves. |
+| `app.progress` 388 KB (recharts) | Already code-split — only paid on that route | No action. Correctly done. |
+| Total heavy client JS ≈ 1.2 MB raw | The audience arrives from Instagram on phones, on mobile data | Sentry is the one worth moving. |
+
+---
+
+## 7. MOBILE FINDINGS
+
+Only one mobile issue was found and it came from code review, not observation —
+I could not get a trustworthy mobile render.
+
+| Screen | Problem | Severity | Recommendation |
+|---|---|---|---|
+| App shell (every screen) | Bottom nav used `pb-5` (20px) against a ~34px iPhone home-indicator inset, so the bar sat partly underneath it | P2 — **already fixed** this session | Verify on your own phone. |
+| All | Not observed at 320–1024px | NOT VERIFIED | Open the app on a real phone and a tablet. This is the gap I'd most like closed. |
+
+---
+
+## 8. UX / CONVERSION FINDINGS
+
+Funnel reasoning, not measurement — **there is no analytics in this codebase**,
+so drop-off is not measurable from the current implementation.
+
+| Step | Problem | Potential impact | Recommendation |
+|---|---|---|---|
+| Share → landing | No `og:image`/`og:title`. Every shared link previews as a bare URL. | People decide whether to tap from the preview. A blank one loses them before the page loads. | Add the four OG tags. Highest return on the smallest effort here. |
+| Landing → signup | Fixed this session — the page led with $149.99/year | Was asking a year-long commitment from someone who'd read nothing | Done. |
+| Signup → first value | Not verifiable without an account | — | Watch a real person do it. |
+| Any screen, on failure | 21 of 26 routes show a permanent skeleton rather than an error | A new user on a flaky connection sees a broken app and concludes the app is broken | Add error states to index, practice, vision, journal first. |
+| Paid user, day 11 | Voice subscriber hits a 30/month cap after being sold ~50 | Refund request and a bad review from your best-paying user | Fix #1. |
+
+---
+
+## 9. TOP FIXES, in order
+
+1. **Run the RLS test above.** Everything else is cosmetic if that returns data.
+2. **Fix the narration allowance mismatch** (`plans.ts` vs `narrate-story`).
+3. **`.gitignore` the `.env` and `git rm --cached` it** — before adding Brevo or the private VAPID key.
+4. **Add `og:title`, `og:description`, `og:image`, `twitter:image`.**
+5. **Commit the RLS policies as a migration.**
+6. **Add error states** to the four first-visit routes.
+7. **Lazy-load Sentry.**
+8. **Test on a real phone** at 320px and 768px and report anything broken.
+9. **Add analytics** — you are optimising a funnel you cannot see.
+10. Sitemap and canonical.
+
+---
+
+## 10. FINAL PRODUCTION CHECKLIST
+
+| Item | Status |
+|---|---|
+| Signup | [NOT VERIFIED] |
+| Login | [NOT VERIFIED] |
+| Logout | [NOT VERIFIED] |
+| Authentication persistence | [NOT VERIFIED] |
+| Database persistence | [NOT VERIFIED] |
+| **User data isolation** | **[NOT VERIFIED — test it first]** |
+| Manifestation creation / editing / deletion | [NOT VERIFIED] |
+| AI functionality | [NOT VERIFIED] — auth verified in code on all 16 endpoints |
+| Dashboard | [NOT VERIFIED] |
+| Navigation | [NOT VERIFIED] |
+| Forms | [NOT VERIFIED] |
+| Error handling | [FAIL] — 5 of 26 routes |
+| Mobile responsiveness | [NOT VERIFIED] — safe-area bug found and fixed by code review |
+| Desktop responsiveness | [PASS] — public pages verified in browser |
+| Performance | [FAIL] — Sentry at 142 KB gzip on the client |
+| Security | [PASS with caveats] — no secret exposure found; RLS enforcement unverified |
+| Accessibility | [PASS, partial] — alt text and aria-labels present; keyboard and contrast not tested |
+| SEO | [FAIL] — no sitemap, no canonical |
+| Social sharing | [FAIL] — no OG title/description/image |
+| Core user journey | **[NOT VERIFIED]** |
+
+---
+
+## Does the core user journey work end to end?
+
+**Unknown, and I won't pretend otherwise.** Every step of it sits behind a
+signup I can't perform. The build is clean, the tests pass, the auth code is
+present and correct-looking, and the public surface works — but "looks correct
+in the source" is precisely the answer you told me not to give.
+
+The honest position: this is a well-built application with unusually careful
+code comments and one real bug that is currently short-changing paying
+customers. Whether the journey works is a twenty-minute question, and it needs a
+human with an email address.
+
+Do that walkthrough yourself, write down every place you hesitate, and bring me
+the list.

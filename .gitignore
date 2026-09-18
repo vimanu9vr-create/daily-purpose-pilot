@@ -43,3 +43,16 @@ ios/.build
 *.keystore
 *.jks
 android/keystore.properties
+
+# Environment files.
+#
+# `.env` was tracked for 5 commits. Its contents were harmless — the anon key,
+# the project id, the URL and the VAPID *public* key, all of which ship in the
+# browser bundle anyway. But there was no rule stopping the next secret from
+# being committed the moment it was saved, and a private VAPID key and SMTP
+# credentials are both due to go in here.
+#
+# `.env.example` stays tracked so a new machine knows which names to set.
+.env
+.env.*
+!.env.example
