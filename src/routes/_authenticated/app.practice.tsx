@@ -15,6 +15,7 @@ import { desireNounPhraseOr } from "@/features/moments/desire-phrase";
 import { useCreateEntry } from "@/features/journal/use-journal";
 import { useProfile } from "@/features/onboarding/use-profile";
 import { useDesires } from "@/features/stories/use-stories";
+import { resolveDesireId, useSelectedDesire } from "@/hooks/use-selected-desire";
 import { ambientPad, unlockAudioSession } from "@/lib/ambient-audio";
 import { haptic } from "@/lib/native";
 import { cn } from "@/lib/utils";
@@ -64,9 +65,18 @@ function Practice() {
   const step = plan.steps[index];
   const isLast = index === plan.steps.length - 1;
 
-  // The desire this session is about. The first active one, which is also the
+  // The desire this session is about — the one selected on the home screen.
+  //
+  // WAS desires?.[0], which meant the practice was always about the newest
+  // dream however many you had and whichever you tapped. Reported as "daily
+  // practice should be what I click in desire, it's showing the 1st one".
+  //
+  // The old comment below described the old behaviour and is kept for context:
+  // The first active one, which is also the
   // one the home feed leads with, so the two agree.
-  const desire = desires?.[0] ?? null;
+  const { selected: storedDesireId } = useSelectedDesire();
+  const desireId = resolveDesireId(storedDesireId, desires);
+  const desire = desires?.find((d) => d.id === desireId) ?? null;
   const action = actions?.find((a) => a.desire_id === desire?.id) ?? actions?.[0] ?? null;
   const affirmation = dailyAffirmation?.text ?? null;
 

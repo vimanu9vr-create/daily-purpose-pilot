@@ -26,6 +26,7 @@ import {
 import { useProfile } from "@/features/onboarding/use-profile";
 import { PracticeCard } from "@/features/practice/practice-card";
 import { AffirmationRow } from "@/features/affirmations/affirmation-row";
+import { resolveDesireId, useSelectedDesire } from "@/hooks/use-selected-desire";
 import { useMilestones, useSeedMilestones } from "@/features/milestones/use-milestones";
 import {
   useAffirmationsByDesire,
@@ -48,7 +49,10 @@ function HomeFeed() {
 
   const [input, setInput] = useState("");
   const [editOpen, setEditOpen] = useState(false);
-  const [selectedDesireId, setSelectedDesireId] = useState<string | null>(null);
+  // Persisted, so the choice survives a reload and travels to the practice
+  // screen. See use-selected-desire.ts for why this isn't component state.
+  const { selected: storedDesireId, select: setSelectedDesireId } = useSelectedDesire();
+  const selectedDesireId = resolveDesireId(storedDesireId, desires);
 
   // Stops typing itself once the user starts typing — two cursors racing in
   // one box is horrible.
@@ -144,10 +148,9 @@ function HomeFeed() {
    * particular. The right shape is one dream at a time with the others one tap
    * away, which fixes both: nothing is hidden, and nothing is mixed.
    */
-  useEffect(() => {
-    if (selectedDesireId || !desires?.length) return;
-    setSelectedDesireId(desires[0]!.id);
-  }, [desires, selectedDesireId]);
+  // resolveDesireId already falls back to the newest dream, so there is no
+  // longer an effect that writes a default — which also removes the render
+  // where selectedDesireId was briefly null and the feed showed everything.
 
   /**
    * Write affirmations for a dream that has none, the same way stories are.
@@ -388,7 +391,10 @@ function HomeFeed() {
                 // did nothing at all, which is what "euro summer vacation, a
                 // calmer mind, more money is not working" was: five chips that
                 // looked like buttons and weren't wired to anything.
-                onClick={() => setSelectedDesireId(selected ? null : desire.id)}
+                // Always select. Tapping the active chip used to clear the
+                // selection, which fell back to the first dream and looked
+                // exactly like the anchor refusing to change.
+                onClick={() => setSelectedDesireId(desire.id)}
                 aria-pressed={selected}
                 className={cn(
                   "carousel-item whitespace-nowrap rounded-full px-5 py-2.5 text-[13px] font-medium transition active:scale-95",
@@ -418,7 +424,7 @@ function HomeFeed() {
       {hasDesires && (
         <AffirmationRow
           isGenerating={createDesire.isPending || generate.isPending}
-          desireId={selectedDesireId ?? desires?.[0]?.id ?? null}
+          desireId={selectedDesireId}
         />
       )}
 
