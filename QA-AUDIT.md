@@ -40,8 +40,33 @@ download zero bytes of it. I saw a large file in the assets directory and
 inferred it shipped, which is exactly the assumption this audit was supposed to
 avoid. No change was made because none was needed.
 
-**Still outstanding** — 3 (RLS in migrations), 9 (analytics), and everything
-under NOT VERIFIED. Reasons below.
+### RLS enforcement — NOW VERIFIED, and it passes
+
+Tested live, signed out, against `public.desires` with the publishable key:
+
+```
+{"code":"42501","message":"permission denied for table desires",
+ "hint":"Grant the required privileges to the current role with:
+         GRANT SELECT ON public.desires TO anon;"}
+```
+
+Stronger than the `[]` I was hoping for. `42501` means the `anon` role does not
+hold SELECT on the table at all — the request is refused at the **GRANT** layer,
+before row-level security is even consulted. That is defence in depth: two
+independent barriers, so a misconfigured RLS policy alone could not expose the
+table.
+
+The app still works because `authenticated` holds the grant and RLS then scopes
+those rows to `auth.uid()`.
+
+**This closes the only potential P0 in the audit.**
+
+Worth repeating the same URL against `journals`, `moments` and `profiles` to
+confirm the grants are consistent — one table configured differently from the
+rest is exactly the kind of thing that hides.
+
+**Still outstanding** — 3 (RLS policies in migrations), 9 (analytics), and the
+authenticated flows under NOT VERIFIED. Reasons below.
 
 ---
 
@@ -50,7 +75,7 @@ under NOT VERIFIED. Reasons below.
 | | |
 | --- | --- |
 | **Production readiness** | Close, but not ready for paid traffic until #1 is fixed |
-| **Critical blockers** | 0 confirmed. 1 unconfirmed but high-consequence (RLS enforcement) |
+| **Critical blockers** | **0** — RLS enforcement tested live and passed at the GRANT layer |
 | **Major issues** | 1 — the app promises more narration than the server allows |
 | **Minor issues** | 6 — secrets hygiene, RLS reproducibility, SEO, bundle weight, error states |
 | **Security concerns** | 1 latent (`.env` tracked, `.gitignore` has no env rule) |
