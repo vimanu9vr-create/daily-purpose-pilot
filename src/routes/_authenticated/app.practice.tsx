@@ -10,7 +10,10 @@ import {
   useTodaysActions,
   useToggleAction,
 } from "@/features/actions/use-actions";
-import { useDailyAffirmation } from "@/features/affirmations/use-affirmations";
+import {
+  useAnchorAffirmation,
+  useDailyAffirmation,
+} from "@/features/affirmations/use-affirmations";
 import { desireNounPhraseOr } from "@/features/moments/desire-phrase";
 import { useCreateEntry } from "@/features/journal/use-journal";
 import { useProfile } from "@/features/onboarding/use-profile";
@@ -77,8 +80,27 @@ function Practice() {
   const { selected: storedDesireId } = useSelectedDesire();
   const desireId = resolveDesireId(storedDesireId, desires);
   const desire = desires?.find((d) => d.id === desireId) ?? null;
-  const action = actions?.find((a) => a.desire_id === desire?.id) ?? actions?.[0] ?? null;
-  const affirmation = dailyAffirmation?.text ?? null;
+  /**
+   * The action for THIS dream. The old fallback to actions[0] meant a dream
+   * with no action yet borrowed another dream's, so the practice closed on a
+   * step belonging to something you hadn't selected.
+   */
+  const action = actions?.find((a) => a.desire_id === desire?.id) ?? null;
+
+  /**
+   * The line for THIS dream — its anchor, the same one Home shows under
+   * "Say this one".
+   *
+   * WAS `dailyAffirmation`, which picks one line out of every affirmation you
+   * have ever saved on a date rotation. It never looked at the desire, so the
+   * practice showed the same sentence whichever dream you tapped and changed
+   * only at midnight. That is the "say this one is not changing" report.
+   *
+   * The daily line stays as the fallback, for a dream whose affirmations
+   * haven't been written yet — better a real line than an empty slot.
+   */
+  const { data: anchor } = useAnchorAffirmation(desireId);
+  const affirmation = anchor?.text ?? dailyAffirmation?.text ?? null;
 
   /**
    * Make sure there is an action to close on, without relying on Home.
