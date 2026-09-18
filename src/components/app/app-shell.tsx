@@ -36,7 +36,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* The wordmark. Stella puts its name top-left on every screen, and it
           turns out to matter: without it the app never says what it is, and
           there's nothing to anchor the top of the page. */}
-      <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pt-4">
+      {/* pt respects the notch. On a plain browser env(safe-area-inset-top) is
+          0 so this collapses to the original 1rem; inside the Capacitor build
+          on a notched iPhone it pushes the wordmark clear of the status bar. */}
+      <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <Link
           to="/app"
           className="font-display text-[26px] font-medium leading-none tracking-[-0.01em] text-foreground"
@@ -62,9 +65,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-5">{children}</main>
+      <main className="mx-auto w-full max-w-2xl px-5 pt-5 pb-[calc(8rem+env(safe-area-inset-bottom))]">
+        {children}
+      </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-5">
+      {/* WAS pb-5. Twenty pixels is less than the ~34px home-indicator inset on
+          a modern iPhone, so the bottom of the nav sat underneath it and the
+          icons were awkward to hit. max() keeps the old spacing on devices
+          without an inset. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <ul className="glass-panel flex w-full max-w-sm items-center justify-around rounded-full px-2 py-2.5">
           {navItems.map((item) => (
             <li key={item.to} className="flex-1">
