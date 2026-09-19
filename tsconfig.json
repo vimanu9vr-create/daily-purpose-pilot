@@ -5,7 +5,9 @@
     "vite.config.ts",
     "eslint.config.js",
     "supabase/functions/send-daily-affirmation/fanout.ts",
-    "supabase/functions/send-daily-affirmation/fanout.test.ts"
+    "supabase/functions/send-daily-affirmation/fanout.test.ts",
+    "supabase/functions/revenuecat-webhook/plan-mapping.ts",
+    "supabase/functions/revenuecat-webhook/plan-mapping.test.ts"
   ],
   "compilerOptions": {
     "target": "ES2022",
