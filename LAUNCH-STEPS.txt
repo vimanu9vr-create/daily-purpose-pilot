@@ -1,0 +1,151 @@
+MANIFESTAI — EVERY REMAINING STEP TO AN ANDROID LAUNCH
+Written 19 Sep 2026. Closed testing is at day 6 of 14, so the deadline
+is roughly 27 September.
+
+Do these in order. Steps 1 and 8 have no dependencies and can be done
+any time. Everything else is a chain — each one needs the one before it.
+
+Tick them off as you go. If a screen doesn't match, stop and tell me
+rather than guessing; guessing is what cost us this morning.
+
+═══════════════════════════════════════════════════════════════════════
+STEP 1 — Create the 7 products in Play Console          (~20 min)
+═══════════════════════════════════════════════════════════════════════
+Nothing else can happen until these exist. RevenueCat imports FROM here.
+
+Play Console -> your app -> Monetise with Play -> Products -> Subscriptions
+-> "Create subscription" for each of these six:
+
+  Product ID                          Name              Period   Price
+  com.manifestai.standard.weekly      Standard Weekly   Weekly   $2.49
+  com.manifestai.standard.monthly     Standard Monthly  Monthly  $5.99
+  com.manifestai.standard.yearly      Standard Yearly   Yearly   $45.99
+  com.manifestai.voice.weekly         Voice Weekly      Weekly   $6.99
+  com.manifestai.voice.monthly        Voice Monthly     Monthly  $19.99
+  com.manifestai.voice.yearly         Voice Yearly      Yearly   $179.99
+
+For each one: enter the Product ID, give it a name, then add a BASE PLAN
+with the billing period and price above. Then press ACTIVATE. A product
+left as a draft does not exist as far as the app is concerned.
+
+Then: Monetise with Play -> Products -> In-app products -> Create
+  com.manifestai.standard.lifetime    Lifetime    $79.99
+(This one is NOT a subscription — it is a single payment.)
+
+WARNING: Product IDs are permanent. You cannot rename or reuse one.
+Copy and paste them, do not type them.
+
+═══════════════════════════════════════════════════════════════════════
+STEP 2 — Create a Google service account                (~10 min)
+═══════════════════════════════════════════════════════════════════════
+This is the fiddliest part. It lives in Google CLOUD Console, not Play
+Console, which is why it's confusing.
+
+  a) Play Console -> Setup -> API access
+  b) If it asks you to link a Google Cloud project, do that first.
+  c) Click "Create new service account". It opens Google Cloud Console
+     in a new tab.
+  d) In Google Cloud: Create Service Account.
+     Name: revenuecat
+     Click Create and Continue, then Done. (No roles needed here.)
+  e) Click the new service account -> KEYS tab -> Add Key ->
+     Create new key -> JSON -> Create.
+     A .json file downloads. KEEP IT. This is a credential — do not
+     commit it, do not paste its contents into any chat, including to me.
+
+═══════════════════════════════════════════════════════════════════════
+STEP 3 — Give that service account access to your app   (~5 min)
+═══════════════════════════════════════════════════════════════════════
+  a) Back in Play Console -> Setup -> API access -> refresh.
+     Your new service account now appears.
+  b) Click "Manage Play Console permissions" next to it.
+  c) Grant it access to your app with at least:
+        View app information
+        View financial data
+        Manage orders and subscriptions
+  d) Invite / Apply.
+
+Note: Google can take up to 24 hours to propagate these permissions.
+Usually it's minutes. If RevenueCat rejects the JSON in step 4, this is
+almost always why — wait and retry rather than redoing it.
+
+═══════════════════════════════════════════════════════════════════════
+STEP 4 — Add the Android app in RevenueCat               (~5 min)
+═══════════════════════════════════════════════════════════════════════
+Do NOT follow the SwiftUI onboarding wizard — that's iOS, and the
+"test_..." key it shows you is a sandbox key that won't work.
+
+  a) app.revenuecat.com -> Go to dashboard
+  b) Project Settings -> Apps -> + New -> Google Play Store
+  c) App name: ManifestAI
+     Package name: com.manifestai888.app
+  d) Upload the JSON file from step 2.
+  e) Save.
+
+═══════════════════════════════════════════════════════════════════════
+STEP 5 — Entitlement and products in RevenueCat          (~10 min)
+═══════════════════════════════════════════════════════════════════════
+  a) Product catalog -> Entitlements -> New
+     Identifier EXACTLY:  premium
+     (lowercase, no spaces — the app checks for this exact string)
+
+  b) Product catalog -> Products -> New, once for each of the seven
+     product IDs from step 1.
+
+  c) Open the `premium` entitlement and attach ONLY these three:
+        com.manifestai.voice.weekly
+        com.manifestai.voice.monthly
+        com.manifestai.voice.yearly
+
+     DO NOT attach the Standard products or Lifetime. Standard
+     deliberately excludes narration — that is the entire basis of the
+     pricing. Attaching them gives away the one feature that costs real
+     money per use.
+
+  d) Product catalog -> Offerings -> New
+     Identifier: default
+     Add a package for each of the six subscriptions.
+
+═══════════════════════════════════════════════════════════════════════
+STEP 6 — Send me two values                              (~2 min)
+═══════════════════════════════════════════════════════════════════════
+  a) Project Settings -> API keys -> the PUBLIC Google Play SDK key.
+     It starts with "goog_". This one is safe to share — it ships
+     inside your app by design.
+
+     NEVER share a key starting with "sk_". That one is secret.
+
+  b) Project Settings -> Integrations -> Webhooks -> Add:
+        URL: https://pkxkksamenqcvsaulceq.supabase.co/functions/v1/revenuecat-webhook
+        Authorization header: make up a long random string
+     Tell me that string so I can store it as REVENUECAT_WEBHOOK_SECRET.
+
+Then I do my half: put the key in .env, rebuild the AAB, and verify the
+key is actually baked in (the check I failed to do this morning).
+
+═══════════════════════════════════════════════════════════════════════
+STEP 7 — Upload the rebuilt AAB                          (~5 min)
+═══════════════════════════════════════════════════════════════════════
+I'll give you the file. Then:
+
+  Play Console -> Test and release -> Testing -> Closed testing
+  -> your EXISTING track -> Create new release -> upload -> release
+     notes -> Save -> Publish.
+
+DO NOT create a new track or change the tester list. Your 14-day clock
+counts testers staying opted in continuously. A new track restarts it
+and you lose the days you've banked.
+
+═══════════════════════════════════════════════════════════════════════
+STEP 8 — Notifications (independent, do any time)        (~3 min)
+═══════════════════════════════════════════════════════════════════════
+Open VAPID-KEYS.txt in this folder. It has the values and exactly where
+each goes: three secrets into Supabase, one line into your local .env.
+Right now notifications reach nobody.
+
+═══════════════════════════════════════════════════════════════════════
+AFTER LAUNCH — not now
+═══════════════════════════════════════════════════════════════════════
+  - Lemon Squeezy checkout on the web (I can build this end to end)
+  - iOS: needs an Apple Developer account and a review cycle
+═══════════════════════════════════════════════════════════════════════

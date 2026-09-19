@@ -56,3 +56,4 @@ android/keystore.properties
 .env
 .env.*
 !.env.example
+VAPID-KEYS.txt

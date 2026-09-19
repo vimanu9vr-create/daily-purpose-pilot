@@ -354,6 +354,35 @@ export function planById(id: string): Plan | undefined {
   return PLANS.find((plan) => plan.id === id);
 }
 
+/**
+ * Does a store's product identifier refer to this plan's product?
+ *
+ * ## Why this is not just `===`
+ *
+ * Google's subscription model separates the product from its BASE PLAN, and
+ * RevenueCat surfaces Play subscriptions using both, joined by a colon:
+ *
+ *   com.manifestai.voice.weekly:weekly
+ *
+ * Apple has no such concept and reports the bare product id. So a strict
+ * equality check against `productId` matches on iOS and fails on every Android
+ * subscription — and it fails in the worst possible way. `purchase()` would
+ * find no matching package and return "That plan isn't available on this
+ * device yet", which reads like a store outage rather than a bug, on the one
+ * screen where the app asks for money.
+ *
+ * Comparing the part before the colon works for both stores and stays correct
+ * if a base plan is ever renamed, since the base plan id is a detail of how
+ * Play prices a product rather than part of the product's identity.
+ */
+export function matchesProduct(
+  storeIdentifier: string | null | undefined,
+  productId: string | null | undefined,
+): boolean {
+  if (!storeIdentifier || !productId) return false;
+  return storeIdentifier.split(":")[0] === productId.split(":")[0];
+}
+
 /** Display name for a tier, for the profile screen and receipts. */
 export function tierName(tier: PlanTier): string {
   if (tier === "voice") return "Voice";

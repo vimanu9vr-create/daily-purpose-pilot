@@ -11,7 +11,7 @@
  * checkout. So there is deliberately no Stripe path here.
  */
 
-import { PLANS, type PlanId } from "./plans";
+import { PLANS, matchesProduct, type PlanId } from "./plans";
 
 export type PurchaseResult =
   | { status: "purchased" }
@@ -130,7 +130,7 @@ class NativeStore implements PurchaseStore {
     const packages = offerings.current?.availablePackages ?? [];
 
     return packages.flatMap((pkg) => {
-      const plan = PLANS.find((p) => p.productId === pkg.product.identifier);
+      const plan = PLANS.find((p) => matchesProduct(pkg.product.identifier, p.productId));
       if (!plan) return [];
       return [
         {
@@ -152,8 +152,8 @@ class NativeStore implements PurchaseStore {
       if (!plan?.productId) return { status: "error", message: "That plan isn't available." };
 
       const offerings = await Purchases.getOfferings();
-      const target = offerings.current?.availablePackages.find(
-        (pkg) => pkg.product.identifier === plan.productId,
+      const target = offerings.current?.availablePackages.find((pkg) =>
+        matchesProduct(pkg.product.identifier, plan.productId),
       );
       if (!target) {
         return { status: "unavailable", message: "That plan isn't available on this device yet." };

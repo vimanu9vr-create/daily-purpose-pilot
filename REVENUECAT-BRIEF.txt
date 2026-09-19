@@ -1,0 +1,71 @@
+PASTE THIS INTO THE CLAUDE SIDE PANEL WHILE YOU ARE ON app.revenuecat.com
+(Click the Claude icon in Chrome's toolbar to open the panel.)
+
+───────────────────────────────────────────────────────────────────────
+
+Set up this RevenueCat project for my app. Ask me before anything
+irreversible, and tell me if a screen doesn't match what I describe.
+
+APP
+  Platform:       Google Play (Android)
+  Package name:   com.manifestai888.app
+  App name:       ManifestAI
+
+STEP 1 — Create the app
+  Project Settings -> Apps -> New -> Google Play Store.
+  Package name: com.manifestai888.app
+  It will ask for a Google Play service account credentials JSON. If I
+  haven't uploaded one yet, stop and tell me — I'll generate it in Google
+  Cloud and come back.
+
+STEP 2 — Create the entitlement
+  Product catalog -> Entitlements -> New.
+  Identifier must be exactly:  premium
+  Description: Full access including studio narration.
+  The identifier is case-sensitive and my app checks for this exact
+  string, so do not change it.
+
+STEP 3 — Add these 6 subscription products
+  Product catalog -> Products -> New, once per row. Store = Play Store.
+
+    com.manifestai.standard.weekly
+    com.manifestai.standard.monthly
+    com.manifestai.standard.yearly
+    com.manifestai.voice.weekly
+    com.manifestai.voice.monthly
+    com.manifestai.voice.yearly
+
+  And this one-time (non-subscription) product:
+
+    com.manifestai.standard.lifetime
+
+  These must already exist in Google Play Console first. If RevenueCat
+  says a product can't be found, stop and tell me which one.
+
+STEP 4 — Attach products to the entitlement
+  Attach ONLY these three to `premium`:
+
+    com.manifestai.voice.weekly
+    com.manifestai.voice.monthly
+    com.manifestai.voice.yearly
+
+  Do NOT attach the four Standard products. Standard deliberately does
+  not include narration — that is the whole basis of my pricing, and
+  attaching them would give away the one feature that costs me money.
+
+STEP 5 — Offerings
+  Product catalog -> Offerings -> New. Identifier: default
+  Add packages for the six subscriptions.
+
+STEP 6 — Give me back two values
+  a) Project Settings -> API keys -> the PUBLIC Google Play SDK key
+     (starts with "goog_"). Paste it to me in chat.
+  b) Project Settings -> Integrations -> Webhooks -> Add.
+     URL:  https://pkxkksamenqcvsaulceq.supabase.co/functions/v1/revenuecat-webhook
+     Set an Authorization header value of your choosing and tell me what
+     it is, so I can store it as REVENUECAT_WEBHOOK_SECRET in Supabase.
+
+     Do NOT paste any SECRET key (one starting with "sk_"). I only need
+     the public SDK key and the webhook header value.
+
+───────────────────────────────────────────────────────────────────────

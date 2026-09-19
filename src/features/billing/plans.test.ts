@@ -7,6 +7,7 @@ import {
   STANDARD_PLANS,
   VOICE_PLANS,
   includesVoice,
+  matchesProduct,
   planById,
   tierOf,
 } from "./plans";
@@ -168,6 +169,48 @@ describe("narration allowance", () => {
     expect(yearlyMargin / monthlyMargin).toBeGreaterThan(0.4);
     // And it must still look like a genuine saving, or nobody buys it.
     expect(yearlyPerMonth).toBeLessThan(monthlyPrice * 0.85);
+  });
+
+  /**
+   * Caught from a real RevenueCat dashboard: after importing from Play, every
+   * subscription appeared as `com.manifestai.voice.weekly:weekly` — Google
+   * joins the product to its base plan. A strict `===` against `productId`
+   * matched on iOS and failed on every Android subscription, and the failure
+   * surfaced as "That plan isn't available on this device yet" on the paywall.
+   */
+  it("matches a Play identifier that carries its base plan suffix", () => {
+    expect(
+      matchesProduct("com.manifestai.voice.weekly:weekly", "com.manifestai.voice.weekly"),
+    ).toBe(true);
+    expect(
+      matchesProduct("com.manifestai.standard.monthly:monthly", "com.manifestai.standard.monthly"),
+    ).toBe(true);
+  });
+
+  it("still matches Apple's bare identifier", () => {
+    expect(matchesProduct("com.manifestai.voice.weekly", "com.manifestai.voice.weekly")).toBe(true);
+  });
+
+  it("does not match a different product", () => {
+    expect(
+      matchesProduct("com.manifestai.standard.weekly:weekly", "com.manifestai.voice.weekly"),
+    ).toBe(false);
+  });
+
+  it("treats a missing identifier as no match rather than throwing", () => {
+    expect(matchesProduct(undefined, "com.manifestai.voice.weekly")).toBe(false);
+    expect(matchesProduct("com.manifestai.voice.weekly", null)).toBe(false);
+  });
+
+  /**
+   * Every store product id must survive the round trip, or a plan silently
+   * becomes unbuyable on one platform.
+   */
+  it("matches every plan against its own Play-style identifier", () => {
+    for (const plan of PLANS) {
+      if (!plan.productId) continue;
+      expect(matchesProduct(`${plan.productId}:base`, plan.productId)).toBe(true);
+    }
   });
 
   it("keeps the daily cap inside the monthly one", () => {
