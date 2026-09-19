@@ -18,6 +18,113 @@ costing paying customers.
 
 ---
 
+## SCALING PASS — "will this hold at a million users?"
+
+Asked after the fix pass. The answer was no, for three reasons, and two of them
+are now fixed in code. What follows is what was actually measured, not what
+sounded likely.
+
+### 1. The morning push job would have failed in the low thousands — FIXED
+
+`send-daily-affirmation` fetched **every** profile with notifications enabled,
+with no limit and no pagination, filtered them in JavaScript, then made roughly
+six sequential HTTP round trips per due user inside a function with a 150-second
+wall clock. At ~120 ms per round trip that is about two users a second.
+
+The failure mode is the dangerous kind: it returns 200 having done part of the
+job. Because the loop is ordered, the same people are served every morning and
+the people sorted last are never reached at all. Nothing alerts.
+
+Three changes, in order of how much they matter:
+
+The due calculation moved into Postgres. `claim_due_morning_pushes` computes
+"is it 07:00 where this person lives" as a SQL predicate, so only due rows ever
+leave the database. This is the change that removes the dependency on total user
+count. It also **claims** — marking and returning in one statement with `for
+update skip locked` — so overlapping runs partition the work instead of
+double-sending, which the old mark-at-the-end order could not prevent.
+
+The per-user queries became per-batch queries using `user_id=in.(...)`. Six
+hundred round trips for a batch of two hundred users became three.
+
+The pushes now run with bounded concurrency (25 in flight) instead of strictly
+one at a time. The bound matters as much as the concurrency: an unbounded
+`Promise.all` would open thousands of sockets and get throttled, which is a
+slower way to fail than being serial.
+
+Net effect: roughly 2 users/second to roughly 200. When the per-invocation
+budget runs out the function hands the remainder to a fresh invocation of
+itself rather than being killed mid-batch.
+
+**The honest remaining ceiling**, written down so it is a decision rather than
+an oversight: this handles tens of thousands of users due in the same window.
+Past that the handover chain gets long enough that its tail falls outside the
+twenty-minute send window, and the right answer becomes a real queue (pgmq)
+with independent consumers. Separately, the claim query still walks the
+notification-enabled profiles once per run; past a few million that wants a
+maintained `next_notify_at` column so it becomes a range scan. Neither is
+needed yet.
+
+### 2. The database had three indexes — FIXED
+
+Not three missing indexes. **Three indexes, total**, across 22 tables:
+`idx_affirmations_desire`, `idx_narration_spend_user_day`, `habits_desire_id_idx`.
+
+Postgres indexes a primary key and a unique constraint automatically. It does
+**not** index a foreign key. Every table here hangs off `user_id`, and every RLS
+policy is a form of `using (auth.uid() = user_id)` — which is not a filter
+applied after rows arrive, it is welded onto the query. So "read my
+affirmations" was a sequential scan of the whole table, for every request, by
+every user. Invisible at 661 rows. Fatal at ten million, and fatal across every
+screen at once rather than one slow page.
+
+`20260918100000_index_the_hot_paths.sql` adds 34 indexes on the columns the app
+actually filters and sorts by. This is also the cheapest possible moment to do
+it: `create index` on a 661-row table is instant, and on a ten-million-row table
+it is a maintenance window.
+
+### 3. The real ceiling is margin, not machines — NOT a code fix
+
+Cloudflare Workers and Supabase will both scale past a million without changes.
+The unit economics won't. A Voice subscriber using the full 45 narrations costs
+about $8.76 against $10.62 net — **18 cents kept on the dollar** — and every free
+user costs AI calls while earning nothing. A million users on the current cost
+model is a bill, not a win. That is a pricing decision, not an engineering one,
+so nothing was changed here.
+
+### Also found while looking: two phantom columns
+
+`send-daily-affirmation` reads `sub.platform` and `sub.device_token`. Neither
+column exists on `push_subscriptions` — not in the migrations, not in the live
+database. `select=*` simply never returned them, so both comparisons were
+`undefined === "ios"` and the code silently fell back to parsing the token out
+of the `endpoint` string. It never threw, which is why it was never found. Added
+in `20260918102000_push_subscriptions_native_columns.sql`, with the fallbacks
+kept so existing rows still work.
+
+### What was verified, and what was not
+
+Verified: 205 tests pass (28 new, covering the batching, grouping and
+concurrency that previously had no test coverage at all), types clean, lint
+clean, build clean. All three migrations were parsed with libpg_query, including
+the function body inside the `$$` quotes — which the outer parse treats as an
+opaque string and would happily have let a syntax error through. The parse tree
+was then checked to confirm the `for update skip locked` and the clamped limit
+survived, rather than trusting that they read correctly.
+
+That check caught two real defects before they shipped: `return query update ...
+returning` is not valid PL/pgSQL and fails at CREATE time (rewritten as a plain
+SQL function wrapping the UPDATE in a CTE), and the columns `date` and
+`position` are keywords that the parser takes as a type and a function unless
+quoted in an index column list.
+
+**NOT verified: none of the three migrations has been run.** `execute_sql` and
+`apply_migration` are both blocked in this environment, and no Postgres was
+available locally to run them against. They parse correctly and the logic has
+been reasoned through, but "parses" is not "works". Applying them is the test.
+
+---
+
 ## STATUS AFTER THE FIX PASS
 
 **Fixed and verified** — 177 tests pass, build clean, types clean, lint clean:

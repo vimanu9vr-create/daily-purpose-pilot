@@ -86,8 +86,7 @@ describe("narration allowance parity", () => {
 
     const cheapest = Math.min(...VOICE_PLANS.map(monthlyPriceOf));
     const netRevenue = cheapest * (1 - STORE_FEE);
-    const ceilingCost =
-      NARRATION_ALLOWANCE.voice.perMonth * AVG_CHARS * 0.5 * COST_PER_CREDIT;
+    const ceilingCost = NARRATION_ALLOWANCE.voice.perMonth * AVG_CHARS * 0.5 * COST_PER_CREDIT;
 
     expect(ceilingCost).toBeLessThan(netRevenue);
   });

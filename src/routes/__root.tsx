@@ -130,8 +130,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "ManifestAI — one goal in, it writes the rest" },
       {
         name: "twitter:description",
-        content:
-          "The specific line, written from your own words, for the thing you actually want.",
+        content: "The specific line, written from your own words, for the thing you actually want.",
       },
       { name: "twitter:image", content: `${SITE_URL}/og.jpg` },
       { name: "theme-color", content: "#f7e9ec" },
