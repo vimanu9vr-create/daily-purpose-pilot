@@ -28,19 +28,49 @@ cannot check. A listing that oversells earns one-star reviews from people who
 feel misled; a listing that undersells is just a listing. Swap in the production
 copy the day the audio is real, not before.
 
-**App name** (30 characters max — this is 10)
+> **This paragraph is out of date and needs your answer, not mine.** It was
+> written before 5 September; it is now the 19th. If the ElevenLabs credits are
+> topped up and the library tracks actually play, the production copy below is
+> the one to paste, and the listing gets to say "real human voice" — which is
+> the strongest line in it. If they still don't play, nothing changes.
+>
+> Don't take my word either way: open a library sleep track on your phone and
+> press play. I have claimed the audio was working once before when it wasn't.
+
+**App name** (30 characters max — this is 25)
 
 ```
-ManifestAI
+ManifestAI: Manifestation
 ```
+
+> **Why not just "ManifestAI".** The title is the heaviest ranking signal in
+> Play search, and the brand alone used 10 of the 30 characters available.
+> Nobody searches for "ManifestAI" — they have never heard of it. They search
+> "manifestation", which is the highest-volume term in this category, and the
+> old title was not indexed for it at all.
+>
+> The brand still leads, so the listing still looks like a product rather than
+> a keyword salad. What changed is that the app can now be found by people who
+> don't know it exists, which is the entire job of a store listing.
+>
+> Resist the urge to cram more in. "ManifestAI: Manifestation Affirmations App"
+> would rank for slightly more and look like spam, and Play penalises titles
+> that read as keyword lists.
 
 ### Closed test — use this now
 
-**Short description** (80 max — this is 71)
+**Short description** (80 max — this is 67)
 
 ```
-Manifestation stories written from your own words, not off a shelf.
+Manifestation stories and affirmations written from your own words.
 ```
+
+> The short description is indexed too, so it has to earn its keywords rather
+> than only read well. "Not off a shelf" was the better line but it ranked for
+> nothing; "affirmations" is the second-highest-volume term in this category
+> after "manifestation". The shelf idea survives in the first two lines of the
+> full description, where it does the same job for anyone who actually opens
+> the listing.
 
 **Full description**
 
@@ -74,14 +104,15 @@ The daily practice around the stories, in one place.
 
 WHAT THIS APP WILL NOT DO
 
-It will not tell you that thinking about something makes it happen. There's no
-evidence for that, and pretending otherwise would be selling you something.
+It will not tell you that thinking about something makes it happen. Most law of
+attraction apps will. There is no evidence for it, and pretending otherwise
+would be selling you something.
 
 What it does is give you two minutes inside the life you want, and one small
-thing to do about it. Visualisation helps you notice and take chances to act.
+thing to do about it. Visualization helps you notice and take chances to act.
 That's the honest mechanism, and it's the one this app is built on.
 
-ManifestAI is a personal development tool for reflection and visualisation. It
+ManifestAI is a personal development tool for reflection and visualization. It
 is not therapy, medical advice, or a guarantee of results.
 ```
 
@@ -92,10 +123,10 @@ voice nobody can hear.
 
 ### Production — swap in once narration works
 
-**Short description** (80 max — this is 74)
+**Short description** (80 max — this is 62)
 
 ```
-Manifestation stories written for your dream, in a real human voice.
+Manifestation stories and affirmations, in a real human voice.
 ```
 
 **Full description** (4000 max — this is about 1,700)
@@ -131,11 +162,12 @@ It has read what you wrote, so you never start by explaining yourself again.
 
 WHAT THIS APP WILL NOT DO
 
-It will not tell you that thinking about something makes it happen. There's no
-evidence for that, and pretending otherwise would be selling you something.
+It will not tell you that thinking about something makes it happen. Most law of
+attraction apps will. There is no evidence for it, and pretending otherwise
+would be selling you something.
 
 What it does is give you two minutes inside the life you want, in a voice worth
-hearing, and one small thing to do about it. Visualisation helps you notice and
+hearing, and one small thing to do about it. Visualization helps you notice and
 take chances to act. That's the honest mechanism, and it's the one this app is
 built on.
 
@@ -150,13 +182,26 @@ and the whole library to read.
 Voice adds the narrated human voice on top: stories, sleep sessions and
 meditations read aloud rather than read by you.
 
-ManifestAI is a personal development tool for reflection and visualisation. It
+ManifestAI is a personal development tool for reflection and visualization. It
 is not therapy, medical advice, or a guarantee of results.
 ```
 
 Before swapping the production copy in, check two things are actually true: the
 library tracks have audio, and a purchase completes and lands a row on
 `subscriptions`. Both have been claimed prematurely once already.
+
+> **Spelling is a ranking decision, not a style one.** The copy used British
+> "visualisation" throughout. Play matches on the string, so in the US store —
+> where most of the installs are — that spelling was indexed for a word almost
+> nobody types. Changed to "visualization" in both versions. Everything else
+> stays British, because nothing else here is a search term.
+
+> **"Law of attraction" is in the copy now, and it is not a concession.** It is
+> among the highest-volume terms in this category and the listing was invisible
+> to all of it. The sentence it appears in still says the thing is not true —
+> which means the listing ranks for the search and then tells the person
+> something more useful than the apps above it. That is the only version of
+> this keyword worth having.
 
 ---
 
