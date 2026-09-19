@@ -27,6 +27,15 @@ alter table public.narration_spend enable row level security;
 
 -- Readable by the person it belongs to, so the app can show "2 of 2 today"
 -- without a round trip through an edge function. Only the service role writes.
+--
+-- Dropped first because Postgres has no `create policy if not exists`. Every
+-- other statement in this file is re-runnable, and this one was the single
+-- reason the whole migration was not — which matters more than it sounds:
+-- restoring this project from the repo, or replaying history onto a branch,
+-- would have failed here and left the ledger half-built with RLS enabled and
+-- no read policy, which reads as "the feature is broken" rather than as "the
+-- migration stopped".
+drop policy if exists "narration_spend_own_read" on public.narration_spend;
 create policy "narration_spend_own_read" on public.narration_spend
   for select to authenticated using (auth.uid() = user_id);
 
