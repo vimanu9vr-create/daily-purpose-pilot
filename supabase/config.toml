@@ -1,1 +1,35 @@
 project_id = "pkxkksamenqcvsaulceq"
+
+# ---------------------------------------------------------------------------
+# Edge function settings
+# ---------------------------------------------------------------------------
+#
+# Every function defaults to verify_jwt = true, which is right for all but one
+# of them: the app calls them through the Supabase client, which always
+# attaches either the user's session JWT or the anon key, so the platform gate
+# passes and each function's own checks do the real work.
+#
+# `revenuecat-webhook` is the exception, and getting it wrong fails silently.
+
+[functions.revenuecat-webhook]
+# RevenueCat is a third party. It sends the Authorization header value WE
+# configured in its dashboard — a shared secret — not a Supabase JWT.
+#
+# With verify_jwt = true, Supabase's gateway validates that header as a JWT and
+# rejects the request with 401 BEFORE the function is invoked. The function's
+# own secret check never runs, and nothing appears in the function logs,
+# because the function never started.
+#
+# The effect: every purchase, renewal, cancellation and refund is dropped at
+# the door. The store takes the money, RevenueCat records the sale, and the
+# `subscriptions` table — the app's only source of truth for who has paid —
+# never hears about it. The subscriber is charged and gets nothing. The only
+# trace is a 401 in RevenueCat's own delivery log, which nobody thinks to open
+# because the function "deployed fine".
+#
+# Turning the platform gate off does NOT leave this endpoint unauthenticated.
+# Authentication moves inside the function, which is where it has to be for
+# this caller: it compares the Authorization header against
+# REVENUECAT_WEBHOOK_SECRET and returns 401 on a mismatch, or 503 if the secret
+# isn't set at all.
+verify_jwt = false
