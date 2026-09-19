@@ -69,10 +69,15 @@ type Tier = "free" | "standard" | "voice";
  * month — four in a day". A Voice subscriber using what they had paid for hit
  * a wall 40% early, and nothing anywhere said why.
  *
- * The 30 was not arbitrary — it was correct against the OLD yearly price of
- * $99.99, which netted about $7.08 a month. Yearly is now $149.99, netting
- * $10.62, and 45 listens cost $8.76. The repricing happened and this number
- * never followed it.
+ * The 30 was not arbitrary — it was correct against the yearly price of
+ * $99.99, which netted about $7.08 a month. Yearly then went to $149.99 and
+ * this number never followed it.
+ *
+ * Yearly is now $179.99, netting $12.75 a month after the 15% store fee,
+ * against $8.75 for 45 listens — 31% left at the ceiling. It was raised from
+ * $149.99 because at that price the ceiling left only 18%: the annual discount
+ * had been taken off the whole price, and narration does not get cheaper
+ * because somebody paid for a year up front.
  *
  * Deno cannot import from `src/`, so parity is enforced by test rather than by
  * a shared module. Change one, change the other, or CI stops you.

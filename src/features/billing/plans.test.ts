@@ -96,7 +96,25 @@ describe("narration allowance", () => {
   const costOf = (listens: number) => listens * AVG_CHARS * 0.5 * COST_PER_CREDIT;
 
   /**
-   * Checked against the YEARLY plan, deliberately.
+   * The cheapest voice plan, normalised to a month, read off the plans.
+   *
+   * This used to be the literal `149.99 / 12`. When the yearly plan was
+   * repriced the test went on happily checking a price that no longer existed,
+   * which is the same failure the whole block exists to prevent — a number
+   * duplicated in two places and only one of them updated.
+   */
+  const cheapestVoiceMonthlyEquivalent = () => {
+    const perMonth = VOICE_PLANS.map((plan) => {
+      const price = Number(plan.priceDisplay.replace(/[^0-9.]/g, ""));
+      if (plan.cadence.includes("year")) return price / 12;
+      if (plan.cadence.includes("week")) return (price * 52) / 12;
+      return price;
+    });
+    return Math.min(...perMonth);
+  };
+
+  /**
+   * Checked against the CHEAPEST plan, deliberately.
    *
    * This test is here because the first version of these numbers was checked
    * against the monthly price and passed, while the yearly plan — which costs
@@ -106,10 +124,50 @@ describe("narration allowance", () => {
    * somebody loves it.
    */
   it("survives a worst-case month on the cheapest plan that includes voice", () => {
-    const cheapestVoicePerMonth = 149.99 / 12;
-    const netRevenue = cheapestVoicePerMonth * (1 - STORE_FEE);
+    const netRevenue = cheapestVoiceMonthlyEquivalent() * (1 - STORE_FEE);
 
     expect(costOf(NARRATION_ALLOWANCE.voice.perMonth)).toBeLessThan(netRevenue);
+  });
+
+  /**
+   * Positive is not the same as viable.
+   *
+   * At $149.99 a year the ceiling left 17.6%, which passes the test above and
+   * is still a bad plan: the app earned least from the subscribers who used
+   * most of what they bought. A floor makes the distinction explicit, so a
+   * future discount that technically survives but guts the margin fails here
+   * rather than a year later in the bank statements.
+   */
+  it("leaves a real margin at the ceiling, not merely a positive one", () => {
+    const netRevenue = cheapestVoiceMonthlyEquivalent() * (1 - STORE_FEE);
+    const margin = (netRevenue - costOf(NARRATION_ALLOWANCE.voice.perMonth)) / netRevenue;
+
+    expect(margin).toBeGreaterThan(0.25);
+  });
+
+  /**
+   * The annual discount must come out of margin, never out of cost.
+   *
+   * Standard can discount 36% because it costs nothing to serve. Voice cannot,
+   * because the narration bill arrives every month at the same size however
+   * the subscriber paid. Discounting the whole price discounts the cost too,
+   * which is impossible, and the gap shows up as a collapsed margin.
+   */
+  it("does not discount the yearly voice plan past what the cost allows", () => {
+    const monthly = VOICE_PLANS.find((plan) => plan.cadence.includes("month"))!;
+    const yearly = VOICE_PLANS.find((plan) => plan.cadence.includes("year"))!;
+
+    const monthlyPrice = Number(monthly.priceDisplay.replace(/[^0-9.]/g, ""));
+    const yearlyPerMonth = Number(yearly.priceDisplay.replace(/[^0-9.]/g, "")) / 12;
+    const ceilingCost = costOf(NARRATION_ALLOWANCE.voice.perMonth);
+
+    // The discount, measured against margin rather than against price.
+    const monthlyMargin = monthlyPrice * (1 - STORE_FEE) - ceilingCost;
+    const yearlyMargin = yearlyPerMonth * (1 - STORE_FEE) - ceilingCost;
+
+    expect(yearlyMargin / monthlyMargin).toBeGreaterThan(0.4);
+    // And it must still look like a genuine saving, or nobody buys it.
+    expect(yearlyPerMonth).toBeLessThan(monthlyPrice * 0.85);
   });
 
   it("keeps the daily cap inside the monthly one", () => {

@@ -310,11 +310,17 @@ copy above already has the first two removed, which is why it exists.
 
   | Product id | Type | Price |
   | --- | --- | --- |
+  | `com.manifestai.standard.weekly` | Subscription | $2.49 / week |
   | `com.manifestai.standard.monthly` | Subscription | $5.99 / month |
   | `com.manifestai.standard.yearly` | Subscription | $45.99 / year |
   | `com.manifestai.standard.lifetime` | One-time | $79.99 |
+  | `com.manifestai.voice.weekly` | Subscription | $6.99 / week |
   | `com.manifestai.voice.monthly` | Subscription | $19.99 / month |
-  | `com.manifestai.voice.yearly` | Subscription | $149.99 / year |
+  | `com.manifestai.voice.yearly` | Subscription | $179.99 / year |
+
+  The weekly products are what the landing page leads with. Voice yearly is
+  $179.99, raised from $149.99 — the old annual discount was applied to the
+  whole price, including the narration cost, which does not discount.
 
   In RevenueCat, the two Voice products carry the `premium` entitlement and the
   three Standard ones do not — but the app doesn't trust that anyway. The

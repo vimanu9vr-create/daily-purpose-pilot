@@ -83,14 +83,62 @@ actually filters and sorts by. This is also the cheapest possible moment to do
 it: `create index` on a 661-row table is instant, and on a ten-million-row table
 it is a maintenance window.
 
-### 3. The real ceiling is margin, not machines — NOT a code fix
+### 3. The real ceiling was margin, not machines — NOW REPRICED
 
 Cloudflare Workers and Supabase will both scale past a million without changes.
-The unit economics won't. A Voice subscriber using the full 45 narrations costs
-about $8.76 against $10.62 net — **18 cents kept on the dollar** — and every free
-user costs AI calls while earning nothing. A million users on the current cost
-model is a bill, not a win. That is a pricing decision, not an engineering one,
-so nothing was changed here.
+The unit economics wouldn't.
+
+Prices were re-derived from primary sources rather than from the repo's own
+comments. ElevenLabs Creator is confirmed at **$22 for 121,000 credits** and
+Flash bills 0.5 credits per character ([elevenlabs.io/pricing](https://elevenlabs.io/pricing)),
+so the 2,139-character average story costs **$0.194** and the 45/month ceiling
+costs **$8.75**. The repo's "~20c" was right.
+
+The problem was the yearly plan, and only the yearly plan:
+
+| Plan | Net per month | Left at the ceiling |
+|---|---|---|
+| Voice weekly $6.99 | $25.75 | $17.00 — 66% |
+| Voice monthly $19.99 | $16.99 | $8.24 — 49% |
+| Voice yearly $149.99 | $10.62 | **$1.87 — 17.6%** |
+
+The cause is a specific mistake, not general underpricing. A 37% annual
+discount was taken off the **whole price** — which takes 37% off the narration
+bill too, except that bill arrives every month at the same size however the
+subscriber paid. So the app earned least from the subscribers who used most of
+what they bought.
+
+**Voice yearly raised $149.99 → $179.99.** Net $12.75, leaving $4.00 at the
+ceiling (31%), still a genuine 25% saving against monthly. The rule now written
+into the file: *discount the margin, never the cost.* Applying that rule
+strictly gives about $205; $179.99 is a deliberate compromise on what a new
+brand can charge, not an accident.
+
+Standard was left alone — it genuinely costs nothing to serve, so its 36%
+annual discount comes out of margin that was never spent.
+
+Two guards added to `plans.test.ts`, both verified to **fail at $149.99 and
+pass at $179.99** rather than merely asserted: a 25% margin floor at the
+ceiling, and a check that the annual discount is measured against margin. The
+existing test hardcoded `149.99 / 12`, so after any repricing it would have
+gone on passing against a price that no longer existed; it now derives the
+cheapest voice plan from `VOICE_PLANS`.
+
+Also corrected: `plans.ts` claimed text generation was free because it runs on
+Gemini's free tier. A free tier is a rate limit on the project, not an
+allowance per user, so it stops being the relevant number as soon as there is
+traffic. At paid rates ($0.30/M input, $2.50/M output) a heavy user costs about
+**16c a month** and a typical one a few cents — two orders of magnitude below
+narration, so no price changed, but "free" was going to be believed later.
+
+Volume does not rescue this: ElevenLabs Pro and Business both work out around
+$0.000165 per credit against Creator's $0.000182. A 9% saving, not an order of
+magnitude.
+
+Prices also corrected in `store/REVENUECAT-SETUP.md` and `store/PLAY-LISTING.md`
+— which are what gets typed into App Store Connect, so a stale number there
+becomes a real wrong price. Both were **also missing the two weekly products
+entirely**, which are the prices the landing page leads with.
 
 ### Also found while looking: two phantom columns
 

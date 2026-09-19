@@ -195,11 +195,22 @@ The monthly figure is set by the **cheapest** plan that carries voice, not the
 dearest. The first version of these numbers was checked against the monthly
 price, passed, and was wrong.
 
-**Updated after a repricing.** This section used to justify a cap of 30 on the
-grounds that 45 listens cost $8.78 against a yearly subscriber's $7.08 a month.
-That was true when Voice yearly was $99.99. It is now **$149.99**, which nets
-$10.62 a month after a 15% store fee, and 45 listens cost $8.76 — so 45 is
-survivable on the cheapest voice plan with about $1.86 of headroom.
+**Updated after two repricings.** This section used to justify a cap of 30 on
+the grounds that 45 listens cost $8.78 against a yearly subscriber's $7.08 a
+month. That was true when Voice yearly was $99.99, and stopped being true at
+$149.99.
+
+Voice yearly is now **$179.99**, netting $12.75 a month after the 15% store
+fee. At $0.194 a listen — 2,139 characters, Flash at half a credit each,
+ElevenLabs Creator at $22 for 121,000 credits, re-checked September 2026 — 45
+listens cost $8.75, leaving **$4.00, or 31%**.
+
+At $149.99 the same ceiling left $1.87, or 17.6%. That is positive and it is
+still the wrong number: a 37% annual discount had been applied to the whole
+price, which silently applies it to the narration bill as well, and that bill
+arrives every month at the same size however the subscriber paid. The rule is
+now **discount the margin, never the cost**, and `plans.test.ts` enforces a 25%
+floor at the ceiling so a future discount cannot quietly breach it.
 
 The cap is therefore **4/day, 45/month**, matching what the app actually sells
 ("around fifty narrations a month — four in a day"). For as long as it took to

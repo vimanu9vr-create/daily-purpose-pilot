@@ -151,7 +151,7 @@ const tiers = [
     cta: "Get Voice",
     featured: true,
     badge: null,
-    footnote: `or ${voiceYearly?.priceDisplay ?? "$149.99"} a year`,
+    footnote: `or ${voiceYearly?.priceDisplay ?? "$179.99"} a year`,
   },
 ];
 

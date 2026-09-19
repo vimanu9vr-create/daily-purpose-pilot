@@ -3,10 +3,23 @@
  *
  * ## Why there are two paid plans instead of one
  *
- * Everything in this app except narration is effectively free to serve. Text
- * generation runs on Gemini's free tier; photographs come from Pexels' free
+ * Everything in this app except narration is nearly free to serve. Text
+ * generation runs on Gemini Flash; photographs come from Pexels' free
  * allowance; the database is a rounding error. Studio narration is the only
- * thing with a real per-use bill, and it is not a small one.
+ * thing with a large per-use bill.
+ *
+ * "Nearly", not "free", and the difference matters at scale. This file used to
+ * say text was free because it ran on Gemini's free tier — but a free tier is
+ * a rate limit on the PROJECT, not an allowance per user, so it stops being
+ * the relevant number the moment there is real traffic. At paid rates
+ * (gemini-2.5-flash, $0.30 per million input tokens and $2.50 per million
+ * output, checked September 2026) a heavy user costs roughly 16c a month in
+ * text and a typical one a few cents.
+ *
+ * That is still two orders of magnitude below narration and does not change
+ * any price here. It is written down because "free" was going to be believed
+ * later by someone reading this file, and at a million users the difference
+ * between "free" and "a few cents" is a real line in the accounts.
  *
  * The measured figure, taken from the narrations actually rendered on the
  * production account rather than estimated: the average story is 2,139
@@ -155,14 +168,56 @@ export const VOICE_PLANS: Plan[] = [
     blurb: "Cancel any time.",
   },
   {
+    /**
+     * $179.99, raised from $149.99.
+     *
+     * ## Why an annual discount on Voice cannot match the one on Standard
+     *
+     * Standard yearly is 36% off monthly and that is free to give: Standard
+     * costs almost nothing to serve, so the whole discount comes out of
+     * margin that was never spent.
+     *
+     * Voice is not like that. It carries a bill that arrives every month at
+     * the same size whether the subscriber paid monthly or annually. At
+     * $149.99 the maths was:
+     *
+     *   gross $12.50/month, net of the 15% store fee $10.62
+     *   ceiling cost, 45 narrations at ~19.4c    $8.75
+     *   left over                                $1.87  — 17.6%
+     *
+     * A 37% discount had been applied to the whole price, which means 37% was
+     * taken off the cost as well — except the cost does not discount. So the
+     * plan kept 18 cents on the dollar precisely for the subscribers who used
+     * what they paid for, and the app earned least from the people who loved
+     * it most. That is the wrong shape, and it is the same mistake in a new
+     * place: the note on NARRATION_ALLOWANCE warns about checking the cheapest
+     * plan, and the cheapest plan was still the one that didn't work.
+     *
+     * The rule now: DISCOUNT THE MARGIN, NEVER THE COST. At $179.99:
+     *
+     *   gross $15.00/month, net $12.75
+     *   ceiling cost                             $8.75
+     *   left over                                $4.00  — 31%
+     *
+     * Still a real 25% saving against $19.99 monthly, still the best value in
+     * the range, and it survives its own ceiling. A strict application of the
+     * rule — discount only the $8.24 of monthly margin by 30% — would have
+     * landed at about $205, which is more than this category will bear from a
+     * new brand. $179.99 is the compromise, chosen deliberately rather than
+     * arrived at.
+     *
+     * Note this is the ceiling, not the average. A subscriber at 40% of the
+     * cap leaves about $9.25, which is the number the business actually runs
+     * on. The ceiling only has to be survivable, not comfortable.
+     */
     id: "voice_yearly",
     tier: "voice",
     name: "Yearly",
     productId: "com.manifestai.voice.yearly",
-    priceDisplay: "$149.99",
+    priceDisplay: "$179.99",
     cadence: "per year",
-    blurb: "Works out at $12.50 a month.",
-    highlight: "Save 37%",
+    blurb: "Works out at $15 a month.",
+    highlight: "Save 25%",
   },
 ];
 
@@ -231,20 +286,31 @@ export const SAMPLE_TRACK_TITLE = "Tomorrow is not here yet";
  * thing they can hear is `SAMPLE_TRACK_TITLE`, which is shared rather than
  * commissioned and so doesn't appear in any allowance.
  *
- * The voice figures, at ~20c a listen on Flash and a 15% store fee:
+ * The voice figures, re-checked against elevenlabs.io/pricing in September
+ * 2026. Creator is $22 for 121,000 credits and Flash v2.5 bills 0.5 credits
+ * per character, so the 2,139-character average story costs:
  *
- *   45/month costs $8.78.
- *   Voice monthly nets $16.99/month — $8.21 left at the ceiling.
- *   Voice yearly nets $10.62/month — $1.84 left at the ceiling.
+ *   2,139 x 0.5 x (22 / 121,000) = $0.194
+ *
+ * At a 15% store fee, with 45 narrations costing $8.75:
+ *
+ *   Voice weekly  nets $25.75/month — $17.00 left at the ceiling (66%)
+ *   Voice monthly nets $16.99/month —  $8.24 left at the ceiling (49%)
+ *   Voice yearly  nets $12.75/month —  $4.00 left at the ceiling (31%)
  *
  * THE YEARLY PLAN SETS THIS NUMBER, not the monthly or weekly one. Weekly at
  * $6.99 nets about $25.75 a month, far above the ceiling's cost — it is the
- * dearest plan, not the cheapest, so it does not constrain this figure. Sixty a month was
- * asked for and does not survive: at $149.99 a year the ceiling would cost
- * $11.70 against $10.62 of revenue, so the plan would lose a dollar a month
- * precisely when somebody loved it. That mistake has been made twice in this
- * file already — check the cheapest plan that carries the allowance, never the
- * dearest.
+ * dearest plan, not the cheapest, so it does not constrain this figure. Sixty
+ * a month still does not survive: it would cost $11.66 against $12.75, leaving
+ * a dollar, which is not a margin. Check the cheapest plan that carries the
+ * allowance, never the dearest. That mistake has now been made twice in this
+ * file, and the parity test derives the cheapest plan rather than hardcoding
+ * it so that a future repricing cannot make it a third time.
+ *
+ * Volume barely helps, which is worth knowing before assuming it will. Pro is
+ * $99/600k credits and Business $990/6M, both about $0.000165 per credit
+ * against Creator's $0.000182 — a 9% saving, not an order of magnitude. This
+ * cost does not fall away as the app grows.
  *
  * The daily cap of 4 sits inside the monthly one so a single evening cannot
  * consume the month, while still allowing a long session.

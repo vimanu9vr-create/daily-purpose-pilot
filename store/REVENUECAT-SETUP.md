@@ -18,11 +18,22 @@ for character or the plan will not appear on the device.
 
 | Product ID | Type | Price |
 | --- | --- | --- |
+| `com.manifestai.standard.weekly` | Auto-renewable subscription | $2.49 |
 | `com.manifestai.standard.monthly` | Auto-renewable subscription | $5.99 |
 | `com.manifestai.standard.yearly` | Auto-renewable subscription | $45.99 |
 | `com.manifestai.standard.lifetime` | Non-consumable | $79.99 |
+| `com.manifestai.voice.weekly` | Auto-renewable subscription | $6.99 |
 | `com.manifestai.voice.monthly` | Auto-renewable subscription | $19.99 |
-| `com.manifestai.voice.yearly` | Auto-renewable subscription | $149.99 |
+| `com.manifestai.voice.yearly` | Auto-renewable subscription | $179.99 |
+
+The two weekly products are the ones the landing page leads with, so if they
+don't exist the first price a visitor sees can't be bought.
+
+Voice yearly is **$179.99, not $149.99**. Narration bills every month at the
+same size however the subscriber paid, so a 37% annual discount was discounting
+a cost that does not discount — it left 18% at the allowance ceiling. See the
+comment on `voice_yearly` in `src/features/billing/plans.ts` for the full
+arithmetic.
 
 The four subscriptions go in **one subscription group**. That is what lets
 somebody move between Standard and Voice, and between monthly and yearly,

@@ -246,7 +246,7 @@ Nothing on Home surfaces it.
 | Tier | Monthly | Yearly | Lifetime |
 |---|---|---|---|
 | Standard | $5.99 | $45.99 (~$3.83/mo) | $79.99 |
-| Voice | $19.99 | $149.99 (~$12.50/mo) | none |
+| Voice | $19.99 | $179.99 (~$15.00/mo) | none |
 
 Free tier: 3 stories per refresh, 5 coach messages per day, 1 AI affirmation
 batch, no narration except one shared sample track.
@@ -268,7 +268,7 @@ distinguish from a free competitor.
 **VERIFIED, and this is the biggest single conversion problem in the product.**
 
 The paywall opens on the **Voice** tab. The first prices a user sees are
-**$19.99 per month** and **$149.99 per year**. Standard — $5.99, $45.99, $79.99 —
+**$19.99 per month** and **$179.99 per year**. Standard — $5.99, $45.99, $79.99 —
 is hidden behind a toggle the user has to notice and press.
 
 Three further issues on the same screen:
