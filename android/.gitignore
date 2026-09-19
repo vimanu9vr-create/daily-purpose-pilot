@@ -99,3 +99,9 @@ app/src/main/assets/public
 app/src/main/assets/capacitor.config.json
 app/src/main/assets/capacitor.plugins.json
 app/src/main/res/xml/config.xml
+
+# Firebase config for native Android push. Not a secret — it contains only
+# public project identifiers and an API key scoped to this package name. It is
+# committed on purpose: without it Gradle silently skips the google-services
+# plugin and the build logs "Push Notifications won't work", which is exactly
+# how this went unnoticed until now.

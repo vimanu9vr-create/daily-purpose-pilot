@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "622939471989",
+    "project_id": "manifestai-8b377",
+    "storage_bucket": "manifestai-8b377.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:622939471989:android:c4115978681246a04db83c",
+        "android_client_info": {
+          "package_name": "com.manifestai888.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARthMNkO8DZ7z-qNXcIy3tyHyDooBALso"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

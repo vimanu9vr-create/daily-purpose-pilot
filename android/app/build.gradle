@@ -30,8 +30,8 @@ android {
         // fix and the narration entitlement. Play rejects a duplicate
         // versionCode, so this must go up on every upload even when the
         // version name doesn't change.
-        versionCode 8
-        versionName "1.0.3"
+        versionCode 9
+        versionName "1.0.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
