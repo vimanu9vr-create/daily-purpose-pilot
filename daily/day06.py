@@ -45,19 +45,43 @@ def ease(t):
     return t * t * (3 - 2 * t)
 
 
-# The inversion. Everything before 6.80 is dark; everything after is cream.
+# The inversion. Everything before the turn is dark; everything after is cream.
 # A hard colour flip is the cheapest dopamine beat there is and it lands
 # exactly where the script stops accusing and starts explaining.
-TURN = 6.80
+#
+# It MUST equal the start of beat 4. When I moved the beats to close the gaps
+# I left this at 6.80 while beat 4 began at 6.60, so for 0.2s the burgundy
+# "Not magic" text drew on the near-black ground and effectively vanished.
+# Derived from BEATS below rather than typed twice.
+TURN = None  # set after BEATS
 
+# CONTIGUOUS. There must be no gap between beats.
+#
+# The first cut of this video had a 0.15s hole between each one, and because
+# `beat_at` had no branch for "t is in a hole" it fell through to the final
+# return — which is the CTA. So "STOP PRETENDING." flashed five times in dark
+# burgundy on near-black before it was meant to exist. Five flickers in ten
+# seconds, and invisible on a contact sheet unless you go looking at the gap
+# frames specifically.
+#
+# A hard cut is beat N ending on the exact frame beat N+1 begins. There is no
+# in-between to define, which is the point.
 BEATS = [
     (0.00, 2.00),   # mirror hook
-    (2.15, 3.55),
-    (3.70, 5.10),
-    (5.25, 6.65),
-    (6.80, 8.10),   # inversion
-    (8.25, 10.50),  # CTA
+    (2.00, 3.50),
+    (3.50, 5.00),
+    (5.00, 6.60),
+    (6.60, 8.10),   # inversion
+    (8.10, 10.50),  # CTA
 ]
+
+INVERT_BEAT = 4
+TURN = BEATS[INVERT_BEAT][0]
+
+# Does this beat paint dark ink? Beats 0-3 are light ink on the near-black
+# ground; beats 4-5 are dark ink on cream. Declared, so assert_contiguous can
+# check it against where the inversion actually happens.
+INK_IS_DARK = [False, False, False, False, True, True]
 
 # Explicit breaks, because where a punchy line lands matters — but `fit()`
 # still measures and shrinks, so a line can never run off the frame the way
@@ -71,10 +95,35 @@ LINES = {
 
 
 def beat_at(t):
+    """Which beat is on screen at t.
+
+    Clamps at both ends rather than falling through. The fall-through is what
+    put the CTA on screen five times before its own beat.
+    """
+    if t < BEATS[0][1]:
+        return 0, t / BEATS[0][1], t
     for i, (a, b) in enumerate(BEATS):
         if a <= t < b:
             return i, (t - a) / (b - a), t - a
-    return len(BEATS) - 1, 1.0, t - BEATS[-1][0]
+    a, b = BEATS[-1]
+    return len(BEATS) - 1, 1.0, max(t - a, 0.0)
+
+
+def assert_contiguous():
+    """A gap between beats is a defect, not a style choice. Fail loudly."""
+    for (a1, b1), (a2, _) in zip(BEATS, BEATS[1:]):
+        assert abs(b1 - a2) < 1e-9, f"gap between {b1} and {a2}"
+    assert BEATS[0][0] == 0.0, "first beat must start at frame 0"
+    assert abs(BEATS[-1][1] - DUR) < 1e-9, "last beat must run to the end"
+    assert TURN == BEATS[INVERT_BEAT][0], "inversion must land on its own beat"
+
+    # Dark-ground beats must use light ink and cream-ground beats dark ink.
+    # This is the check that would have caught burgundy-on-black directly,
+    # rather than me noticing it on a contact sheet.
+    for i, (a, _) in enumerate(BEATS):
+        light_ground = a >= TURN
+        dark_ink = INK_IS_DARK[i]
+        assert light_ground == dark_ink, f"beat {i} draws unreadable ink"
 
 
 def background(t):
@@ -188,6 +237,7 @@ def draw(img, t):
 
 
 def main():
+    assert_contiguous()
     os.makedirs("fr", exist_ok=True)
     cache, ck = None, -1
     for i in range(N):
