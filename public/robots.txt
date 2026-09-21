@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://daily-purpose-pilot.vimanu9-vr.workers.dev/sitemap.xml
+Sitemap: https://trymanifestationai.com/sitemap.xml

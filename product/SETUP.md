@@ -21,8 +21,8 @@ product/
 
 | What | Where |
 | --- | --- |
-| Sales page | `daily-purpose-pilot.vimanu9-vr.workers.dev/reset/` |
-| Day 8 upsell page | `daily-purpose-pilot.vimanu9-vr.workers.dev/reset/thanks.html` |
+| Sales page | `trymanifestationai.com/reset/` |
+| Day 8 upsell page | `trymanifestationai.com/reset/thanks.html` |
 | Paid checkout | `manifestai.lemonsqueezy.com/checkout/buy/c73986b9-9546-4221-9cad-b929e885f369` |
 | Free sample | `manifestai.lemonsqueezy.com/checkout/buy/805526bf-3fef-48dd-9522-045a898bf2ad` |
 

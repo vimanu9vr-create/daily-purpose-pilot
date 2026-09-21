@@ -22,7 +22,7 @@ git push
 
 Cloudflare is watching the GitHub repo and rebuilds on every push to `main`.
 Give it two or three minutes, then hard-reload
-[the app](https://daily-purpose-pilot.vimanu9-vr.workers.dev) — Cmd+Shift+R, so
+[the app](https://trymanifestationai.com) — Cmd+Shift+R, so
 you're not looking at the old bundle out of cache.
 
 Before pushing, these should both be silent:

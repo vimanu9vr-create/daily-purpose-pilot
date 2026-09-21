@@ -7,7 +7,7 @@ funnel:
 
 **video → profile → bio link → workbook page → thank-you page → app**
 
-Bio link is `daily-purpose-pilot.vimanu9-vr.workers.dev/reset/` and nothing else.
+Bio link is `trymanifestationai.com/reset/` and nothing else.
 A buyer meets the app automatically on the thank-you page. Someone who won't pay
 takes the free Day One sample and leaves an email. You never choose which to
 push.

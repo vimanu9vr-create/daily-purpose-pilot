@@ -84,7 +84,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
  * registered, change this single line and the canonical, og:url and both image
  * URLs all follow.
  */
-const SITE_URL = "https://daily-purpose-pilot.vimanu9-vr.workers.dev";
+const SITE_URL = "https://trymanifestationai.com";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({

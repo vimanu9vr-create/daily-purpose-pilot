@@ -213,8 +213,8 @@ library tracks have audio, and a purchase completes and lands a row on
 | Category | Health & Fitness |
 | Tags | Meditation, Self-improvement, Sleep |
 | Contact email | vimanu9.vr@gmail.com |
-| Website | https://daily-purpose-pilot.vimanu9-vr.workers.dev |
-| Privacy policy | https://daily-purpose-pilot.vimanu9-vr.workers.dev/privacy |
+| Website | https://trymanifestationai.com |
+| Privacy policy | https://trymanifestationai.com/privacy |
 
 ---
 
