@@ -1,154 +1,151 @@
-# Day 07 — "Visualizing money won't fix your bank account"
+# Day 07 — "I want more money" is not a goal
 
 `ManifestAI_Day07_Reel.mp4` · `ManifestAI_Day07_Cover.jpg`
-1080×1920 · 30fps · H.264 Main L4.0 · yuv420p · **9.0s** · silent bed.
+1080×1920 · 30fps · H.264 Main L4.0 · yuv420p · **18.6s** · silent bed.
 
-Your script and your hook, built. Three notes on what changed and one thing to
-check before you post.
-
----
-
-## Check this first
-
-**Does the workbook actually download now?**
-
-This video's whole job is sending people to a $29 checkout. When you tested it
-yesterday the Files box was empty and the order page had nothing on it. If that
-is still true, every person this video converts pays you and receives nothing —
-which produces chargebacks rather than refunds, and one-star word of mouth you
-can't undo.
-
-Run the checkout yourself and watch a real PDF land before this goes up.
+Rebuilt. The first cut was wrong and you were right about why.
 
 ---
 
-## The visual
+## What was wrong, and what it taught
 
-The brief asks for a hand slamming a hardbound book onto a wooden desk, then a
-top-down of the workbook page. **I can't film, and I'm not going to pretend a
-render is footage.** What's here is the same beat built rather than shot:
+Nine seconds across five beats gave each line about 1.4 seconds — less than it
+takes to read two lines of bold type. Nobody finished a sentence before the
+next one replaced it. **That's why it felt like it had no meaning: the speed
+destroyed it.** The words were fine; there was no time to receive them.
 
-- A heavy oxblood hardback, **already falling in frame 0**, cover and page block
-  both visible.
-- It lands at **0.30s**. The whole frame shakes — damped, about half a second —
-  and throws dust off the impact point.
-- At **4.80s** the frame inverts to cream and picks up ruled lines. The screen
-  stops being a room and becomes the page. That's the top-down the brief asks
-  for, arriving where it does the most work rather than in the first second.
+The register was my error more than the timing. Days 01–05 were blush pink,
+serif and quiet, and then I built two videos in near-black Poppins Bold with
+hard cuts and a slamming book. Someone taps through from that and lands on a
+soft pink app — a different product than the one the video sold them. I let
+"aggressive" override the brand, and the brand was right.
 
-If you do shoot the real thing on your phone, it drops straight over the first
-two seconds in CapCut and everything after still lines up. Real footage would
-beat this — the brief is right about that, I just can't produce it.
+So this one is the opposite on every axis:
+
+| | First cut | This one |
+| --- | --- | --- |
+| Length | 9.0s | 18.6s |
+| Beats | 5 | 6, none under 2.2s |
+| Shortest line | 1.4s | 2.2s |
+| Payoff line | 1.5s | **4.0s** |
+| Transitions | hard cuts | slow dissolves |
+| Motion | impact shake, scale snap | a slow breath, lines drawing in |
+| Palette | oxblood on near-black | the app's own cream and blush |
 
 ---
 
-## What I cut, and why
+## It teaches one thing now
 
-**Your body copy is 28 words.** That's 10.2 seconds of narration for a window
-that holds about 12. So it's cut to three hard beats in your own words:
+The old version asserted three things and sold. This one does a single move,
+slowly, and the viewer leaves holding it:
 
-> Stop arguing with your own skepticism. → The universe isn't delivering because
-> you wished. → Daydreams into daily constraints.
+> A vague want becomes a small, dated, slightly embarrassing action.
 
-Under that last one, in small type: *Specific. Dated. Small enough to do
-tonight.* That line is doing real work — "cognitive filtering" means nothing to
-a stranger on its own, and this says what it actually is. The full paragraph is
-in the caption where it has room.
+"I want more money" → *Friday, six o'clock. I send the invoice I've been
+rewriting for a week.*
 
-**"Cognitive filtering" stays off screen.** It's in the caption. On screen at
-9 seconds it's jargon a cold viewer has to decode, and decoding is the thing
-that loses them.
+That's the whole video, and it's the actual method in Day 5 of the workbook, so
+the thing being taught and the thing being sold are the same thing. Nobody has
+to take a claim on faith — they watched it work on a sentence they recognise.
+
+**The invoice line is deliberately unglamorous.** A specific example someone
+half-recognises does more than an impressive one they don't.
 
 ---
 
 ## Timeline
 
-| Time | On screen | Ground |
+| Time | On screen | Light |
 | --- | --- | --- |
-| 0.00–2.00 | Book falls, lands at 0.30 with a frame shake and dust · **Visualizing money won't fix your bank account.** | dark |
-| 2.00–3.40 | **Stop arguing with your own skepticism.** | dark |
-| 3.40–4.80 | **The universe isn't delivering because you wished.** | dark |
-| 4.80–6.30 | **Daydreams into daily constraints.** / *Specific. Dated. Small enough to do tonight.* | **INVERTS to cream, ruled** |
-| 6.30–9.00 | **GET OUT OF YOUR OWN HEAD.** / *The Seven-Day Reset* / 19 pages · instant download / **LINK IN BIO** | cream |
+| 0.00–3.40 | **"I want more money" is not a goal.** | cold morning window |
+| 3.40–6.80 | It's a wish with nowhere to put itself. | cold |
+| 6.80–9.60 | Here's the same want, with somewhere to go: | **lamp begins**, ruled lines start drawing in |
+| 9.60–13.60 | *Friday, six o'clock. I send the invoice I've been rewriting for a week.* | warm |
+| 13.60–16.40 | Small. Dated. Embarrassing not to do. | warm |
+| 16.40–18.60 | Seven days of these. · The Seven-Day Reset — Link in bio | warm |
+
+**The ruled lines are the only new visual and they arrive one at a time**, from
+the turn onward, about one every third of a second. Without them the frame was
+text floating in an empty wash — calm, but empty, which is the other way to
+mean nothing. They say "this is a page you write on" without a word, and they
+are literally the product.
 
 ---
 
-## One disagreement, stated once
+## One defect worth recording
 
-This is the second day running ending on "link in bio", and the rotation exists
-for a reason — but I've built what you asked rather than argue it twice.
+The dissolves were 0.55s. Beats can't overlap or text lands on text, so a
+beat's fade-out ends exactly where the next one's fade-in starts — which left
+roughly a third of a second where **both lines sat at near-zero opacity**. A
+blank flicker, six times.
 
-Worth knowing what it costs: a link click is off-platform and isn't a ranking
-signal, so an ending aimed at clicks spends your last two seconds on the action
-Instagram values least, at a moment when reach is the thing you don't have. The
-caption below carries a **comment RESET** ask alongside it, which is on-platform
-and feeds distribution. Run both — they catch different people and don't
-compete.
+Found by measuring the luminance range of every frame rather than by watching,
+because at that opacity it's easy to miss and impossible to unsee afterwards.
+At 0.34s the dissolve still reads as gentle and only five frames in the whole
+video — 0.17 seconds — fall below readable contrast.
 
 ---
 
 ## Caption
 
-Visualizing money won't fix your bank account. You already knew that, which is
-exactly why it stopped working.
+"I want more money" is not a goal. It's a wish with nowhere to put itself, and
+your brain quietly knows the difference, which is why saying it louder has
+never worked.
 
-Stop arguing with your own skepticism. Your brain isn't stupid — it can see the
-balance, so "I am wealthy" reads as a lie and it files it as one. The universe
-isn't delivering your goals just because you wished for them, and any account
-telling you otherwise is selling you something.
+Here's the same want with somewhere to go: *Friday, six o'clock. I send the
+invoice I've been rewriting for a week.*
 
-What actually moves is narrower and duller. Real momentum is cognitive
-filtering — turning daydreams into specific daily constraints. Not "abundance".
-One sentence, dated, small enough that you could do it tonight and embarrassing
-not to.
+Not inspiring. That's the point. Small enough to actually do, dated so it can't
+drift, and slightly embarrassing not to — which is the only kind of intention
+that survives a Tuesday.
 
-That's the whole of The Seven-Day Reset. 19 pages, one a day, ten minutes each.
-No affirmations you don't believe.
+That's the whole method. Seven of those, one a day, ten minutes each. No
+affirmations you don't believe and no promises about the universe.
 
 **Comment RESET and I'll send you day one, free. Or it's in my bio.**
 
 ## First comment
 
-Day one is the sentence most people never write down. Free — comment RESET.
+Day one is just the sentence — the real one, said plainly, which most people
+never write down.
 
-Full seven days in my bio.
+Free if you comment RESET. Full seven days in my bio.
 
 ## Hashtags
 
-#manifestationdoesntwork #lawofattraction #affirmations #manifestationtips
-#realitycheck #mindsetshift #selfdiscipline #manifestationjournal
-#personalgrowth #goalsetting
+#manifestation #affirmations #goalsetting #intentionalliving #manifestationtips
+#selfdiscipline #mindsetshift #manifestationjournal #personalgrowth #scripting
 
 ## Audio
 
-Trending audio from the Reels library — I can't verify which tracks are trending
-today, so pick from the app's own list. Mood: heavy, percussive, low. This is an
-argument, not a meditation. **The hit should land on 0.30s**, the book's impact.
-If you can find something with a hard downbeat near the start, that's the one.
-Add it in the Instagram app.
+Trending audio from the Reels library — I can't verify what's trending today,
+so pick from the app's own list. Mood: slow, warm, piano or strings, real space
+between the notes. **The swell should land at 6.8s**, where the lamp comes up
+and the lines begin drawing. Nothing percussive. This one is quiet on purpose.
+Add it inside the Instagram app.
 
 ## Cover
 
-Dark, alternating against Day 06's light one. The landed book above the hook,
-with "The honest mechanism" under a rose rule. Everything inside the centre
-square so the grid crop can't cut it — asserted at build time, not eyeballed.
+Dark, alternating against Day 06's light one — but warm dark rather than hard:
+deep plum, lamp light, cream serif, ruled lines beneath. It has to look like
+the same product the video is for. Everything sits inside the centre square, and
+that's asserted at build time rather than eyeballed.
 
 ## Stories
 
-1. Cover, plain, with a poll: **"Have you ever said an affirmation you didn't
-   believe?"** — *Yes / All the time / No.*
-2. The "Daydreams into daily constraints" frame with a question sticker: **"What
-   would yours be tonight?"**
-3. Evening: rewrite the best answer as a dated, specific one-liner and post it
-   as plain text. Tag them.
+1. Cover, with a poll: **"Is your goal a sentence or a feeling?"** — *A feeling,
+   honestly / A sentence / I've never written it down.*
+2. The invoice frame, with a question sticker: **"What's yours, with a day and
+   a time on it?"**
+3. Evening: take the best answer, rewrite it as a dated specific one-liner, post
+   it as plain text and tag them. One minute, and it's the product working in
+   public.
 
 ---
 
-## QC
+## Before you post
 
-9.0s · 1080×1920 · 30fps · H.264 Main · yuv420p · motion at frame 0 · first
-frame readable silent · no text under 46px · every one of 270 frames verified
-drawing its own beat · worst text-band contrast 202/255 · no URL on screen ·
-19 pages verified against `workbook.html`.
+The download. Run the checkout yourself and watch a real PDF arrive. This video
+ends by asking people to buy, and yesterday the order page had nothing on it.
 
-**Check the download, then post this one today.**
+**Then post this one today.**
