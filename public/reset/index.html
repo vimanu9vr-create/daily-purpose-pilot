@@ -234,41 +234,23 @@
 </style>
 <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 
-<!-- ============================================================ ANALYTICS
+<!-- ANALYTICS — deliberately no script here.
+     Cloudflare Web Analytics is enabled on this zone with Automatic Setup,
+     so the beacon is injected at the edge as the HTML passes through the
+     proxy. Adding a second loader in the page would double-count every
+     visit. It is cookieless and stores no personal data, which is why the
+     privacy policy needs nothing extra and there is no consent banner
+     standing between a stranger and the headline.
 
-     There was none. Not a page view, not a click — so there was no way to
-     tell whether this page converts, or whether a quiet day meant bad copy
-     or no visitors. Those need opposite responses and you couldn't tell
-     them apart.
-
-     Cloudflare Web Analytics, because the domain already sits on Cloudflare,
-     it is free, and it sets no cookie and stores no personal data — which
-     keeps the privacy policy simple and means no consent banner standing
-     between a stranger and the headline.
-
-     The rest of the funnel is already measured and doesn't need code:
-     Lemon Squeezy's dashboard reports checkout starts, completed orders and
-     refunds. So the whole chain reads as
+     The rest of the funnel needs no code either: Lemon Squeezy reports
+     checkout starts, orders and refunds. The chain reads
          Cloudflare pageviews → Lemon Squeezy checkout starts → orders
-     with no custom events and no second third party.
+     and because reaching thanks.html means a completed purchase, sales-page
+     views over thank-you views is the conversion rate.
 
-     TO TURN IT ON: Cloudflare dashboard → Analytics & Logs → Web Analytics →
-     Add a site → trymanifestationai.com. It gives you a token. Paste it
-     below, replacing PASTE_TOKEN_HERE, in this file and in thanks.html.
+     If Automatic Setup is ever turned off, the manual route is a token from
+     the same dashboard page and a beacon.min.js tag — not a rewrite. -->
 
-     Until then the guard below keeps the script off the page entirely rather
-     than loading a beacon that 404s on every visit. -->
-<script>
-(function () {
-  var TOKEN = "PASTE_TOKEN_HERE";
-  if (!TOKEN || TOKEN === "PASTE_TOKEN_HERE") return;
-  var s = document.createElement("script");
-  s.defer = true;
-  s.src = "https://static.cloudflareinsights.com/beacon.min.js";
-  s.setAttribute("data-cf-beacon", JSON.stringify({ token: TOKEN }));
-  document.head.appendChild(s);
-})();
-</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",

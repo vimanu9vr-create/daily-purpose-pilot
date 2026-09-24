@@ -106,21 +106,10 @@
   }
 </style>
 
-<!-- Same beacon as the sales page. This one matters more than it looks:
-     a view of this page is a completed purchase, so the ratio of sales-page
-     views to thank-you views is your conversion rate, measured without
-     touching Lemon Squeezy. Paste the same token in both files. -->
-<script>
-(function () {
-  var TOKEN = "PASTE_TOKEN_HERE";
-  if (!TOKEN || TOKEN === "PASTE_TOKEN_HERE") return;
-  var s = document.createElement("script");
-  s.defer = true;
-  s.src = "https://static.cloudflareinsights.com/beacon.min.js";
-  s.setAttribute("data-cf-beacon", JSON.stringify({ token: TOKEN }));
-  document.head.appendChild(s);
-})();
-</script>
+<!-- No analytics script here either — Cloudflare Web Analytics is on this
+     zone with Automatic Setup and injects at the edge. A view of THIS page
+     is a completed purchase, so sales-page views over thank-you views is
+     the conversion rate, with nothing to wire up. -->
 </head>
 <body>
 
