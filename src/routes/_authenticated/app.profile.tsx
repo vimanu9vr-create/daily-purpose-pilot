@@ -36,6 +36,7 @@ import { purchaseStore } from "@/features/billing/store";
 import { useSubscription } from "@/features/billing/use-subscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   useDisableNotifications,
   useEnableNotifications,
@@ -77,6 +78,7 @@ function ProfilePage() {
 
   const [name, setName] = useState("");
   const [time, setTime] = useState("07:00");
+  const [eveningTime, setEveningTime] = useState("21:00");
   const [isDark, setIsDark] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -92,6 +94,9 @@ function ProfilePage() {
     setTime(
       `${String(profile.notify_hour).padStart(2, "0")}:${String(profile.notify_minute).padStart(2, "0")}`,
     );
+    setEveningTime(
+      `${String(profile.evening_hour ?? 21).padStart(2, "0")}:${String(profile.evening_minute ?? 0).padStart(2, "0")}`,
+    );
   }, [profile]);
 
   function saveTime(next: string) {
@@ -100,6 +105,19 @@ function ProfilePage() {
     updateProfile.mutate({
       notify_hour: h ?? 7,
       notify_minute: m ?? 0,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+  }
+
+  function saveEveningTime(next: string) {
+    setEveningTime(next);
+    const [h, m] = next.split(":").map(Number);
+    updateProfile.mutate({
+      evening_hour: h ?? 21,
+      evening_minute: m ?? 0,
+      // Sent with every time change for the same reason the morning one does:
+      // the claim query computes due-ness in the user's local time, and a
+      // stale timezone silently delivers at the wrong hour.
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
   }
@@ -206,6 +224,56 @@ function ProfilePage() {
                 {enable.isPending ? <Loader2 className="animate-spin" /> : <Bell />} Turn on
               </Button>
             )}
+          </div>
+        )}
+      </Card>
+
+      {/* Evening gratitude.
+          Behind the same permission as the morning one — there is no second
+          prompt, because turning notifications on at all is what registers
+          the device.
+
+          This is also the only entry point /app/gratitude has ever had. That
+          screen is linked from nowhere in the app, which is why there are two
+          journal entries across every account: nobody could find it. */}
+      <Card label="Evening gratitude">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Three things, at night</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              A nudge before bed to write down what went right. Two minutes.
+            </p>
+          </div>
+          <Switch
+            checked={Boolean(profile?.evening_enabled)}
+            onCheckedChange={(on) =>
+              updateProfile.mutate({
+                evening_enabled: on,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              })
+            }
+            disabled={!notificationsOn}
+            aria-label="Evening gratitude reminder"
+          />
+        </div>
+
+        {!notificationsOn ? (
+          <p className="mt-4 text-xs text-muted-foreground">
+            Turn the morning notification on first — that's what registers this device.
+          </p>
+        ) : (
+          <div className="mt-4">
+            <label htmlFor="evening-time" className="eyebrow text-muted-foreground">
+              Delivery time
+            </label>
+            <Input
+              id="evening-time"
+              type="time"
+              value={eveningTime}
+              onChange={(e) => saveEveningTime(e.target.value)}
+              className="mt-2 w-36"
+              disabled={!profile?.evening_enabled}
+            />
           </div>
         )}
       </Card>

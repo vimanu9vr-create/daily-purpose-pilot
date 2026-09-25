@@ -743,6 +743,10 @@ export type Database = {
           id: string;
           last_notified_on: string | null;
           notifications_enabled: boolean;
+          evening_enabled: boolean;
+          evening_hour: number;
+          evening_minute: number;
+          last_evening_on: string | null;
           notify_hour: number;
           notify_minute: number;
           practice_minutes: number;
@@ -765,6 +769,10 @@ export type Database = {
           id: string;
           last_notified_on?: string | null;
           notifications_enabled?: boolean;
+          evening_enabled?: boolean;
+          evening_hour?: number;
+          evening_minute?: number;
+          last_evening_on?: string | null;
           notify_hour?: number;
           notify_minute?: number;
           practice_minutes?: number;
@@ -787,6 +795,10 @@ export type Database = {
           id?: string;
           last_notified_on?: string | null;
           notifications_enabled?: boolean;
+          evening_enabled?: boolean;
+          evening_hour?: number;
+          evening_minute?: number;
+          last_evening_on?: string | null;
           notify_hour?: number;
           notify_minute?: number;
           practice_minutes?: number;
