@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { AuroraBackground } from "@/components/aurora-background";
 import { PageTransition } from "@/components/page-transition";
+import { describeAuthError } from "@/features/auth/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +42,7 @@ function ForgotPassword() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(describeAuthError(error));
       return;
     }
     setSent(true);

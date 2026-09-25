@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { AuroraBackground } from "@/components/aurora-background";
 import { PageTransition } from "@/components/page-transition";
+import { describeAuthError } from "@/features/auth/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,9 +69,29 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+
+        // No session means the project requires email confirmation.
+        //
+        // The old code said "Account created. Welcome to ManifestAI." and
+        // navigated to /app regardless — where the route guard finds no
+        // session and bounces straight back to this screen. The person is
+        // told they succeeded and then silently returned to the sign-up form
+        // with no explanation, which is indistinguishable from the app being
+        // broken.
+        //
+        // It is worse than it sounds on the built-in email service, which
+        // sends 2 messages per hour across the WHOLE project: the third
+        // person to sign up in an hour gets this path with no email ever
+        // arriving, and no way to know why.
+        if (!data.session) {
+          toast.success("Account created. Check your email to confirm it, then sign in.");
+          setIsSignup(false);
+          return;
+        }
+
         // Seed the cache before navigating, so the route guard doesn't read a
         // stale null and bounce straight back here.
-        if (data.session) setAuthSession(data.session);
+        setAuthSession(data.session);
         toast.success("Account created. Welcome to ManifestAI.");
         navigate({ to: "/app" });
       } else {
@@ -80,7 +101,7 @@ function AuthPage() {
         navigate({ to: "/app" });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Something went wrong");
+      toast.error(describeAuthError(error));
     } finally {
       setLoading(false);
     }
