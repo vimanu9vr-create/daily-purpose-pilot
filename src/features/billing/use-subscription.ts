@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 import { FREE_LIMITS, NARRATION_ALLOWANCE, type PlanId, type PlanTier, tierOf } from "./plans";
+import { identifyWebBuyer } from "./store";
 
 export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 
@@ -19,6 +21,17 @@ export const billingKeys = { mine: ["subscription"] as const };
  */
 export function useSubscription() {
   const userId = useUserId();
+
+  // Hand the signed-in identity to the web store.
+  //
+  // Lemon Squeezy echoes checkout custom data back on every webhook, and that
+  // id is the only thing tying a payment to an account — so without it the
+  // web store refuses to open a checkout rather than take money it cannot
+  // attribute. Doing it here means every screen that can show a price has
+  // already done it, instead of each one having to remember.
+  useEffect(() => {
+    identifyWebBuyer(userId ?? null);
+  }, [userId]);
 
   const query = useQuery({
     queryKey: billingKeys.mine,

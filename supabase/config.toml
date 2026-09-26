@@ -33,3 +33,14 @@ project_id = "pkxkksamenqcvsaulceq"
 # REVENUECAT_WEBHOOK_SECRET and returns 401 on a mismatch, or 503 if the secret
 # isn't set at all.
 verify_jwt = false
+[functions.lemonsqueezy-webhook]
+# Lemon Squeezy signs with HMAC in the X-Signature header. It does not send a
+# Supabase JWT, so with the platform gate on, every event is rejected with 401
+# BEFORE this function runs — nothing in the function logs, because nothing
+# started, and the only trace is a failure in Lemon Squeezy's own delivery log.
+#
+# That is exactly how revenuecat-webhook silently dropped every purchase until
+# September. Authentication has not been removed, it has moved inside the
+# function: the raw body is verified against LEMONSQUEEZY_WEBHOOK_SECRET with
+# a constant-time HMAC check, and a bad signature returns 401.
+verify_jwt = false

@@ -6,11 +6,19 @@
  * nothing at all. Today only the web stub exists; adding Capacitor swaps the
  * implementation without touching a single component.
  *
- * Apple's rules shape this: inside an iOS app, digital subscriptions must go
- * through in-app purchase, and the app may not link out to an external
- * checkout. So there is deliberately no Stripe path here.
+ * Apple's rules shape this: INSIDE an iOS app, digital subscriptions must go
+ * through in-app purchase and the app may not link out to an external
+ * checkout.
+ *
+ * That rule governs apps distributed through an app store. It does not reach
+ * a website opened in Safari or Chrome, and for a long time this file applied
+ * it to both — so the web refused to sell anything and every iPhone user was
+ * told to go and get an app that doesn't exist. `pickStore` now draws the
+ * line where it actually falls: Capacitor gets the platform's billing, a
+ * browser gets Lemon Squeezy.
  */
 
+import { LemonStore } from "./lemon";
 import { PLANS, matchesProduct, type PlanId } from "./plans";
 
 export type PurchaseResult =
@@ -213,7 +221,20 @@ function platform(): string {
 }
 
 let instance: PurchaseStore | null = null;
+let webUserId: string | null = null;
+let webEmail: string | undefined;
 
+/**
+ * Which store this device gets — the whole compliance boundary, in one line.
+ *
+ * Under Capacitor (the Android app, and iOS if it ever ships) it's RevenueCat
+ * and the platform's own billing, because both stores require in-app purchase
+ * for digital subscriptions inside an installed app.
+ *
+ * In a browser it's Lemon Squeezy. Keeping this decision in a single place is
+ * deliberate: the moment the same question gets asked in two files, one of
+ * them eventually answers it differently.
+ */
 export function purchaseStore(): PurchaseStore {
   if (instance) return instance;
 
@@ -221,6 +242,29 @@ export function purchaseStore(): PurchaseStore {
     typeof window !== "undefined" &&
     Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor);
 
-  instance = isCapacitor ? new NativeStore() : new WebStore();
+  instance = isCapacitor ? new NativeStore() : new LemonStore(webUserId, webEmail);
   return instance;
 }
+
+/**
+ * Tell the web store who is signed in.
+ *
+ * The id rides along as Lemon Squeezy checkout custom data and comes back on
+ * every webhook, which is how a payment is matched to an account. Matching on
+ * email would be wrong — people pay with a different address than they signed
+ * up with more often than you'd expect, and that person would pay and get
+ * nothing.
+ *
+ * Until this is called the web store has no id and refuses to open a
+ * checkout, rather than taking money it cannot attribute.
+ */
+export function identifyWebBuyer(userId: string | null, email?: string): void {
+  if (userId === webUserId && email === webEmail) return;
+  webUserId = userId;
+  webEmail = email;
+  // Drop the cached instance so the next call picks up the new identity.
+  if (instance && !instance.isNative) instance = null;
+}
+
+/** Kept for tests and for the "not available here" copy. Not selected any more. */
+export { WebStore };
