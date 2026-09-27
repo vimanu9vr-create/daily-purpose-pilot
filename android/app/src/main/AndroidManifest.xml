@@ -34,6 +34,23 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- The default notification channel.
+
+             Without this, every push was dropped on arrival. The server sent
+             channel_id "daily-affirmation" — a channel nothing ever created —
+             and on Android 8+ the system silently discards a notification
+             whose channel does not exist. FCM returns success, the function
+             logs "1 sent, 0 failed", and the phone shows nothing. That is why
+             no notification has ever appeared, on either job.
+
+             Firebase creates this channel from the meta-data below, so it
+             exists from installation rather than from the first launch. That
+             matters: a device that installs the update and doesn't open it
+             should still get tomorrow morning's notification. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id" />
     </application>
 
     <!-- Permissions -->

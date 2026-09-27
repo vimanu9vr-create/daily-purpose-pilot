@@ -68,7 +68,17 @@ export async function deliverOne(
         // Leave failure_count alone so the row survives setup.
         return { ok: false };
       }
-      await sendFcm(fcmProjectId, fcmToken, token, title, body);
+      // The tap target travels with the notification. `payload` is the web
+      // push body and already carries it; parse it out rather than adding a
+      // second source of truth that can disagree with the first.
+      let url = "/app/practice";
+      try {
+        const parsed = JSON.parse(payload) as { url?: string };
+        if (parsed.url) url = parsed.url;
+      } catch {
+        // Malformed payload shouldn't stop the notification going out.
+      }
+      await sendFcm(fcmProjectId, fcmToken, token, title, body, url);
     } else {
       if (!webPushReady) return { ok: false };
       await webpush.sendNotification(
@@ -183,6 +193,8 @@ export async function sendFcm(
   deviceToken: string,
   title: string,
   body: string,
+  /** Where tapping it should land. Was hardcoded; see below. */
+  url = "/app/practice",
 ): Promise<void> {
   const response = await fetch(
     `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
@@ -196,10 +208,32 @@ export async function sendFcm(
         message: {
           token: deviceToken,
           notification: { title, body },
-          data: { url: "/app/practice" },
+          // WAS hardcoded to "/app/practice", so the evening gratitude
+          // notification opened the practice screen. The web-push payload
+          // already carried the right url; this path discarded it.
+          data: { url },
           android: {
             priority: "high",
-            notification: { channel_id: "daily-affirmation", sound: "default" },
+            // NO channel_id — and this is why nothing has ever arrived.
+            //
+            // It used to say channel_id: "daily-affirmation", a channel the
+            // app has never created: there is no createChannel call anywhere
+            // in the codebase and no default_notification_channel_id in the
+            // manifest. On Android 8+ a notification posted to a channel that
+            // does not exist is SILENTLY DISCARDED by the system. FCM accepts
+            // the message and returns success, the function logs "1 sent, 0
+            // failed", and the phone shows nothing.
+            //
+            // That is why no push has ever landed on either job, before or
+            // after the cron window was fixed — two separate faults with one
+            // identical symptom, which is why fixing the first changed
+            // nothing visible.
+            //
+            // Omitting it uses the app's default channel, declared in
+            // AndroidManifest.xml. The app also creates a named channel at
+            // startup now, but the manifest default is what keeps this
+            // working on a device where the app hasn't been opened since.
+            sound: "default",
           },
           apns: {
             payload: { aps: { sound: "default", "content-available": 1 } },

@@ -4,4 +4,8 @@
     <string name="title_activity_main">ManifestAI</string>
     <string name="package_name">com.manifestai888.app</string>
     <string name="custom_url_scheme">com.manifestai888.app</string>
+    <!-- Referenced by default_notification_channel_id in the manifest.
+         Android matches on the id; this is the one place it is defined so it
+         cannot drift from the manifest. -->
+    <string name="default_notification_channel_id">manifestai_daily</string>
 </resources>
