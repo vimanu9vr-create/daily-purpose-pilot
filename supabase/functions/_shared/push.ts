@@ -269,3 +269,73 @@ export function pemToBytes(pem: string): Uint8Array {
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 
+
+/**
+ * Credentials for talking to our own PostgREST.
+ *
+ * ## Why this is not just `Bearer <service role key>`
+ *
+ * Both notification jobs started failing every run with
+ *
+ *     PGRST303 — "JWT issued at future"
+ *
+ * PostgREST validates the `iat` claim on a JWT it is handed in the
+ * Authorization header, and rejects one issued ahead of its own clock. The
+ * job then logs "claim failed" and returns cleanly, so the cron looks healthy
+ * from outside and no notification is ever sent. Three days of silence with
+ * nothing reporting an error.
+ *
+ * Two things make that survivable:
+ *
+ * 1. PREFER A NON-JWT KEY. Supabase's newer `sb_secret_…` keys are opaque
+ *    strings, not JWTs, so there is no `iat` to be wrong about and this class
+ *    of failure cannot happen. If one is present, it is used.
+ *
+ * 2. ONLY SEND A BEARER TOKEN WHEN THE KEY IS ACTUALLY A JWT. Putting an
+ *    opaque key in the Authorization header invites PostgREST to parse it as
+ *    one and fail differently. `apikey` alone is what authenticates a
+ *    non-JWT key.
+ *
+ * Never logs the key itself — only which variable it came from and whether it
+ * is JWT-shaped, which is all that is needed to diagnose this and all that is
+ * safe to write down.
+ */
+export function adminHeaders(): Record<string, string> {
+  const secret = Deno.env.get("SUPABASE_SECRET_KEY");
+  const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const key = secret ?? legacy ?? "";
+
+  if (!key) {
+    console.error("no service credential: neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY");
+    return { "Content-Type": "application/json" };
+  }
+
+  // A JWT is three dot-separated base64url segments. Anything else — including
+  // sb_secret_… — is opaque and must not go in the Authorization header.
+  const looksLikeJwt = key.split(".").length === 3 && key.startsWith("ey");
+
+  console.log(
+    `db credential: source=${secret ? "SUPABASE_SECRET_KEY" : "SUPABASE_SERVICE_ROLE_KEY"} ` +
+      `shape=${looksLikeJwt ? "jwt" : "opaque"}`,
+  );
+
+  return {
+    apikey: key,
+    ...(looksLikeJwt ? { Authorization: `Bearer ${key}` } : {}),
+    "Content-Type": "application/json",
+  };
+}
+
+/** Turn a PostgREST failure into something that names the actual cause. */
+export function explainPostgrest(status: number, bodyText: string): string {
+  if (bodyText.includes("PGRST303")) {
+    return (
+      `${status} PGRST303 "JWT issued at future" — PostgREST rejected the service ` +
+      `credential because its issued-at time is ahead of the database clock. This is a ` +
+      `credential problem, not a code one: rotate/reissue the service key in Settings → ` +
+      `API Keys, or set SUPABASE_SECRET_KEY to an sb_secret_ key, which has no iat to be ` +
+      `wrong about. Body: ${bodyText.slice(0, 200)}`
+    );
+  }
+  return `${status} ${bodyText.slice(0, 300)}`;
+}

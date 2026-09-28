@@ -76,6 +76,8 @@
 
 import webpush from "https://esm.sh/web-push@3.6.7";
 
+import { adminHeaders, explainPostgrest } from "../_shared/push.ts";
+
 import {
   buildNotification,
   firstPerUser,
@@ -210,12 +212,16 @@ Deno.serve(async (req: Request) => {
     const fcmProjectId = fcmAccount ? (JSON.parse(fcmAccount).project_id as string) : null;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      "Content-Type": "application/json",
-    };
+    // `serviceKey` is still needed for chainNextRun, which calls this same
+    // function rather than PostgREST.
+    const serviceKey = Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // But the PostgREST headers now come from adminHeaders(). This used to
+    // send `Bearer <service role JWT>`, which PostgREST rejected on every
+    // single run with PGRST303 "JWT issued at future" — so the claim returned
+    // an error, the function logged "claim failed" and exited cleanly, and no
+    // morning notification was sent for days while the cron looked healthy.
+    const admin = adminHeaders();
 
     const chainDepth = await readChainDepth(req);
 
@@ -363,10 +369,12 @@ async function claimDueProfiles(
   });
 
   if (!response.ok) {
-    // Loud on purpose. If the claim fails nobody is notified at all, and the
-    // most likely cause is that the migration adding this function has not
-    // been applied to the project.
-    throw new Error(`claim_due_morning_pushes failed: ${await response.text()}`);
+    // Loud on purpose, and specific. If the claim fails nobody is notified at
+    // all — and for three days the message was just the raw body, which said
+    // PGRST303 and meant nothing to anyone reading it at 7am.
+    throw new Error(
+      `claim_due_morning_pushes failed: ${explainPostgrest(response.status, await response.text())}`,
+    );
   }
 
   return (await response.json()) as DueProfile[];
@@ -589,7 +597,14 @@ async function chainNextRun(
     // No await on the response — we only need the request to leave.
     void fetch(`${supabaseUrl}/functions/v1/send-daily-affirmation`, {
       method: "POST",
+      // Both headers, because this hits the functions gateway rather than
+      // PostgREST and the gateway reads whichever matches the key type: a
+      // legacy JWT from Authorization, an sb_secret_ key from apikey. Sending
+      // only one means the handover silently 401s the moment the project's
+      // key format changes, and the users past the first batch are simply
+      // never notified.
       headers: {
+        apikey: serviceKey,
         Authorization: `Bearer ${serviceKey}`,
         "Content-Type": "application/json",
       },

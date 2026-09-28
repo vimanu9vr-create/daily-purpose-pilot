@@ -18,7 +18,9 @@
 import webpush from "https://esm.sh/web-push@3.6.7";
 
 import {
+  adminHeaders,
   deliverOne,
+  explainPostgrest,
   fcmAccessToken,
   type Delivery,
   type Subscription,
@@ -72,12 +74,10 @@ Deno.serve(async (req: Request) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      "Content-Type": "application/json",
-    };
+    // Was Bearer <service role key>. PostgREST rejected that JWT every run
+    // with PGRST303 "issued at future", so the claim never returned and no
+    // notification was ever sent — while the cron looked perfectly healthy.
+    const admin = adminHeaders();
 
     const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
@@ -106,7 +106,8 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({ p_limit: BATCH_SIZE }),
     });
     if (!claimed.ok) {
-      console.error("claim failed", await claimed.text().catch(() => ""));
+      const body = await claimed.text().catch(() => "");
+      console.error("claim failed:", explainPostgrest(claimed.status, body));
       return json({ error: "claim_failed" }, 500);
     }
     const due = (await claimed.json()) as DueProfile[];
