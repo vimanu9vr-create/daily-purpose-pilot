@@ -6,6 +6,7 @@ import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
+import { matchCategory } from "./match-category";
 import { personalizedAffirmations, primaryCategory, type OnboardingAnswers } from "./personalize";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -110,12 +111,17 @@ export function useCompleteOnboarding() {
       // What they typed becomes a desire (which the home feed writes stories
       // from) and a goal (which the coach and habits work from), so they only
       // ever type it once.
+      // One category for both rows, chosen from what they typed rather than
+      // from tap order. See match-category.ts.
+      const desireCategory =
+        matchCategory(answers.focusAreas, `${answers.desires} ${answers.desiredFeeling}`) ?? null;
+
       if (answers.desires.trim()) {
         const { error: desireError } = await supabase.from("desires").insert({
           user_id: userId,
           title: answers.desires.trim(),
           description: answers.desiredFeeling.trim() || null,
-          category: answers.focusAreas[0] ?? null,
+          category: desireCategory,
         });
         if (desireError) throw desireError;
 
@@ -124,7 +130,7 @@ export function useCompleteOnboarding() {
           title: answers.desires.trim(),
           feeling: answers.desiredFeeling.trim() || null,
           obstacles: answers.obstacles.trim() || null,
-          category: answers.focusAreas[0] ?? null,
+          category: desireCategory,
         });
         if (goalError) throw goalError;
       }

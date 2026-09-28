@@ -7,6 +7,7 @@
  */
 
 import { AFFIRMATION_CATEGORIES } from "@/features/affirmations/affirmation-library";
+import { matchCategory } from "./match-category";
 
 export type OnboardingAnswers = {
   displayName: string;
@@ -98,9 +99,21 @@ export function personalizedAffirmations(answers: OnboardingAnswers): string[] {
   return out;
 }
 
-/** Which library category a personalised affirmation should be filed under. */
+/**
+ * Which library category a personalised affirmation should be filed under.
+ *
+ * WAS `focusAreas[0]` — the first area the person happened to tap. Category
+ * drives cover images, the affirmations filter and the library rows, so tap
+ * order silently decided what the whole app looked like: pick money first and
+ * career, confidence and love were saved and then never read again.
+ *
+ * Now it reads what they actually typed and picks whichever of THEIR chosen
+ * areas it matches, falling back to the first tap when there's no evidence.
+ */
 export function primaryCategory(answers: OnboardingAnswers): string {
-  return answers.focusAreas[0] ?? "growth";
+  return (
+    matchCategory(answers.focusAreas, `${answers.desires} ${answers.desiredFeeling}`) ?? "growth"
+  );
 }
 
 /** The single line the morning notification opens with. */
