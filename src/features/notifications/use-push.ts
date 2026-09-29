@@ -333,17 +333,46 @@ export function useDisableNotifications() {
 export function useSendTestNotification() {
   return useMutation({
     mutationFn: async () => {
-      if (Notification.permission !== "granted") {
-        throw new Error("Turn notifications on first.");
+      // This used to call registration.showNotification(), which draws a
+      // notification locally from the service worker — no server, no VAPID,
+      // no FCM, no subscription. It proved the permission was granted and the
+      // phone could display something, and NOTHING about whether a push could
+      // reach the device.
+      //
+      // So it reported success while the real path had never once worked, and
+      // three separate faults hid behind it for weeks. A test that can't fail
+      // for the reason you're testing is worse than no test.
+      //
+      // It now goes through the exact path the scheduled jobs use, and reports
+      // which step failed rather than just refusing.
+      const { data, error } = await supabase.functions.invoke("send-test-push");
+      if (error) throw new Error("Couldn't reach the server. Check your connection.");
+
+      const result = data as { step?: string; sent?: number; subscriptions?: number };
+
+      if (result.step === "no_subscriptions") {
+        throw new Error(
+          "This device isn't registered for notifications. Turn them off and on again.",
+        );
       }
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) throw new Error("The service worker isn't registered yet.");
-      await registration.showNotification("Morning", {
-        body: "This is what your daily affirmation will look like.",
-        icon: "/icons/icon-192.png",
-        badge: "/icons/icon-192.png",
-        tag: "test",
-      });
+      if (result.step === "no_delivery_channel") {
+        throw new Error("Push isn't configured on the server yet.");
+      }
+      if (result.step === "all_failed") {
+        throw new Error(
+          `Sent to ${result.subscriptions ?? 0} device(s) but none accepted it. The registration may be stale — turn notifications off and on again.`,
+        );
+      }
+
+      return result;
+    },
+    onSuccess: (result) => {
+      const sent = (result as { sent?: number }).sent ?? 0;
+      toast.success(
+        sent === 1
+          ? "Sent. It should arrive in a few seconds."
+          : `Sent to ${sent} devices. It should arrive in a few seconds.`,
+      );
     },
     onError: (error: Error) => toast.error(error.message),
   });
