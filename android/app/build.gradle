@@ -25,13 +25,18 @@ android {
         applicationId "com.manifestai888.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Bumped for the closed-testing upload that carries the September
-        // pricing (weekly plans, Voice yearly at $179.99), the practice-screen
-        // fix and the narration entitlement. Play rejects a duplicate
-        // versionCode, so this must go up on every upload even when the
-        // version name doesn't change.
-        versionCode 9
-        versionName "1.0.4"
+        // Bumped for the FIRST PRODUCTION RELEASE.
+        //
+        // The one change that must be in this build: the manifest now declares
+        // default_notification_channel_id. Without it Android silently discards
+        // every push on arrival — FCM returns success, the server logs "sent",
+        // and the phone shows nothing. No notification has ever reached a
+        // handset from any build before this one.
+        //
+        // Play rejects a duplicate versionCode, so this must go up on every
+        // upload even when the version name doesn't change.
+        versionCode 10
+        versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
