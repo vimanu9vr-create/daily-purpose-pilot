@@ -17,12 +17,44 @@ import { FALLBACK_PLAN, mappedVariantIds, planForVariant } from "./variant-mappi
 describe("parity with the app's variant list", () => {
   const LEMON_TS = resolve(import.meta.dirname, "../../../src/features/billing/lemon.ts");
 
-  /** Uncommented entries only — commented ones are not configured yet. */
+  /**
+   * Uncommented entries only, reading the NUMERIC variantId.
+   *
+   * Lemon Squeezy has two identifiers per variant and they are not
+   * interchangeable: a UUID for the checkout URL, a number in the webhook
+   * payload. The first version of this test compared the wrong one, so it
+   * passed while every checkout URL 404'd.
+   */
   function variantsFromLemonTs(): Array<[string, string]> {
     const source = readFileSync(LEMON_TS, "utf8");
     const block = source.match(/LEMON_VARIANTS[^=]*=\s*\{([\s\S]*?)\n\};/)?.[1] ?? "";
-    return [...block.matchAll(/^\s*([a-z_]+):\s*"([^"]+)"/gm)].map((m) => [m[1]!, m[2]!]);
+    return [...block.matchAll(/^\s*([a-z_]+):\s*\{[^}]*variantId:\s*"([^"]+)"/gm)].map(
+      (m) => [m[1]!, m[2]!],
+    );
   }
+
+  /** The checkout UUIDs, which is what /checkout/buy/{id} actually accepts. */
+  function checkoutIdsFromLemonTs(): Array<[string, string]> {
+    const source = readFileSync(LEMON_TS, "utf8");
+    const block = source.match(/LEMON_VARIANTS[^=]*=\s*\{([\s\S]*?)\n\};/)?.[1] ?? "";
+    return [...block.matchAll(/^\s*([a-z_]+):\s*\{[^}]*checkout:\s*"([^"]*)"/gm)].map(
+      (m) => [m[1]!, m[2]!],
+    );
+  }
+
+  /**
+   * A numeric checkout id 404s. That is how this shipped the first time: the
+   * webhook map was right, the buy URL was wrong, and nothing caught it
+   * because both sides held the same number.
+   */
+  it("uses UUIDs for checkout, never the numeric variant id", () => {
+    for (const [plan, checkout] of checkoutIdsFromLemonTs()) {
+      expect(checkout, `${plan} checkout id is empty`).not.toBe("");
+      expect(checkout, `${plan} checkout id looks numeric — needs the share-link UUID`).toMatch(
+        /^[0-9a-f-]{36}$/i,
+      );
+    }
+  });
 
   it("maps every variant the web store can sell", () => {
     const selling = variantsFromLemonTs();

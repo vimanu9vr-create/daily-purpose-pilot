@@ -40,24 +40,36 @@ import { PLANS, type PlanId } from "./plans";
 import type { PurchaseResult, PurchaseStore, StoreProduct } from "./store";
 
 /**
- * Lemon Squeezy variant ids, one per plan.
+ * Lemon Squeezy identifiers, one entry per plan.
  *
- * FILL THESE IN after creating the subscription products in the Lemon Squeezy
- * dashboard. A variant id is the number in the URL when you open a variant —
- * Products → (product) → the variant row.
+ * TWO ids per variant, because Lemon Squeezy uses two and they are not
+ * interchangeable:
  *
- * A plan with no id here simply doesn't appear on the web. That's deliberate:
- * a button that opens a broken checkout is worse than a plan that isn't
- * offered yet, and it means the tiers can go live one at a time.
+ *   checkout — the UUID in the variant's share link. This is what
+ *              /checkout/buy/{id} accepts. A numeric id there 404s, which is
+ *              exactly how this shipped the first time.
+ *
+ *   variantId — the NUMBER shown in the dashboard URL. This is what the
+ *               webhook payload reports as `variant_id`, so it is what
+ *               `variant-mapping.ts` keys on.
+ *
+ * Both are listed here so the pairing lives in one place and the parity test
+ * can check the server map against it. Get the checkout UUID from the
+ * variant's Share button, not the address bar.
+ *
+ * A plan with no entry simply doesn't appear on the web — a button that opens
+ * a broken checkout is worse than a plan that isn't offered yet.
  */
-export const LEMON_VARIANTS: Partial<Record<PlanId, string>> = {
-  standard_weekly: "2196114",
-  standard_monthly: "2196086",
-  standard_yearly: "2196105",
-  standard_lifetime: "2196136",
-  voice_weekly: "2196126",
-  voice_monthly: "2196122",
-  voice_yearly: "2196124",
+export type LemonVariant = { checkout: string; variantId: string };
+
+export const LEMON_VARIANTS: Partial<Record<PlanId, LemonVariant>> = {
+  // standard_weekly:   { checkout: "", variantId: "2196114" },
+  // standard_monthly:  { checkout: "", variantId: "2196086" },
+  // standard_yearly:   { checkout: "", variantId: "2196105" },
+  // standard_lifetime: { checkout: "", variantId: "2196136" },
+  // voice_weekly:      { checkout: "", variantId: "2196126" },
+  // voice_monthly:     { checkout: "", variantId: "2196122" },
+  // voice_yearly:      { checkout: "", variantId: "2196124" },
 };
 
 /** The store subdomain, from product/SETUP.md. */
@@ -131,13 +143,13 @@ export class LemonStore implements PurchaseStore {
     // which is fine, they're the same numbers we set there.
     return PLANS.filter((plan) => LEMON_VARIANTS[plan.id]).map((plan) => ({
       planId: plan.id,
-      productId: LEMON_VARIANTS[plan.id]!,
+      productId: LEMON_VARIANTS[plan.id]!.variantId,
       priceDisplay: plan.priceDisplay,
     }));
   }
 
   async purchase(planId: PlanId): Promise<PurchaseResult> {
-    const variant = LEMON_VARIANTS[planId];
+    const variant = LEMON_VARIANTS[planId]?.checkout;
     if (!variant) {
       return {
         status: "unavailable",
