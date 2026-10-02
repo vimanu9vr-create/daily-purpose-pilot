@@ -94,12 +94,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      "Content-Type": "application/json",
-    };
+    const admin = adminHeaders();
 
     const attrs = event.data?.attributes ?? {};
 
@@ -218,6 +213,33 @@ async function validSignature(raw: string, signature: string, secret: string): P
     console.error("signature check threw", error);
     return false;
   }
+}
+
+/**
+ * PostgREST credentials that work with either key format.
+ *
+ * This project has moved to the new opaque secret keys (`sb_secret_…`), and
+ * an opaque key sent as `Authorization: Bearer` is parsed as a JWT, fails
+ * `iat` validation, and comes back PGRST303. That is not a hypothetical: it
+ * is one of the three faults that kept every push notification silent for
+ * days, and it presents the same way here — the payment succeeds, Lemon
+ * Squeezy is told we failed, and the subscriber has no row.
+ *
+ * So: send the key as `apikey` always, and add the Bearer header only when
+ * the value actually looks like a JWT. Same logic as `_shared/push.ts`,
+ * copied rather than imported so this function deploys as a self-contained
+ * bundle.
+ */
+function adminHeaders(): Record<string, string> {
+  const secret = Deno.env.get("SUPABASE_SECRET_KEY");
+  const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const key = secret ?? legacy ?? "";
+  const looksLikeJwt = key.split(".").length === 3 && key.startsWith("ey");
+  return {
+    apikey: key,
+    ...(looksLikeJwt ? { Authorization: `Bearer ${key}` } : {}),
+    "Content-Type": "application/json",
+  };
 }
 
 function json(body: unknown, status: number) {
