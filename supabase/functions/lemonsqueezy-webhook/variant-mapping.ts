@@ -13,13 +13,13 @@
 import type { PlanId } from "./plan-ids.ts";
 
 export const VARIANT_TO_PLAN: Record<string, PlanId> = {
-  // "123456": "standard_weekly",
-  // "123457": "standard_monthly",
-  // "123458": "standard_yearly",
-  // "123459": "standard_lifetime",
-  // "123460": "voice_weekly",
-  // "123461": "voice_monthly",
-  // "123462": "voice_yearly",
+  "2196114": "standard_weekly",
+  "2196086": "standard_monthly",
+  "2196105": "standard_yearly",
+  "2196136": "standard_lifetime",
+  "2196126": "voice_weekly",
+  "2196122": "voice_monthly",
+  "2196124": "voice_yearly",
 };
 
 /**

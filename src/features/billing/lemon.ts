@@ -51,13 +51,13 @@ import type { PurchaseResult, PurchaseStore, StoreProduct } from "./store";
  * offered yet, and it means the tiers can go live one at a time.
  */
 export const LEMON_VARIANTS: Partial<Record<PlanId, string>> = {
-  // standard_weekly:  "",
-  // standard_monthly: "",
-  // standard_yearly:  "",
-  // standard_lifetime:"",
-  // voice_weekly:     "",
-  // voice_monthly:    "",
-  // voice_yearly:     "",
+  standard_weekly: "2196114",
+  standard_monthly: "2196086",
+  standard_yearly: "2196105",
+  standard_lifetime: "2196136",
+  voice_weekly: "2196126",
+  voice_monthly: "2196122",
+  voice_yearly: "2196124",
 };
 
 /** The store subdomain, from product/SETUP.md. */
