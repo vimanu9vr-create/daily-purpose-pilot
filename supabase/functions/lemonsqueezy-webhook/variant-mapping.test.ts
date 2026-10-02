@@ -56,6 +56,22 @@ describe("parity with the app's variant list", () => {
     }
   });
 
+  /**
+   * Both extractions read the same file with different regexes, so either one
+   * can go blind on its own — pull the UUIDs out into a constant and
+   * `checkoutIdsFromLemonTs` silently returns nothing, and every assertion
+   * above it passes over an empty list. Comparing the two counts means a
+   * regex that stops matching fails loudly instead of quietly approving.
+   */
+  it("finds a checkout id for every variant it finds a number for", () => {
+    const numbers = variantsFromLemonTs().length;
+    const checkouts = checkoutIdsFromLemonTs().length;
+    expect(
+      checkouts === numbers,
+      `parsed ${numbers} variantIds but ${checkouts} checkout ids — one of the regexes has gone blind`,
+    ).toBe(true);
+  });
+
   it("maps every variant the web store can sell", () => {
     const selling = variantsFromLemonTs();
     const unmapped = selling.filter(([, variantId]) => planForVariant(variantId) === null);

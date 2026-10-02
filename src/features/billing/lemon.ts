@@ -42,34 +42,56 @@ import type { PurchaseResult, PurchaseStore, StoreProduct } from "./store";
 /**
  * Lemon Squeezy identifiers, one entry per plan.
  *
- * TWO ids per variant, because Lemon Squeezy uses two and they are not
+ * TWO ids per plan, because Lemon Squeezy uses two and they are not
  * interchangeable:
  *
- *   checkout — the UUID in the variant's share link. This is what
+ *   checkout — the UUID in the PRODUCT's share link. This is what
  *              /checkout/buy/{id} accepts. A numeric id there 404s, which is
  *              exactly how this shipped the first time.
  *
- *   variantId — the NUMBER shown in the dashboard URL. This is what the
- *               webhook payload reports as `variant_id`, so it is what
- *               `variant-mapping.ts` keys on.
+ *   variantId — the NUMBER shown in the dashboard. This is what the webhook
+ *               payload reports as `variant_id`, so it is what
+ *               `variant-mapping.ts` keys on — and it is also what `?enabled=`
+ *               narrows the checkout down to.
  *
- * Both are listed here so the pairing lives in one place and the parity test
- * can check the server map against it. Get the checkout UUID from the
- * variant's Share button, not the address bar.
+ * ## Why three UUIDs cover seven plans
+ *
+ * Lemon Squeezy issues one share link per PRODUCT, not per variant. Standard
+ * is a single product with three billing periods inside it, so all three
+ * standard_* plans share a UUID; same for the three voice_* plans. Opening
+ * that UUID bare shows all three periods as radio buttons with the starred one
+ * preselected.
+ *
+ * `?enabled={variantId}` restricts the checkout to the one period the person
+ * actually tapped. Without it somebody who chose Yearly on our pricing screen
+ * would land on a checkout defaulted to Monthly — a silent downsell, and the
+ * kind of mismatch that produces a refund request rather than a complaint.
+ *
+ * If Lemon Squeezy ever ignores the parameter the failure is soft: the person
+ * sees all three periods and picks again. That is why this is safe to rely on.
  *
  * A plan with no entry simply doesn't appear on the web — a button that opens
  * a broken checkout is worse than a plan that isn't offered yet.
  */
 export type LemonVariant = { checkout: string; variantId: string };
 
+/**
+ * Written out in full rather than through three named constants, because the
+ * parity test reads this file as TEXT — Deno can't import it. A constant here
+ * would leave the test matching nothing and passing vacuously, which is the
+ * precise way the first version of this shipped broken.
+ *
+ * The three repeated UUIDs are, in order: Standard (weekly/monthly/yearly),
+ * Lifetime, and Voice (weekly/monthly/yearly).
+ */
 export const LEMON_VARIANTS: Partial<Record<PlanId, LemonVariant>> = {
-  // standard_weekly:   { checkout: "", variantId: "2196114" },
-  // standard_monthly:  { checkout: "", variantId: "2196086" },
-  // standard_yearly:   { checkout: "", variantId: "2196105" },
-  // standard_lifetime: { checkout: "", variantId: "2196136" },
-  // voice_weekly:      { checkout: "", variantId: "2196126" },
-  // voice_monthly:     { checkout: "", variantId: "2196122" },
-  // voice_yearly:      { checkout: "", variantId: "2196124" },
+  standard_weekly: { checkout: "5becb7dc-90f6-47a2-a78b-3f44e8babbd7", variantId: "2196114" },
+  standard_monthly: { checkout: "5becb7dc-90f6-47a2-a78b-3f44e8babbd7", variantId: "2196086" },
+  standard_yearly: { checkout: "5becb7dc-90f6-47a2-a78b-3f44e8babbd7", variantId: "2196105" },
+  standard_lifetime: { checkout: "a863247f-1055-4d6e-936c-b2d222b80aac", variantId: "2196136" },
+  voice_weekly: { checkout: "e1ed8020-e14e-4d2e-b71c-69d676ca965d", variantId: "2196126" },
+  voice_monthly: { checkout: "e1ed8020-e14e-4d2e-b71c-69d676ca965d", variantId: "2196122" },
+  voice_yearly: { checkout: "e1ed8020-e14e-4d2e-b71c-69d676ca965d", variantId: "2196124" },
 };
 
 /** The store subdomain, from product/SETUP.md. */
@@ -85,8 +107,11 @@ const STORE = "manifestai";
  * email is wrong, because someone can pay with a different address than they
  * signed up with.
  */
-export function checkoutUrl(variantId: string, userId: string, email?: string): string {
-  const url = new URL(`https://${STORE}.lemonsqueezy.com/checkout/buy/${variantId}`);
+export function checkoutUrl(variant: LemonVariant, userId: string, email?: string): string {
+  const url = new URL(`https://${STORE}.lemonsqueezy.com/checkout/buy/${variant.checkout}`);
+  // Narrows a three-period product to the one period they chose on our pricing
+  // screen. Someone who picked Yearly must not land on a Monthly checkout.
+  url.searchParams.set("enabled", variant.variantId);
   url.searchParams.set("embed", "1");
   url.searchParams.set("media", "0");
   url.searchParams.set("checkout[custom][user_id]", userId);
@@ -149,7 +174,7 @@ export class LemonStore implements PurchaseStore {
   }
 
   async purchase(planId: PlanId): Promise<PurchaseResult> {
-    const variant = LEMON_VARIANTS[planId]?.checkout;
+    const variant = LEMON_VARIANTS[planId];
     if (!variant) {
       return {
         status: "unavailable",
