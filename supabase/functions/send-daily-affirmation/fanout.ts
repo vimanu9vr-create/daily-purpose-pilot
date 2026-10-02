@@ -28,6 +28,13 @@ export type Notification = {
   title: string;
   body: string;
   payload: string;
+  /**
+   * The programme day this notification spoke about, or null if it carried an
+   * affirmation instead. The sender writes this back to
+   * profiles.last_notified_day so tomorrow can tell "day 3 is new" from
+   * "day 3 again".
+   */
+  spokeAboutDay: number | null;
 };
 
 /**
@@ -100,22 +107,46 @@ export function buildNotification(
   displayName: string | null,
   day: ProgrammeDay | undefined,
   affirmationText: string | undefined,
+  /** The programme day the LAST notification spoke about, from the claim. */
+  lastNotifiedDay?: number | null,
 ): Notification | null {
   if (!day && !affirmationText) return null;
 
   const firstName = displayName?.trim().split(" ")[0];
 
-  const title = day
-    ? `Your day ${day.day_number} practice is ready`
+  // Don't say the same day twice.
+  //
+  // A programme day only becomes complete when somebody opens the app and
+  // finishes the practice. So for anyone who doesn't, `nextIncompleteDay`
+  // returns the same day every morning — and the old code sent that day's
+  // intention verbatim, indefinitely. The people it repeated at hardest were
+  // the ones not opening the app, which is precisely who the nudge is for.
+  //
+  // Second morning on the same day, we send one of their affirmations
+  // instead: written from their own dream, rotated by last_shown_at, so it
+  // actually differs. The day gets one more turn the morning after that,
+  // which keeps the programme present without nagging.
+  const repeatingDay = day !== undefined && lastNotifiedDay === day.day_number;
+  const useDay = day !== undefined && !repeatingDay;
+
+  // Falling back needs something to fall back TO. If there is no affirmation,
+  // a repeated day still beats silence.
+  const dayToSend = useDay || !affirmationText ? day : undefined;
+
+  const title = dayToSend
+    ? `Your day ${dayToSend.day_number} practice is ready`
     : firstName
       ? `${firstName}, your 5 minutes are ready`
       : "Your practice is ready — 5 minutes";
 
-  const body = day?.intention ?? affirmationText ?? "Five minutes, five steps.";
+  const body = dayToSend?.intention ?? affirmationText ?? "Five minutes, five steps.";
 
   return {
     title,
     body,
+    // What the sender should record as "the day we just spoke about". Null
+    // when an affirmation was sent, so the day is new again next time.
+    spokeAboutDay: dayToSend?.day_number ?? null,
     payload: JSON.stringify({
       title,
       body,

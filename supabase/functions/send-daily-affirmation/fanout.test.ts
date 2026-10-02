@@ -331,3 +331,55 @@ describe("inParallel", () => {
     expect(seen).toHaveLength(3);
   });
 });
+
+/**
+ * The repeat bug: a programme day only completes when somebody opens the app
+ * and finishes the practice, so for anyone who doesn't, nextIncompleteDay
+ * returns the same day every morning — and the notification said the same
+ * thing, verbatim, indefinitely.
+ */
+describe("buildNotification does not repeat a programme day", () => {
+  const day3 = { day_number: 3, intention: "Today is about naming it plainly.", completed_at: null };
+
+  it("sends the day's intention the first morning it comes up", () => {
+    const note = buildNotification("Viggnesh", day3, "An affirmation", null);
+    expect(note?.title).toBe("Your day 3 practice is ready");
+    expect(note?.body).toBe(day3.intention);
+    expect(note?.spokeAboutDay).toBe(3);
+  });
+
+  it("sends an affirmation instead the second morning on the same day", () => {
+    const note = buildNotification("Viggnesh", day3, "An affirmation", 3);
+    expect(note?.body).toBe("An affirmation");
+    expect(note?.title).toBe("Viggnesh, your 5 minutes are ready");
+    // Null so the day counts as new again tomorrow — present without nagging.
+    expect(note?.spokeAboutDay).toBeNull();
+  });
+
+  it("speaks about a day again once the programme has moved on", () => {
+    const day4 = { day_number: 4, intention: "The part you skip.", completed_at: null };
+    const note = buildNotification("Viggnesh", day4, "An affirmation", 3);
+    expect(note?.body).toBe(day4.intention);
+    expect(note?.spokeAboutDay).toBe(4);
+  });
+
+  /**
+   * Falling back needs something to fall back to. A repeated day still beats
+   * saying nothing to somebody mid-programme.
+   */
+  it("repeats the day rather than going silent when there is no affirmation", () => {
+    const note = buildNotification("Viggnesh", day3, undefined, 3);
+    expect(note?.body).toBe(day3.intention);
+    expect(note?.spokeAboutDay).toBe(3);
+  });
+
+  it("is unaffected when there is no programme at all", () => {
+    const note = buildNotification("Viggnesh", undefined, "An affirmation", 3);
+    expect(note?.body).toBe("An affirmation");
+    expect(note?.spokeAboutDay).toBeNull();
+  });
+
+  it("still returns null when there is nothing to say", () => {
+    expect(buildNotification("Viggnesh", undefined, undefined, null)).toBeNull();
+  });
+});

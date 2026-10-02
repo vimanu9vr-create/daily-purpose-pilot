@@ -137,6 +137,8 @@ type DueProfile = {
   profile_id: string;
   profile_name: string | null;
   sent_for: string;
+  /** The programme day the LAST notification spoke about, or null. */
+  last_day: number | null;
 };
 
 type ProgrammeWithDays = {
@@ -261,6 +263,7 @@ Deno.serve(async (req: Request) => {
 
       const deliveries: Delivery[] = [];
       const affirmationsToStamp: string[] = [];
+      const dayStamps: Array<{ id: string; day: number | null }> = [];
 
       for (const profile of due) {
         const subs = subsByUser.get(profile.profile_id);
@@ -273,8 +276,17 @@ Deno.serve(async (req: Request) => {
         const nextDay = nextIncompleteDay(programme?.programme_days);
         const affirmation = affirmationByUser.get(profile.profile_id);
 
-        const notification = buildNotification(profile.profile_name, nextDay, affirmation?.text);
+        const notification = buildNotification(
+          profile.profile_name,
+          nextDay,
+          affirmation?.text,
+          profile.last_day,
+        );
         if (!notification) continue;
+
+        // Record which day we just spoke about, so tomorrow can tell a new day
+        // from the same one again. Null when an affirmation went instead.
+        dayStamps.push({ id: profile.profile_id, day: notification.spokeAboutDay });
 
         for (const sub of subs) {
           deliveries.push({
@@ -285,7 +297,10 @@ Deno.serve(async (req: Request) => {
           });
         }
 
-        if (affirmation && shouldRotateAffirmation(nextDay, true)) {
+        // Burn the affirmation only when it was the line actually sent —
+        // which is now also true on a repeated day, where it replaces the
+        // intention rather than sitting unused.
+        if (affirmation && notification.body === affirmation.text) {
           affirmationsToStamp.push(affirmation.id);
         }
       }
@@ -313,6 +328,7 @@ Deno.serve(async (req: Request) => {
 
       // One request for the whole batch rather than one per user.
       await stampAffirmations(supabaseUrl, admin, affirmationsToStamp);
+      await stampNotifiedDays(supabaseUrl, admin, dayStamps);
 
       // A short batch means the database had nothing left to give us, so
       // there is no point asking again this run.
@@ -453,6 +469,43 @@ async function fetchSubscriptions(
 }
 
 /** Rotates every affirmation used in this batch, in one request. */
+/**
+ * Record which programme day each person was just told about.
+ *
+ * Grouped by value so a batch of 200 costs two requests rather than 200:
+ * everyone who got day 3 in one PATCH, everyone who got an affirmation in
+ * another.
+ *
+ * Not fatal if it fails. The cost is that somebody hears the same day's
+ * intention twice, which is the thing this fixes but not worth losing the
+ * rest of the run over.
+ */
+async function stampNotifiedDays(
+  supabaseUrl: string,
+  admin: Record<string, string>,
+  stamps: Array<{ id: string; day: number | null }>,
+): Promise<void> {
+  if (stamps.length === 0) return;
+
+  const byDay = new Map<number | null, string[]>();
+  for (const stamp of stamps) {
+    const list = byDay.get(stamp.day) ?? [];
+    list.push(stamp.id);
+    byDay.set(stamp.day, list);
+  }
+
+  for (const [day, ids] of byDay) {
+    const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=${inList(ids)}`, {
+      method: "PATCH",
+      headers: { ...admin, Prefer: "return=minimal" },
+      body: JSON.stringify({ last_notified_day: day }),
+    });
+    if (!response.ok) {
+      console.error("day stamp failed", await response.text());
+    }
+  }
+}
+
 async function stampAffirmations(
   supabaseUrl: string,
   admin: Record<string, string>,
