@@ -64,12 +64,29 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           >
             Try again
           </button>
-          <a
-            href="/"
+          {/*
+            A button that navigates through the router, NOT an <a href="/">.
+
+            This was an anchor, and inside the Android app an anchor to "/" is a
+            document navigation. There is no server behind the WebView — the
+            bundle is one index.html served from the device — so asking it for
+            "/" as a document returns nothing and the person is left staring at
+            a white screen. The same mistake is written up at length in
+            `auth-session.ts`, where `window.location.replace("/app")` did
+            exactly this after sign-in.
+
+            It is at its worst here, of all places: this is the screen somebody
+            reaches BECAUSE something already went wrong, and the one button
+            offering them a way out replaced a readable error with a blank
+            page. An error you can see is recoverable; a blank screen is an
+            uninstall.
+          */}
+          <button
+            onClick={() => void router.navigate({ to: "/", replace: true })}
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             Go home
-          </a>
+          </button>
         </div>
       </div>
     </div>
