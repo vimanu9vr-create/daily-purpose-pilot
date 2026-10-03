@@ -1,5 +1,12 @@
 // Writes affirmations from what the user actually told us they want.
 //
+// The free plan gets one AI batch a day — `FREE_LIMITS.aiAffirmationBatches`,
+// which until now existed only as a number in a config file that nothing read.
+// Enforced here because this is where the Gemini call is authorised, and a
+// limit enforced in React is a suggestion.
+//
+import { countToday, entitlementFor } from "../_shared/entitlement.ts";
+//
 // THE TONE PROBLEM, AND WHY THIS PROMPT CHANGED.
 //
 // The first version leaned hard on hedged openings - "I am learning to", "I am
@@ -270,6 +277,32 @@ Deno.serve(async (req: Request) => {
     });
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
     const user = (await userRes.json()) as { id: string };
+
+    // One AI batch a day on the free plan. Counts rows this function wrote
+    // (`source: "ai"`), so the 661 library affirmations and anything the user
+    // typed themselves never count against it.
+    const { isPaid, expired } = await entitlementFor(supabaseUrl, user.id);
+    if (!isPaid) {
+      // The limit is one BATCH, and a batch writes an anchor plus up to eight
+      // lines — so the test is "has this function written anything for them
+      // today", not a row count. Counting rows would mean hardcoding the batch
+      // size here and silently changing the limit the day the prompt returns
+      // nine lines instead of eight.
+      const used = await countToday(supabaseUrl, "affirmations", user.id, "&source=eq.ai");
+      if (used > 0) {
+        console.log(`affirmation limit reached for ${user.id} (${used} today)`);
+        return json(
+          {
+            error: "limit_reached",
+            message: expired
+              ? "Your plan has ended, so you're back to one set of written affirmations a day. Renew to write as many as you like."
+              : "That's today's set written. There'll be another tomorrow, or you can write unlimited sets any time.",
+            expired,
+          },
+          429,
+        );
+      }
+    }
 
     const { category, desireId, stages } = (await req.json().catch(() => ({}))) as {
       category?: string | null;

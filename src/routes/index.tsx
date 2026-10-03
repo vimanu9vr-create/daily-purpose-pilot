@@ -443,6 +443,21 @@ function Landing() {
                 <Link to="/auth" className="hover:text-foreground">
                   Log in
                 </Link>
+                {/*
+                  Both pages existed and nothing linked to them. Google Play
+                  requires a reachable privacy policy for a listing, and a
+                  pricing page that takes money with no terms in sight is the
+                  thing a cautious buyer closes the tab over. The refund
+                  position lives inside Terms rather than on its own page —
+                  §Cancelling — because Lemon Squeezy is merchant of record and
+                  theirs is the policy that actually governs a refund.
+                */}
+                <Link to="/privacy" className="hover:text-foreground">
+                  Privacy
+                </Link>
+                <Link to="/terms" className="hover:text-foreground">
+                  Terms
+                </Link>
               </div>
             </div>
             <div className="border-t border-glass-border py-5 text-center text-xs text-muted-foreground">

@@ -3,6 +3,22 @@
 // Streams a coaching reply over SSE. The caller's JWT is verified against
 // Supabase Auth, and every piece of context is re-read server-side under that
 // user's identity — the client never gets to say whose goals to load.
+//
+// ## The daily limit is enforced here now, because it was enforced nowhere
+//
+// The landing page advertises "5 coach messages a day" on the free plan.
+// `FREE_LIMITS.coachMessagesPerDay` was read by that marketing copy and by
+// nothing else — there was no check in the React that sends the message, and
+// none here. Anybody signed in, free or lapsed, could hold an unlimited
+// conversation, and every turn is a Gemini call carrying their goals, desires
+// and recent history in the prompt.
+//
+// Advertising a limit and not enforcing it is the version that costs money
+// quietly. The ceiling below is exactly the number already on the pricing
+// page, so nobody's experience changes except the person exceeding what they
+// were told they had.
+
+import { FREE_LIMITS, countToday, entitlementFor } from "../_shared/entitlement.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +100,33 @@ Deno.serve(async (req: Request) => {
     });
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
     const user = (await userRes.json()) as { id: string };
+
+    // Paid tiers are uncapped; free and lapsed get the advertised five a day.
+    //
+    // Counting the user's own messages rather than the assistant's: a failed
+    // generation should not consume somebody's allowance, and assistant rows
+    // are only written when one succeeded.
+    const { isPaid, expired } = await entitlementFor(supabaseUrl, user.id);
+    if (!isPaid) {
+      const used = await countToday(supabaseUrl, "ai_messages", user.id, "&role=eq.user");
+      if (used >= FREE_LIMITS.coachMessagesPerDay) {
+        console.log(`coach limit reached for ${user.id} (${used} today)`);
+        return json(
+          {
+            error: "limit_reached",
+            // Said plainly, with the number, and without implying they did
+            // something wrong. The expired case gets its own wording because
+            // "upgrade" is the wrong verb for somebody who already paid once.
+            message: expired
+              ? `Your plan has ended, so you're back to ${FREE_LIMITS.coachMessagesPerDay} coach messages a day. Renew to carry on without limits.`
+              : `That's your ${FREE_LIMITS.coachMessagesPerDay} coach messages for today. They reset tomorrow, or you can go unlimited any time.`,
+            limit: FREE_LIMITS.coachMessagesPerDay,
+            expired,
+          },
+          429,
+        );
+      }
+    }
 
     const { messages } = (await req.json()) as { messages: ChatMessage[] };
     if (!Array.isArray(messages) || messages.length === 0) {
