@@ -417,6 +417,12 @@ function ProfilePage() {
             const next = !isDark;
             setIsDark(next);
             document.documentElement.classList.toggle("dark", next);
+            // Persist it, under the same key ThemeToggle reads on the landing
+            // page. This button changed the class and saved nothing, so the
+            // choice survived until the next reload and then silently
+            // reverted — which reads as the setting being broken rather than
+            // as not existing. Two toggles, one stored answer.
+            window.localStorage.setItem("manifestai-theme", next ? "dark" : "light");
           }}
           className="flex w-full items-center gap-3 px-1 py-1 text-sm"
         >

@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { applyStoredTheme } from "@/components/theme-toggle";
 import { primeAuthSession, registerNavigator } from "@/lib/auth-session";
 
 import appCss from "../styles.css?url";
@@ -207,6 +208,12 @@ function RootComponent() {
   // there is no server behind the WebView, only one bundled index.html, so a
   // document-level navigation to /app resolves to nothing and shows a blank
   // screen.
+  // Before anything draws, so the saved theme doesn't arrive as a flash of the
+  // wrong one. Light unless they chose otherwise — see applyStoredTheme.
+  useEffect(() => {
+    applyStoredTheme();
+  }, []);
+
   useEffect(() => {
     registerNavigator((to) => void navigate({ to, replace: true }));
     primeAuthSession();
