@@ -16,13 +16,13 @@ export const VARIANT_TO_PLAN: Record<string, PlanId> = {
   // Numeric variant ids — what the webhook payload carries. The checkout
   // UUIDs that pair with these live in lemon.ts; the parity test fails if
   // only one side is filled in.
-  "2196114": "standard_weekly",
-  "2196086": "standard_monthly",
-  "2196105": "standard_yearly",
+  "2199252": "standard_weekly",
+  "2196121": "standard_monthly",
+  "2199260": "standard_yearly",
   "2196136": "standard_lifetime",
-  "2196126": "voice_weekly",
-  "2196122": "voice_monthly",
-  "2196124": "voice_yearly",
+  "2196129": "voice_weekly",
+  "2199268": "voice_monthly",
+  "2199271": "voice_yearly",
 };
 
 /**

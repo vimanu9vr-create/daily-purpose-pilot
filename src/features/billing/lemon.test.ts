@@ -22,14 +22,14 @@ describe("checkoutUrl", () => {
   });
 
   /**
-   * One share link covers all three billing periods. Without `enabled` the
-   * checkout opens on whichever period is starred in the dashboard — so
-   * somebody who chose Yearly would be shown Monthly, pay less than they
-   * agreed to, and have every right to be annoyed about it.
+   * Each plan is its own single-variant product now, so the URL alone decides
+   * what is bought. Sending a variant parameter as well would be a second
+   * source of truth for the same question, and the first thing to go wrong
+   * when a product is ever recreated.
    */
-  it("narrows a multi-period product to the period the person chose", () => {
+  it("does not try to select a variant", () => {
     const url = new URL(checkoutUrl(variant, "user-1"));
-    expect(url.searchParams.get("enabled")).toBe(variant.variantId);
+    expect(url.searchParams.has("enabled")).toBe(false);
   });
 
   /**
@@ -62,24 +62,19 @@ describe("LEMON_VARIANTS", () => {
   });
 
   /**
-   * Checkout UUIDs repeat — one per product, shared by its billing periods —
-   * but a numeric variant id identifies exactly one thing we can sell. Two
-   * plans sharing one would mean a payment credited to the wrong tier, and
-   * since the fallback grants access rather than refusing it, nobody would
-   * find out until a Standard subscriber asked why the narration was missing.
+   * One product per plan means both identifiers must be unique. A repeated
+   * checkout UUID would charge someone the wrong price; a repeated variant
+   * number would credit the payment to the wrong tier — and because the
+   * fallback grants access rather than refusing it, nobody would find out
+   * until a Standard subscriber asked where the narration went.
+   *
+   * This is the assertion that would have caught a copy-paste slip in the
+   * seven lines above, which is the only way this data ever gets entered.
    */
-  it("gives each plan its own variant number", () => {
+  it("gives each plan its own checkout link and its own variant number", () => {
+    const checkouts = Object.values(LEMON_VARIANTS).map((v) => v!.checkout);
     const numbers = Object.values(LEMON_VARIANTS).map((v) => v!.variantId);
-    expect(new Set(numbers).size).toBe(numbers.length);
-  });
-
-  it("groups the billing periods of a product under one checkout", () => {
-    expect(LEMON_VARIANTS.standard_monthly!.checkout).toBe(LEMON_VARIANTS.standard_yearly!.checkout);
-    expect(LEMON_VARIANTS.voice_monthly!.checkout).toBe(LEMON_VARIANTS.voice_yearly!.checkout);
-    // Lifetime is a separate product — a one-off payment can't sit in a
-    // subscription product, so it must not share Standard's checkout.
-    expect(LEMON_VARIANTS.standard_lifetime!.checkout).not.toBe(
-      LEMON_VARIANTS.standard_monthly!.checkout,
-    );
+    expect(new Set(checkouts).size, "two plans share a checkout link").toBe(checkouts.length);
+    expect(new Set(numbers).size, "two plans share a variant number").toBe(numbers.length);
   });
 });
