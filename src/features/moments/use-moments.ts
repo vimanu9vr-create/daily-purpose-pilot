@@ -5,6 +5,7 @@ import { useGoals } from "@/features/goals/use-goals";
 import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { PaywallError } from "@/features/billing/paywall-error";
 import { toISODate } from "@/lib/dates";
 
 export type Moment = Database["public"]["Tables"]["moments"]["Row"];
@@ -89,6 +90,23 @@ export function useCreateTodaysMoment() {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ goalId: goal.id, variant }),
       });
+      if (response.status === 402) {
+        // A refusal, not a failure, and the difference matters. Making story
+        // generation paid turned this branch into a permanent "the writer
+        // didn't answer" for every free user — which reads as the app being
+        // broken rather than as an invitation to subscribe. The function sends
+        // copy that distinguishes never-paid from lapsed; use it.
+        const body = (await response.json().catch(() => null)) as {
+          message?: string;
+          expired?: boolean;
+        } | null;
+        throw new PaywallError({
+          expired: Boolean(body?.expired),
+          message:
+            body?.message?.trim() ||
+            "This is part of the full ManifestAI experience. Choose a plan to carry on.",
+        });
+      }
       if (!response.ok) {
         throw new Error("The writer didn't answer just now. Try again in a moment.");
       }
