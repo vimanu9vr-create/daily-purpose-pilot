@@ -5,6 +5,8 @@ import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
+import { rethrowIfPaywalled } from "@/features/billing/paywall-error";
+
 import { coverImage, themeFor } from "./imagery";
 
 export type Desire = Database["public"]["Tables"]["desires"]["Row"];
@@ -474,6 +476,13 @@ export function useRewriteStory() {
           previous: story.body,
         },
       });
+      // Before anything else with `error`: invoke() does not throw on a
+      // non-2xx, it resolves with the error in the tuple, and its message is
+      // the constant "Edge Function returned a non-2xx status code". Without
+      // this the paywall reaches somebody one tap from paying us as a generic
+      // failure, and the most valuable message in the product is the one
+      // nobody ever sees.
+      await rethrowIfPaywalled(error);
       if (error) throw error;
 
       const rewritten = data as { title?: string; body?: string } | null;

@@ -1,6 +1,16 @@
 // Writes the daily "moment" — a short present-tense scene built from the
 // user's own goal. The client falls back to an on-device composer if this
 // isn't deployed, so the feature degrades rather than breaks.
+//
+// Paid-only. GENERATION is; READING is not — the existing library stays open
+// to everybody, which is what keeps a free account from being a locked door.
+// What costs money is writing something new.
+//
+// There was no check here of any kind. Any signed-in account could generate
+// unlimited stories, each one a Gemini call, with the ceiling enforced only by
+// a number in the React that drew the refresh button.
+
+import { entitlementFor, paywallResponse } from "../_shared/entitlement.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -577,6 +587,13 @@ Deno.serve(async (req: Request) => {
       headers: { Authorization: authHeader, apikey: anonKey },
     });
     if (!userRes.ok) return json({ error: "unauthorized" }, 401);
+    const user = (await userRes.json()) as { id: string };
+
+    const { isPaid, expired } = await entitlementFor(supabaseUrl, user.id);
+    if (!isPaid) {
+      console.log(`story generation refused for ${user.id} (expired=${expired})`);
+      return paywallResponse(expired, CORS_HEADERS);
+    }
 
     const { goalId, desireId, variant, tweak, previous } = (await req.json().catch(() => ({}))) as {
       goalId?: string;

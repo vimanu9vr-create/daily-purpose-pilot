@@ -153,10 +153,68 @@ export async function entitlementFor(supabaseUrl: string, userId: string): Promi
  * live where the spend is authorised.
  */
 export const FREE_LIMITS = {
-  storiesPerRefresh: 3,
-  coachMessagesPerDay: 5,
-  aiAffirmationBatches: 1,
+  affirmationSets: 1,
+  coachMessages: 0,
+  generatedStories: 0,
 } as const;
+
+/**
+ * Has this user ever had something written for them by a given function?
+ *
+ * Lifetime rather than daily, and read from the database rather than from
+ * anything the client holds. That is the whole point: the free generation has
+ * to survive logging out, a new tab, incognito, cleared local storage, a
+ * hand-written API call, and somebody editing React state in DevTools. A row
+ * in Postgres survives all of them; a flag anywhere else survives none.
+ *
+ * Returns a large number on failure rather than zero — the opposite of
+ * `countToday`. That one is a spend ceiling where a miscount costs a few
+ * pennies; this one is the paywall, and a miscount gives the product away.
+ */
+export async function countEver(
+  supabaseUrl: string,
+  table: string,
+  userId: string,
+  extraFilter = "",
+): Promise<number> {
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/${table}?select=id&user_id=eq.${userId}${extraFilter}`,
+      { headers: { ...adminHeaders(), Prefer: "count=exact", Range: "0-0" } },
+    );
+    if (!res.ok) {
+      console.error(`lifetime count of ${table} failed (${res.status}); refusing`);
+      return Number.MAX_SAFE_INTEGER;
+    }
+    return Number((res.headers.get("content-range") ?? "").split("/")[1] ?? 0) || 0;
+  } catch (error) {
+    console.error(`lifetime count of ${table} threw; refusing`, error);
+    return Number.MAX_SAFE_INTEGER;
+  }
+}
+
+/**
+ * The standard refusal for a paid-only feature.
+ *
+ * One shape, one place, so every locked endpoint answers the same way and the
+ * client can handle them identically. 402 Payment Required rather than 403:
+ * the caller is who they say they are and the request is well formed, there is
+ * simply no subscription behind it.
+ */
+export function paywallResponse(expired: boolean, cors: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({
+      error: "payment_required",
+      expired,
+      // Separate wording because "upgrade" is the wrong verb for somebody who
+      // already paid once and whose card then failed.
+      message: expired
+        ? "Your plan has ended. Renew to pick up where you left off — nothing you've written has gone anywhere."
+        : "This is part of the full ManifestAI experience. Choose a plan to carry on.",
+    }),
+    { status: 402, headers: { ...cors, "Content-Type": "application/json" } },
+  );
+}
 
 /**
  * How many rows this user created today, UTC.

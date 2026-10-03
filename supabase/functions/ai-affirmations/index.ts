@@ -1,11 +1,14 @@
 // Writes affirmations from what the user actually told us they want.
 //
-// The free plan gets one AI batch a day — `FREE_LIMITS.aiAffirmationBatches`,
-// which until now existed only as a number in a config file that nothing read.
-// Enforced here because this is where the Gemini call is authorised, and a
-// limit enforced in React is a suggestion.
+// THIS FUNCTION IS THE FREE EXPERIENCE. A free account gets exactly one
+// personalised set written for it, ever — the real thing, from their own
+// words — and then the paywall. Everything else the app generates is paid.
 //
-import { countToday, entitlementFor } from "../_shared/entitlement.ts";
+// Enforced here because this is where the Gemini call is authorised, and
+// because a limit enforced in React is a suggestion to anyone holding their
+// own access token.
+//
+import { FREE_LIMITS, countEver, entitlementFor, paywallResponse } from "../_shared/entitlement.ts";
 //
 // THE TONE PROBLEM, AND WHY THIS PROMPT CHANGED.
 //
@@ -283,24 +286,24 @@ Deno.serve(async (req: Request) => {
     // typed themselves never count against it.
     const { isPaid, expired } = await entitlementFor(supabaseUrl, user.id);
     if (!isPaid) {
-      // The limit is one BATCH, and a batch writes an anchor plus up to eight
-      // lines — so the test is "has this function written anything for them
-      // today", not a row count. Counting rows would mean hardcoding the batch
-      // size here and silently changing the limit the day the prompt returns
-      // nine lines instead of eight.
-      const used = await countToday(supabaseUrl, "affirmations", user.id, "&source=eq.ai");
-      if (used > 0) {
-        console.log(`affirmation limit reached for ${user.id} (${used} today)`);
-        return json(
-          {
-            error: "limit_reached",
-            message: expired
-              ? "Your plan has ended, so you're back to one set of written affirmations a day. Renew to write as many as you like."
-              : "That's today's set written. There'll be another tomorrow, or you can write unlimited sets any time.",
-            expired,
-          },
-          429,
-        );
+      // ONE set, ever — not one a day.
+      //
+      // The test is "has this function ever written anything for them", not a
+      // row count: a set is an anchor plus up to eight lines, and counting
+      // rows would mean hardcoding that shape here and silently changing the
+      // offer the day the prompt returns nine lines instead of eight.
+      //
+      // `source=eq.ai` matters. The 661 library affirmations and anything the
+      // person typed themselves are not generations and must never consume the
+      // one free set.
+      //
+      // Read from the database, so it survives logging out, a new tab,
+      // incognito, cleared local storage and a hand-written API call. A flag
+      // in the browser survives none of those.
+      const used = await countEver(supabaseUrl, "affirmations", user.id, "&source=eq.ai");
+      if (used >= FREE_LIMITS.affirmationSets) {
+        console.log(`free affirmation set already used by ${user.id} (${used} written)`);
+        return paywallResponse(expired, CORS_HEADERS);
       }
     }
 

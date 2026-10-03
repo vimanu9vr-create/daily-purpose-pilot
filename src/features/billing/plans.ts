@@ -245,17 +245,64 @@ export const VOICE_FEATURES = [
 export const PREMIUM_FEATURES = [...STANDARD_FEATURES, ...VOICE_FEATURES.slice(1)] as const;
 
 /**
- * Free tier limits. Deliberately generous on everything that costs nothing —
- * Stella's reviews are full of people angry at a three-listens-a-day cap, and a
- * paywall that makes the app useless mostly produces uninstalls.
+ * What a free account gets. ONE personalised affirmation set, then the paywall.
+ *
+ * ## This replaced a deliberately generous free tier, and the reasoning changed
+ *
+ * The previous version of this comment argued for generosity: Stella's reviews
+ * are full of people angry at a three-listens-a-day cap, and a paywall that
+ * makes the app useless mostly produces uninstalls. That argument is still
+ * true and it is still the reason the library stays readable for free.
+ *
+ * What changed is where the traffic comes from. Generosity is the right shape
+ * for organic discovery, where somebody wanders in, pokes about for a week and
+ * decides. It is the wrong shape for paid and social traffic, which arrives
+ * once, with intent, and does not come back: a free tier good enough to live
+ * in converts that visitor to a free user rather than a customer, and the ad
+ * spend is gone either way.
+ *
+ * So the free experience is now one real, personalised result — generated from
+ * their own words, not a sample — and then a decision. The thing being
+ * protected is the moment of value, not the quantity of it.
+ *
+ * ## The risk this carries, written down so it is not forgotten
+ *
+ * A hard paywall after one generation WILL cost some one-star reviews from
+ * people who expected more, and the old comment's warning about uninstalls
+ * has not stopped being true. The mitigation is that the one free result is
+ * genuinely good and genuinely theirs. If conversion is poor, the first thing
+ * to question is whether that single result is impressive enough — not
+ * whether to give away a second one.
  *
  * Narration is not on this list, because free users get none. See
- * `SAMPLE_TRACK_TITLE` for what replaced the trial.
+ * `SAMPLE_TRACK_TITLE` for the one track that is shared with everybody.
  */
 export const FREE_LIMITS = {
-  storiesPerRefresh: 3,
-  coachMessagesPerDay: 5,
-  aiAffirmationBatches: 1,
+  /**
+   * Personalised affirmation sets, EVER — not per day.
+   *
+   * This is the whole free product: somebody arrives from an advert, says what
+   * they want, and gets one real set written for that. Not a sample, not a
+   * teaser — the actual thing, generated from their own words. Then the
+   * paywall.
+   *
+   * Lifetime rather than daily on purpose. A daily allowance is a reason to
+   * come back tomorrow for free; a single one is a reason to decide today.
+   */
+  affirmationSets: 1,
+  /**
+   * Zero. The coach is a paid feature.
+   *
+   * Every turn is a Gemini call carrying the person's goals, desires and
+   * history, and an open-ended conversation has no natural stopping point. It
+   * was previously advertised at five a day and enforced at none.
+   */
+  coachMessages: 0,
+  /**
+   * Zero GENERATED stories. Reading the existing library stays free, which is
+   * what stops the app being a locked door — see the note above.
+   */
+  generatedStories: 0,
 } as const;
 
 /**

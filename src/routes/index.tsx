@@ -121,10 +121,13 @@ const tiers = [
     period: "forever",
     blurb: "Enough to see whether this is for you.",
     perks: [
-      `${FREE_LIMITS.storiesPerRefresh} stories per refresh`,
-      `${FREE_LIMITS.coachMessagesPerDay} coach messages a day`,
+      // Says exactly what the server enforces. The previous version promised
+      // "3 stories per refresh" and "5 coach messages a day", neither of which
+      // was enforced anywhere — and a promise the product does not keep is
+      // worse than a smaller promise it does.
+      `${FREE_LIMITS.affirmationSets} personalised affirmation set, written for your own words`,
       "The whole library to read",
-      `One narrated sleep track, so you can hear the voice`,
+      "One narrated sleep track, so you can hear the voice",
     ],
     cta: "Start free",
     featured: false,
