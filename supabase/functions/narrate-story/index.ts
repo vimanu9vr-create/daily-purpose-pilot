@@ -56,8 +56,9 @@ const BREAK_SECONDS = 2.4;
 // See NOTES.md §8.
 const OPENING_SENTENCES = 2;
 
-// See NOTES.md §9.
-type Tier = "free" | "standard" | "voice";
+// See NOTES.md §9. Both live in tier.ts so Vitest can reach them — this file
+// has Deno.serve at the top level and cannot be imported from Node.
+import { tierOf, type Tier } from "./tier.ts";
 
 /**
  * MUST MATCH `src/features/billing/plans.ts`. A drift test enforces it —
@@ -105,31 +106,34 @@ const SAMPLE_TRACK_TITLE = "Tomorrow is not here yet";
  * the client's copy only controls what gets drawn on screen. A gate that lives
  * on the client is a suggestion.
  */
-function tierOf(plan: string | null | undefined): Tier {
-  switch (plan) {
-    case "standard_monthly":
-    case "standard_yearly":
-    case "standard_lifetime":
-      return "standard";
-    // The bare three were sold before the split, with narration included.
-    // They keep what they bought.
-    case "voice_monthly":
-    case "voice_yearly":
-    case "monthly":
-    case "yearly":
-    case "lifetime":
-      return "voice";
-    default:
-      return "free";
-  }
-}
-
-/** Reads the active subscription and turns it into a tier. Service key, not the user's. */
+/**
+ * Reads the active subscription and turns it into a tier. Service key, not the user's.
+ *
+ * ## Why the period end is part of the filter
+ *
+ * `status` alone is not entitlement. A row moves from active to expired only
+ * when the store's webhook says so, and that webhook can be late, can fail, or
+ * can never arrive — a card declines, Lemon Squeezy retries for days, the
+ * delivery log sits unread. Through that whole window the row still reads
+ * "active" with a `current_period_end` in the past.
+ *
+ * The app already handles this: `use-subscription.ts` treats an elapsed period
+ * as free whatever the status says. The server did not, and the server is the
+ * half that matters — the client decides which buttons to draw, this decides
+ * who gets ElevenLabs minutes billed to us. Someone who had stopped paying
+ * kept the single most expensive feature in the app until a webhook happened
+ * to land.
+ *
+ * A null period end means lifetime, which never expires, so the filter has to
+ * allow null explicitly or one-time buyers lose what they paid for.
+ */
 async function tierFor(supabaseUrl: string, serviceKey: string, userId: string): Promise<Tier> {
+  const now = new Date().toISOString();
   const res = await fetch(
-    `${supabaseUrl}/rest/v1/subscriptions?select=plan,status&user_id=eq.${userId}` +
-      `&status=in.("active","trialing")&limit=1`,
-    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+    `${supabaseUrl}/rest/v1/subscriptions?select=plan,status,current_period_end` +
+      `&user_id=eq.${userId}&status=in.("active","trialing")` +
+      `&or=(current_period_end.is.null,current_period_end.gt.${now})&limit=1`,
+    { headers: adminHeaders(serviceKey) },
   );
   if (!res.ok) {
     // Fail closed. A database blip should cost somebody a narration, not hand
@@ -139,6 +143,20 @@ async function tierFor(supabaseUrl: string, serviceKey: string, userId: string):
   }
   const rows = (await res.json()) as { plan?: string }[];
   return tierOf(rows[0]?.plan);
+}
+
+/**
+ * PostgREST credentials that work with either key format.
+ *
+ * This project has moved to opaque secret keys, and an opaque key sent as
+ * `Authorization: Bearer` is parsed as a JWT, fails `iat` validation and comes
+ * back PGRST303. Here that is especially nasty because the read fails closed:
+ * every paying Voice subscriber would be told they are on the free tier, with
+ * nothing in the logs but a status code.
+ */
+function adminHeaders(key: string): Record<string, string> {
+  const looksLikeJwt = key.split(".").length === 3 && key.startsWith("ey");
+  return { apikey: key, ...(looksLikeJwt ? { Authorization: `Bearer ${key}` } : {}) };
 }
 
 Deno.serve(async (req: Request) => {

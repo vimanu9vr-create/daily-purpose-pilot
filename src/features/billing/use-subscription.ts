@@ -56,6 +56,26 @@ export function useSubscription() {
     new Date(subscription.current_period_end).getTime() > Date.now();
 
   const isPremium = Boolean(subscription) && notExpired;
+
+  /**
+   * Paid once, lapsed since — which is not the same as never having paid.
+   *
+   * Without this distinction somebody whose card failed last night opens the
+   * app and reads "You're on the free plan", which sounds like the money never
+   * arrived or the app has forgotten them. They are the likeliest person in
+   * the whole app to pay again, and that copy treats them as a stranger.
+   * Saying the period ended, and on what date, is both truthful and the only
+   * version that gives them something to do about it.
+   *
+   * Derived, never stored. The row keeps saying `active` until the store's
+   * webhook says otherwise, and that webhook can be late, can fail, or can
+   * never arrive at all.
+   */
+  const isExpired = Boolean(subscription) && !notExpired;
+
+  /** What they had, so the lapsed message can name it. Null unless expired. */
+  const expiredPlan: PlanId | null = isExpired ? ((subscription?.plan as PlanId) ?? null) : null;
+
   const plan: PlanId = isPremium ? ((subscription?.plan as PlanId) ?? "monthly") : "free";
 
   /**
@@ -72,6 +92,8 @@ export function useSubscription() {
     ...query,
     subscription,
     isPremium,
+    isExpired,
+    expiredPlan,
     plan,
     tier,
     hasVoice,

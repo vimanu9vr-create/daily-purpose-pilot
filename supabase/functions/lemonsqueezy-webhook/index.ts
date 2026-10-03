@@ -46,7 +46,10 @@ type LemonEvent = {
     custom_data?: { user_id?: string };
   };
   data?: {
+    /** The subscription or order id at Lemon Squeezy. Stable for its lifetime. */
+    id?: string;
     attributes?: {
+      updated_at?: string;
       variant_id?: number | string;
       first_order_item?: { variant_id?: number | string };
       status?: string;
@@ -98,6 +101,44 @@ Deno.serve(async (req: Request) => {
 
     const attrs = event.data?.attributes ?? {};
 
+    // Idempotency, before anything is written.
+    //
+    // Lemon Squeezy retries on any non-2xx and on a timeout, so the same event
+    // arrives more than once as a matter of course. Without this, a retry
+    // supersedes the row just written and inserts a second one — and
+    // `useSubscription` reads with `.maybeSingle()`, which ERRORS on two rows,
+    // so the paywall would fail open to free for somebody who had just paid.
+    //
+    // There is no per-delivery id in the payload, so the key is composed from
+    // the three things that identify a logical event: what happened, which
+    // object it happened to, and when that object last changed. A retry of the
+    // same delivery reproduces all three; a genuine later change does not.
+    const eventKey = `${name}:${event.data?.id ?? "unknown"}:${attrs.updated_at ?? ""}`;
+    const claim = await fetch(`${supabaseUrl}/rest/v1/webhook_events`, {
+      method: "POST",
+      headers: { ...admin, Prefer: "return=minimal" },
+      body: JSON.stringify({
+        provider: "lemonsqueezy",
+        event_id: eventKey,
+        event_name: name,
+        user_id: userId,
+        outcome: "processing",
+      }),
+    });
+
+    if (claim.status === 409) {
+      // The unique index rejected it: we have seen this delivery. Acknowledge
+      // so the store stops retrying, and change nothing.
+      console.log(`duplicate delivery ignored: ${eventKey}`);
+      return json({ ok: true, ignored: "duplicate" }, 200);
+    }
+    if (!claim.ok) {
+      // Could not record it, so cannot promise to process it only once.
+      // Refuse: a retry is cheap, a double-grant is not.
+      console.error("could not claim webhook event", claim.status, await claim.text().catch(() => ""));
+      return json({ error: "claim_failed" }, 500);
+    }
+
     if (REVOKING.has(name)) {
       await fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&status=eq.active`, {
         method: "PATCH",
@@ -141,7 +182,13 @@ Deno.serve(async (req: Request) => {
           plan,
           status: "active",
           store: "lemonsqueezy",
-          store_transaction_id: `ls:${variantId ?? plan}:${userId}`,
+          // The provider's own id for the subscription or order. This used to
+          // be `ls:{variant}:{user}`, which is the same string for every
+          // renewal of the same plan by the same person — it identified a
+          // plan-and-person rather than a payment, so it could never be used
+          // to recognise anything. The real id can be pasted straight into the
+          // Lemon Squeezy dashboard when somebody writes in about a charge.
+          store_transaction_id: event.data?.id ?? null,
           price_display: attrs.total_formatted ?? null,
           current_period_end: periodEnd,
           cancel_at_period_end: Boolean(attrs.cancelled),

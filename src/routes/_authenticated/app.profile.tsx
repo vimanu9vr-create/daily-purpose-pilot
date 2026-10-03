@@ -31,7 +31,7 @@ import { WeekCard } from "@/features/insights/week-card";
 import { NumberCard } from "@/features/numbers/number-card";
 import { useDesires } from "@/features/stories/use-stories";
 import { DeleteAccountDialog } from "@/features/account/delete-account-dialog";
-import { planById, tierName } from "@/features/billing/plans";
+import { planById, tierName, tierOf } from "@/features/billing/plans";
 import { purchaseStore } from "@/features/billing/store";
 import { useSubscription } from "@/features/billing/use-subscription";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,8 @@ function ProfilePage() {
   const { data: desires } = useDesires();
   const updateProfile = useUpdateProfile();
   const signOut = useSignOut();
-  const { isPremium, plan, tier, hasVoice, subscription } = useSubscription();
+  const { isPremium, isExpired, expiredPlan, plan, tier, hasVoice, subscription } =
+    useSubscription();
 
   const push = usePushState();
   const { data: isSubscribed } = useIsSubscribed();
@@ -342,6 +343,40 @@ function ProfilePage() {
               <span className="flex-1">Manage subscription</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
+          </>
+        ) : isExpired ? (
+          <>
+            {/*
+              Someone who paid and lapsed, told plainly. The old copy here said
+              "You're on the free plan", which to a person whose card failed
+              last night reads as though their money vanished. Naming the plan
+              and the date it ended is the difference between an error and an
+              explanation — and this is the likeliest person in the app to pay
+              again, so the button says Renew rather than See Premium.
+            */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Status</span>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" /> Expired
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Your{" "}
+              {expiredPlan && planById(expiredPlan)
+                ? `${tierName(tierOf(expiredPlan))} ${planById(expiredPlan)?.name.toLowerCase()}`
+                : "subscription"}{" "}
+              plan ended
+              {subscription?.current_period_end
+                ? ` on ${formatLongDate(subscription.current_period_end.slice(0, 10))}`
+                : ""}
+              , so you're back on the free limits. Renew to pick up exactly where you left off —
+              nothing you've written has gone anywhere.
+            </p>
+            <Button className="mt-4 w-full rounded-full" asChild>
+              <Link to="/app/upgrade">
+                <Sparkles className="h-4 w-4" /> Renew
+              </Link>
+            </Button>
           </>
         ) : (
           <>
