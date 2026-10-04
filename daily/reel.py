@@ -81,7 +81,22 @@ def _spans(beats: list[Beat]):
 
 
 def _check(beats: list[Beat]):
-    assert len(beats) == 6, "six beats — the shape is the format"
+    # Six, or seven.
+    #
+    # Six is the locked shape and stays the default. Seven exists for one job:
+    # a BRIDGE beat between the saved line and the close, for when the video
+    # has to create the want before it names the app. Without it the ending
+    # reads as an advert bolted onto a nice video — which is exactly what Day
+    # 13's first cut did, and Viggnesh spotted it immediately.
+    #
+    # Deliberately not opened further. Eight beats inside twenty seconds puts
+    # every line back under 2.5s, which is the failure this whole format was
+    # written to prevent: speed reads as emptiness. The guard stays narrow so
+    # it still catches drift instead of waving it through.
+    assert len(beats) in (6, 7), (
+        "six beats, or seven when the extra one is a bridge before the close — "
+        "the shape is the format"
+    )
     for i, b in enumerate(beats):
         assert b.seconds >= MIN_BEAT, (
             f"beat {i} is {b.seconds}s. Under {MIN_BEAT}s nobody finishes "
@@ -93,7 +108,11 @@ def _check(beats: list[Beat]):
         f"beat {longest} currently does."
     )
     _, dur = _spans(beats)
-    assert 17.0 <= dur <= 21.0, f"{dur}s — format is 18-20s"
+    # The ceiling moves with the beat count: a seventh beat is allowed to cost
+    # its own length and nothing more, so it can't become an excuse for a video
+    # that sprawls.
+    ceiling = 21.0 if len(beats) == 6 else 24.0
+    assert 17.0 <= dur <= ceiling, f"{dur}s — format is 18-20s (up to {ceiling}s with a bridge)"
 
 
 def _background(t: float, turn: float) -> Image.Image:
