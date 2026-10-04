@@ -15,6 +15,7 @@
 // only trace is a failure in Lemon Squeezy's own delivery log that nobody
 // thinks to open. That exact mistake cost the RevenueCat webhook weeks.
 
+import type { PlanId } from "./plan-ids.ts";
 import { FALLBACK_PLAN, planForVariant } from "./variant-mapping.ts";
 
 const CORS_HEADERS = {
@@ -157,14 +158,82 @@ Deno.serve(async (req: Request) => {
       // carries it on the first line item.
       const variantId = attrs.variant_id ?? attrs.first_order_item?.variant_id;
       const known = planForVariant(variantId);
+
+      /**
+       * THE FALLBACK MUST NEVER OVERWRITE A PLAN WE ALREADY KNOW.
+       *
+       * This cost the first real payment ever taken. The sequence, from the
+       * logs:
+       *
+       *   order_created              → standard_weekly, correct
+       *   subscription_payment_success → variant_id undefined → standard_monthly
+       *
+       * On `subscription_payment_success` the `data` object is an INVOICE, not
+       * a subscription. Invoices carry `subscription_id`, totals and card
+       * details — no `variant_id`, and no `renews_at`. So the lookup failed,
+       * the fallback fired, and it superseded a perfectly good weekly row with
+       * a monthly one that had no period end. The customer paid $2.49 for a
+       * week and the database said they had a month.
+       *
+       * The fallback exists so that an unrecognised product still grants
+       * *something* rather than taking money and giving nothing. That is the
+       * right behaviour for a FIRST payment. It is the wrong behaviour for a
+       * renewal, where we already know what they bought.
+       *
+       * So: look for what they already have, and prefer it over the guess.
+       */
+      let plan = known ?? FALLBACK_PLAN;
       if (!known) {
-        console.error(
-          `UNMAPPED VARIANT "${variantId}" for ${userId} — granting ${FALLBACK_PLAN}. ` +
-            `Add it to variant-mapping.ts and to src/features/billing/lemon.ts.`,
-        );
+        const existing = await fetch(
+          `${supabaseUrl}/rest/v1/subscriptions?select=plan,current_period_end` +
+            `&user_id=eq.${userId}&status=eq.active&limit=1`,
+          { headers: admin },
+        )
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => []);
+        // Cast is safe and deliberate: this value came OUT of this column,
+        // written by this function from the mapping. Re-validating it against
+        // the map would defeat the point — the whole case is that the map
+        // didn't match, and we are trusting the earlier event that did.
+        const prior = (existing as { plan?: string }[])[0]?.plan as PlanId | undefined;
+        if (prior) {
+          plan = prior;
+          console.log(`variant missing on ${name}; keeping existing plan ${prior} for ${userId}`);
+        } else {
+          console.error(
+            `UNMAPPED VARIANT "${variantId}" for ${userId} with no existing plan — ` +
+              `granting ${FALLBACK_PLAN}. Add it to variant-mapping.ts and lemon.ts.`,
+          );
+        }
       }
-      const plan = known ?? FALLBACK_PLAN;
-      const periodEnd = attrs.renews_at ?? attrs.ends_at ?? null;
+      /**
+       * Keep the period end we already had rather than nulling it.
+       *
+       * Same root cause as the plan above: an invoice has no `renews_at`, so
+       * a renewal event would blank the date it was supposed to extend. The
+       * app treats a null period end as "never expires" — lifetime — so this
+       * bug silently converted a $2.49 weekly subscription into permanent
+       * access. Failing open on an expiry date is the most expensive
+       * direction to be wrong in.
+       *
+       * Null is still allowed through when there is nothing prior, because a
+       * genuine lifetime purchase has no end and must not be given one.
+       */
+      let periodEnd = attrs.renews_at ?? attrs.ends_at ?? null;
+      if (!periodEnd) {
+        const kept = await fetch(
+          `${supabaseUrl}/rest/v1/subscriptions?select=current_period_end` +
+            `&user_id=eq.${userId}&status=eq.active&limit=1`,
+          { headers: admin },
+        )
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => []);
+        const prior = (kept as { current_period_end?: string | null }[])[0]?.current_period_end;
+        if (prior) {
+          periodEnd = prior;
+          console.log(`no period end on ${name}; keeping ${prior} for ${userId}`);
+        }
+      }
 
       // One active row per user is enforced by a partial unique index, so
       // close any existing one before opening the new one.
