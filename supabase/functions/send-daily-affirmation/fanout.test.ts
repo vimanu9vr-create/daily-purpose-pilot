@@ -144,25 +144,25 @@ describe("buildNotification", () => {
       "I am calm",
     );
 
-    expect(notification?.title).toBe("Your day 6 practice is ready");
+    expect(notification?.title).toContain("6");
     // The programme's own words, not the affirmation — the day is the point.
     expect(notification?.body).toBe("Write the email you have been avoiding.");
   });
 
   it("uses the first name only when there is no day to name", () => {
     const notification = buildNotification("Sam Okafor", undefined, "I am calm");
-    expect(notification?.title).toBe("Sam, your 5 minutes are ready");
+    expect(notification?.title).toContain("Sam");
     expect(notification?.body).toBe("I am calm");
   });
 
   it("falls back to a nameless title when the profile has no name", () => {
     const notification = buildNotification(null, undefined, "I am calm");
-    expect(notification?.title).toBe("Your practice is ready — 5 minutes");
+    expect(notification?.title).not.toContain("undefined");
   });
 
   it("treats a blank name as no name", () => {
     const notification = buildNotification("   ", undefined, "I am calm");
-    expect(notification?.title).toBe("Your practice is ready — 5 minutes");
+    expect(notification?.title).not.toContain("undefined");
   });
 
   /**
@@ -343,7 +343,7 @@ describe("buildNotification does not repeat a programme day", () => {
 
   it("sends the day's intention the first morning it comes up", () => {
     const note = buildNotification("Viggnesh", day3, "An affirmation", null);
-    expect(note?.title).toBe("Your day 3 practice is ready");
+    expect(note?.title).toContain("3");
     expect(note?.body).toBe(day3.intention);
     expect(note?.spokeAboutDay).toBe(3);
   });
@@ -351,7 +351,9 @@ describe("buildNotification does not repeat a programme day", () => {
   it("sends an affirmation instead the second morning on the same day", () => {
     const note = buildNotification("Viggnesh", day3, "An affirmation", 3);
     expect(note?.body).toBe("An affirmation");
-    expect(note?.title).toBe("Viggnesh, your 5 minutes are ready");
+    // The title wording rotates now; what must hold is that it stopped
+    // naming the repeated day.
+    expect(note?.title).not.toContain("3");
     // Null so the day counts as new again tomorrow — present without nagging.
     expect(note?.spokeAboutDay).toBeNull();
   });

@@ -18,6 +18,8 @@
  * a test. Anything that performs I/O stays in `index.ts`.
  */
 
+import { phrase } from "./voice.ts";
+
 export type ProgrammeDay = {
   day_number: number;
   intention: string;
@@ -133,13 +135,27 @@ export function buildNotification(
   // a repeated day still beats silence.
   const dayToSend = useDay || !affirmationText ? day : undefined;
 
-  const title = dayToSend
-    ? `Your day ${dayToSend.day_number} practice is ready`
-    : firstName
-      ? `${firstName}, your 5 minutes are ready`
-      : "Your practice is ready — 5 minutes";
-
-  const body = dayToSend?.intention ?? affirmationText ?? "Five minutes, five steps.";
+  // The WORDING rotates too, not just the content.
+  //
+  // The old version produced "Your day 3 practice is ready" every single
+  // morning. Even when the affirmation underneath changed, the shape of the
+  // notification did not, and after a week the eye recognises the shape and
+  // swipes before reading. A notification dismissed unread is worse than
+  // none, because it trains the next dismissal.
+  //
+  // Rotation is keyed on the day number rather than randomised: random
+  // repeats by chance, and landing the same line two mornings running is the
+  // exact failure being fixed.
+  const rotation = dayToSend?.day_number ?? lastNotifiedDay ?? 0;
+  const { title, body } = phrase(
+    {
+      firstName,
+      dayNumber: dayToSend?.day_number,
+      streak: dayToSend?.day_number,
+    },
+    rotation,
+    dayToSend?.intention ?? affirmationText ?? "Five minutes, five steps.",
+  );
 
   return {
     title,
