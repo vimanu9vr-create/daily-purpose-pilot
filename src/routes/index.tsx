@@ -94,6 +94,8 @@ const features = [
  */
 const standardWeekly = planById("standard_weekly");
 const voiceWeekly = planById("voice_weekly");
+const standardMonthly = planById("standard_monthly");
+const voiceMonthly = planById("voice_monthly");
 const standardYearly = planById("standard_yearly");
 const voiceYearly = planById("voice_yearly");
 
@@ -143,7 +145,12 @@ const tiers = [
     cta: "Get Standard",
     featured: false,
     badge: null,
-    footnote: `or ${standardYearly?.priceDisplay ?? "$45.99"} a year`,
+    // Monthly first, then yearly. The weekly headline reads as nothing —
+    // which is why it leads — but somebody deciding needs the number they
+    // would actually be charged on a card statement, and for most people that
+    // is the monthly one. Leaving it out made the page look like it was
+    // hiding something.
+    footnote: `or ${standardMonthly?.priceDisplay ?? "$5.99"} a month · ${standardYearly?.priceDisplay ?? "$45.99"} a year`,
   },
   {
     name: "Voice",
@@ -154,7 +161,7 @@ const tiers = [
     cta: "Get Voice",
     featured: true,
     badge: null,
-    footnote: `or ${voiceYearly?.priceDisplay ?? "$179.99"} a year`,
+    footnote: `or ${voiceMonthly?.priceDisplay ?? "$19.99"} a month · ${voiceYearly?.priceDisplay ?? "$179.99"} a year`,
   },
 ];
 
