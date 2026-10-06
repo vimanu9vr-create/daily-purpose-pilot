@@ -372,7 +372,7 @@ function Landing() {
               </p>
             </Reveal>
 
-            <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mx-auto mt-14 grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {tiers.map((tier, i) => (
                 <Reveal key={tier.name} delay={i * 0.08}>
                   <div
@@ -438,10 +438,6 @@ function Landing() {
                   </span>
                   <span className="font-display font-semibold">ManifestAI</span>
                 </div>
-                <p className="mt-3 max-w-md text-xs leading-relaxed text-muted-foreground">
-                  ManifestAI is a personal development tool for reflection and visualisation. It is
-                  not therapy, medical advice, or a guarantee of results.
-                </p>
               </div>
               <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-muted-foreground">
                 <a href="#features" className="hover:text-foreground">
@@ -471,7 +467,7 @@ function Landing() {
               </div>
             </div>
             <div className="border-t border-glass-border py-5 text-center text-xs text-muted-foreground">
-              © {new Date().getFullYear()} ManifestAI. Say what you want. Hear it back.
+              © {new Date().getFullYear()} ManifestAI · A tool for reflection and visualisation, not therapy or medical advice.
             </div>
           </footer>
         </div>
