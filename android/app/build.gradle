@@ -35,8 +35,12 @@ android {
         //
         // Play rejects a duplicate versionCode, so this must go up on every
         // upload even when the version name doesn't change.
-        versionCode 10
-        versionName "1.1.0"
+        // 11, because Play rejected 10 as already used — it was consumed by
+        // the production release that is live now. Every upload needs a number
+        // higher than anything Play has ever seen, including superseded and
+        // rejected ones, and the console will not pick one for you.
+        versionCode 11
+        versionName "1.1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
