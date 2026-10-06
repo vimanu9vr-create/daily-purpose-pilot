@@ -385,3 +385,47 @@ describe("buildNotification does not repeat a programme day", () => {
     expect(buildNotification("Viggnesh", undefined, undefined, null)).toBeNull();
   });
 });
+
+/**
+ * The signals are what make the copy different for different people. Before
+ * these were wired, somebody eleven days away got the same line as somebody
+ * mid-streak — the branch existed in voice.ts and never fired.
+ */
+describe("buildNotification speaks to who it is actually talking to", () => {
+  const day = { day_number: 2, intention: "Write the difficult email", completed_at: null };
+
+  it("uses returning copy for someone who has been away", () => {
+    const back = buildNotification("Sam", undefined, "An affirmation", null, {
+      daysAway: 11,
+      desire: "Finish the album",
+    });
+    const here = buildNotification("Sam", undefined, "An affirmation", null, { daysAway: 0 });
+    expect(back?.title).not.toBe(here?.title);
+  });
+
+  /**
+   * A streak that ended in March is not a streak. Congratulating somebody on
+   * one they have lost is worse than saying nothing, so the returning copy
+   * must never claim a number.
+   */
+  it("never congratulates a lapsed streak", () => {
+    const back = buildNotification("Sam", undefined, "An affirmation", null, {
+      daysAway: 30,
+      streak: 0,
+    });
+    expect(back?.title).not.toMatch(/\d/);
+  });
+
+  it("never renders an undefined signal into the text", () => {
+    for (const who of [{}, { streak: undefined }, { daysAway: 5 }, { desire: undefined }]) {
+      const n = buildNotification(null, undefined, "An affirmation", null, who);
+      expect(`${n?.title} ${n?.body}`).not.toContain("undefined");
+    }
+  });
+
+  /** The intention or affirmation is the thing worth reading; it always wins. */
+  it("keeps the real content as the body", () => {
+    const n = buildNotification("Sam", day, undefined, null, { daysAway: 0 });
+    expect(n?.body).toBe("Write the difficult email");
+  });
+});

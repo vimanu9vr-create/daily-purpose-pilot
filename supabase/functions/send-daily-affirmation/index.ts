@@ -139,6 +139,12 @@ type DueProfile = {
   sent_for: string;
   /** The programme day the LAST notification spoke about, or null. */
   last_day: number | null;
+  /** Consecutive practice days ending yesterday or today. Null = never started. */
+  streak: number | null;
+  /** Whole days since the last practice session. Null = never practised. */
+  days_away: number | null;
+  /** Their own words for what they want, for the "still yours" line. */
+  desire: string | null;
 };
 
 type ProgrammeWithDays = {
@@ -281,6 +287,15 @@ Deno.serve(async (req: Request) => {
           nextDay,
           affirmation?.text,
           profile.last_day,
+          // Who we are talking to, not just what day it is. Someone eleven
+          // days away gets different words from someone mid-streak — see
+          // voice.ts, where the branch already existed and never fired
+          // because these three values had nowhere to come from.
+          {
+            streak: profile.streak ?? undefined,
+            daysAway: profile.days_away ?? undefined,
+            desire: profile.desire ?? undefined,
+          },
         );
         if (!notification) continue;
 

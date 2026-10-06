@@ -18,7 +18,7 @@
  * a test. Anything that performs I/O stays in `index.ts`.
  */
 
-import { phrase } from "./voice.ts";
+import { phrase, type Signals } from "./voice.ts";
 
 export type ProgrammeDay = {
   day_number: number;
@@ -111,6 +111,8 @@ export function buildNotification(
   affirmationText: string | undefined,
   /** The programme day the LAST notification spoke about, from the claim. */
   lastNotifiedDay?: number | null,
+  /** Streak, time away and their desire — what the wording branches on. */
+  who: Omit<Signals, "firstName" | "dayNumber"> = {},
 ): Notification | null {
   if (!day && !affirmationText) return null;
 
@@ -148,11 +150,7 @@ export function buildNotification(
   // exact failure being fixed.
   const rotation = dayToSend?.day_number ?? lastNotifiedDay ?? 0;
   const { title, body } = phrase(
-    {
-      firstName,
-      dayNumber: dayToSend?.day_number,
-      streak: dayToSend?.day_number,
-    },
+    { ...who, firstName, dayNumber: dayToSend?.day_number },
     rotation,
     dayToSend?.intention ?? affirmationText ?? "Five minutes, five steps.",
   );
