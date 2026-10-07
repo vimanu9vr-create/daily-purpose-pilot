@@ -5,7 +5,7 @@ import { useUserId } from "@/hooks/use-session-user";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-import { rethrowIfPaywalled } from "@/features/billing/paywall-error";
+import { PaywallError, rethrowIfPaywalled } from "@/features/billing/paywall-error";
 
 import { coverImage, themeFor } from "./imagery";
 
@@ -739,6 +739,8 @@ export function useGenerateStories() {
         Math.min(perDesire, Math.floor(MAX_STORIES_PER_RUN / Math.max(1, targets.length))),
       );
 
+      let refused = false;
+
       for (const desire of targets) {
         for (let variant = 0; variant < depth; variant += 1) {
           pending.push({
@@ -753,7 +755,17 @@ export function useGenerateStories() {
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({ desireId: desire.id, variant }),
-                  }).catch(() => null)
+                  })
+                    // Record a refusal before swallowing. The catch is right
+                    // for a flaky network — one failed story out of six should
+                    // not sink the batch — but wrong for a 402, where every
+                    // call fails the same way and the honest message is
+                    // "subscribe", not "the writer didn't answer".
+                    .then((r) => {
+                      if (r.status === 402) refused = true;
+                      return r;
+                    })
+                    .catch(() => null)
               : null,
           });
         }
@@ -837,6 +849,15 @@ export function useGenerateStories() {
       }
 
       if (rows.length === 0) {
+        // Every call failed. If they all failed with 402 this is a paywall,
+        // not an outage, and saying "try again in a moment" sends somebody
+        // away to retry something that will never succeed.
+        if (refused) {
+          throw new PaywallError({
+            expired: false,
+            message: "Writing new stories is part of the full experience. Choose a plan to carry on.",
+          });
+        }
         throw new Error(
           "The writer didn't answer just now. Nothing was saved — try again in a moment.",
         );
