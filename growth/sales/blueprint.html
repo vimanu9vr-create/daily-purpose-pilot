@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>The 7-Day Subconscious Reset Blueprint — ManifestAnything</title>
+<!--
+  Print source for public/stack/files/*.pdf — the $79 deliverable.
+
+  Rendered with WeasyPrint, NOT a browser. Three consequences that look like
+  bugs if you forget them:
+    * no webfonts are fetched at build time, so every family here must be
+      installed locally (see --serif / --sans below);
+    * `height:100%` on a flex child inside a paged box silently resolves to
+      auto, which is why the phase openers use a fixed top inset rather than
+      vertical centring;
+    * page breaks are driven by .page { page-break-after: always }, so one
+      <div class="page"> is exactly one sheet. Overflowing it does not scroll,
+      it spills onto an unnumbered extra page. Always re-render and LOOK.
+
+  Build:  weasyprint growth/sales/blueprint.html out.pdf
+
+  The day titles are not free text. They must match the three phases and the
+  seven day names advertised on /stack/ exactly — the previous PDF described a
+  different book from the one the page sold, which is what this file exists to
+  fix. If you rename a day here, rename it on the sales page in the same commit.
+-->
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 18mm 18mm;
+    @bottom-center {
+      content: counter(page);
+      font-family: "TeX Gyre Adventor", "URW Gothic", sans-serif;
+      font-size: 8pt;
+      letter-spacing: 0.12em;
+      color: #a9a098;
+    }
+  }
+  @page :first { margin: 0; @bottom-center { content: ""; } }
+
+  :root {
+    /* Lifted from growth/sales/index.html so the book and the page it was
+       bought from are visibly the same object. */
+    --cream:     #f6f1e8;
+    --cream-2:   #fbf8f3;
+    --sand:      #e5dac7;
+    --sand-deep: #d8c7ad;
+    --charcoal:  #2e2c29;
+    --soft:      #5a5551;
+    --slate:     #23262a;
+    --gold:      #b89355;
+    --gold-lt:   #d8bd87;
+    --line:      #e2d7c4;
+
+    /* The web page asks for Cormorant Garamond + Jost. Neither can be fetched
+       at render time, so these are the nearest locally installed equivalents:
+       Pagella is a Palatino-class old-style serif, Adventor is an Avant Garde
+       clone and geometric like Jost. Swap both to the real families if you
+       ever build this where the fonts are installed. */
+    --serif: "TeX Gyre Pagella", "URW Palladio L", "P052", Georgia, serif;
+    --sans:  "TeX Gyre Adventor", "URW Gothic", "Poppins", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--serif);
+    color: var(--charcoal);
+    font-size: 10.5pt;
+    line-height: 1.62;
+  }
+
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+
+  /* ----------------------------------------------------------------- cover */
+  .cover {
+    height: 297mm; width: 210mm;
+    background: linear-gradient(168deg, #fbf8f3 0%, #f6f1e8 42%, #e9ddc8 100%);
+    padding: 58mm 24mm 24mm 24mm;
+    position: relative;
+  }
+  .cover .kicker {
+    font-family: var(--sans);
+    font-size: 8.5pt; letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 13mm;
+  }
+  .cover h1 {
+    font-size: 37pt; line-height: 1.05; margin: 0 0 8mm 0; font-weight: 400;
+    letter-spacing: -0.012em;
+  }
+  .cover h1 em { font-style: italic; color: var(--gold); }
+  .cover .sub {
+    font-size: 12.5pt; line-height: 1.5; color: var(--soft); max-width: 122mm;
+    margin-bottom: 14mm;
+  }
+  .cover .rule { width: 34mm; height: 1.4pt; background: var(--gold); opacity: .6; margin-bottom: 10mm; }
+  .cover .parts {
+    font-family: var(--sans); font-size: 9pt; color: var(--charcoal);
+    line-height: 2.1;
+  }
+  .cover .parts span { display: block; }
+  .cover .parts b { color: var(--gold); font-weight: 400; }
+
+  /* Seven rules, one per day, shortening across the week — the arc of the
+     book stated without a word. */
+  .cover .days { margin-top: 20mm; }
+  .cover .days div { height: 0.9pt; background: var(--gold); margin-bottom: 6.5mm; }
+  .cover .days div:nth-child(1) { width: 96mm; opacity: .42 }
+  .cover .days div:nth-child(2) { width: 88mm; opacity: .38 }
+  .cover .days div:nth-child(3) { width: 80mm; opacity: .34 }
+  .cover .days div:nth-child(4) { width: 72mm; opacity: .30 }
+  .cover .days div:nth-child(5) { width: 64mm; opacity: .26 }
+  .cover .days div:nth-child(6) { width: 56mm; opacity: .22 }
+  .cover .days div:nth-child(7) { width: 48mm; opacity: .18 }
+  .cover .foot {
+    position: absolute; left: 24mm; bottom: 20mm;
+    font-family: var(--sans); font-size: 8pt;
+    letter-spacing: 0.22em; text-transform: uppercase; color: #9d948b;
+  }
+
+  /* --------------------------------------------------------------- headings */
+  h2 {
+    font-size: 20pt; font-weight: 400; line-height: 1.16;
+    margin: 0 0 6mm 0; letter-spacing: -0.005em;
+  }
+  h2 em { font-style: italic; color: var(--gold); }
+  h3 {
+    font-family: var(--sans);
+    font-size: 8pt; letter-spacing: 0.26em; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; margin: 0 0 3mm 0;
+  }
+  .daymark {
+    font-family: var(--sans);
+    font-size: 8pt; letter-spacing: 0.32em; text-transform: uppercase;
+    color: #9d948b; margin-bottom: 4mm;
+  }
+  .daymark b { color: var(--gold); font-weight: 400; }
+
+  p { margin: 0 0 4.5mm 0; }
+  .lead { font-size: 12pt; line-height: 1.55; color: var(--soft); }
+  .small { font-size: 9pt; color: var(--soft); line-height: 1.5; }
+
+  /* Links become real PDF annotations — WeasyPrint turns every <a href> into a
+     clickable region, so the reader taps rather than retypes.
+
+     Deliberately NOT hidden behind words like "here" or "Google Play". Half
+     the people who buy this will print it, and on paper a link that only
+     exists as a clickable region is a dead end. So the visible text is always
+     either the address itself or something a person could type into a search
+     bar and still arrive. Underline rather than colour alone, because colour
+     alone disappears on a monochrome printer. */
+  a { color: var(--gold); text-decoration: none; border-bottom: 0.6pt solid var(--sand-deep); }
+  .outro a { color: var(--gold-lt); border-bottom-color: rgba(216,189,135,.45); }
+
+  blockquote {
+    margin: 0 0 6mm 0; padding: 5mm 6mm;
+    background: var(--cream-2); border-left: 2pt solid var(--gold);
+    font-style: italic; font-size: 11pt; line-height: 1.5;
+  }
+  .box {
+    background: var(--cream-2); border: 0.8pt solid var(--line);
+    border-radius: 3mm; padding: 6mm 7mm; margin: 0 0 6mm 0;
+  }
+  /* The one dark element in the book. Reserved for the single idea each phase
+     turns on, so it means something when it appears. */
+  .pin {
+    background: var(--slate); color: #cfcdc9;
+    border-radius: 3mm; padding: 5.5mm 6.5mm; margin: 0 0 6mm 0;
+    font-size: 10pt; line-height: 1.55;
+  }
+  .pin b { color: var(--cream-2); font-weight: 400; }
+  .action {
+    background: var(--cream-2); border: 0.8pt solid var(--sand-deep);
+    border-left: 2.4pt solid var(--gold);
+    border-radius: 2mm; padding: 5mm 6mm; margin: 6mm 0 0 0;
+  }
+  .action h3 { color: var(--gold); }
+  .action p { margin: 0; }
+
+  .lines { margin: 4mm 0 0 0; }
+  .lines div { border-bottom: 0.7pt solid var(--line); height: 9.5mm; }
+  .lines.tight div { height: 8mm; }
+
+  ol, ul { margin: 0 0 5mm 0; padding-left: 5mm; }
+  li { margin-bottom: 2.5mm; }
+
+  .divider { width: 20mm; height: 1pt; background: var(--sand-deep); margin: 7mm 0; }
+
+  /* ------------------------------------------------------- scripting pages */
+  .script .daymark { margin-bottom: 2mm; }
+  .scriptdate {
+    font-family: var(--sans); font-size: 8pt;
+    letter-spacing: 0.2em; text-transform: uppercase; color: #9d948b;
+    border-bottom: 0.7pt solid var(--line); width: 55mm;
+    padding-bottom: 1.5mm; margin-bottom: 7mm;
+  }
+  .scriptfoot {
+    margin-top: 6mm; font-family: var(--sans);
+    font-size: 7.5pt; letter-spacing: 0.16em; text-transform: uppercase;
+    color: #bdb2a3; text-align: center;
+  }
+
+  /* phase openers — fixed inset, see the note at the top of this file */
+  .opener { padding-top: 58mm; }
+  .opener h2 { font-size: 29pt; }
+  .opener .num {
+    font-family: var(--sans); font-size: 8.5pt;
+    letter-spacing: 0.34em; text-transform: uppercase; color: var(--gold);
+    margin-bottom: 6mm;
+  }
+  .opener .days-in {
+    font-family: var(--sans); font-size: 8pt; letter-spacing: 0.22em;
+    text-transform: uppercase; color: #9d948b; margin-top: 8mm;
+  }
+
+  /* closing page */
+  .outro {
+    background: var(--slate); color: #cfcdc9;
+    border-radius: 3mm; padding: 8mm 9mm; margin-top: 6mm;
+  }
+  .outro h3 { color: var(--gold-lt); }
+  .outro p { color: #b4b1ac; }
+  .outro b { color: var(--cream-2); font-weight: 400; }
+  .outro .url {
+    font-family: var(--sans); font-size: 13pt; letter-spacing: 0.04em;
+    color: var(--cream-2); margin: 6mm 0 1.5mm 0; display: block;
+    border-bottom: 0.8pt solid var(--gold-lt); padding-bottom: 1.5mm;
+    width: fit-content;
+  }
+  .outro .urlnote {
+    font-family: var(--sans); font-size: 7.5pt; letter-spacing: 0.16em;
+    text-transform: uppercase; color: #8e8b86; margin: 0 0 4mm 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================== COVER -->
+<div class="page cover">
+  <div class="kicker">ManifestAnything</div>
+  <h1>The 7-Day<br>Subconscious<br><em>Reset Blueprint</em></h1>
+  <div class="rule"></div>
+  <div class="sub">Clear the foundation first. Then write the line.<br>
+  Seven written sessions, ten minutes each, in an order that matters more
+  than any single exercise in it.</div>
+  <div class="parts">
+    <span><b>One</b> &nbsp;The Purge &mdash; days one to three</span>
+    <span><b>Two</b> &nbsp;The Scripting Protocol &mdash; days four and five</span>
+    <span><b>Three</b> &nbsp;Identity Integration &mdash; days six and seven</span>
+  </div>
+  <div class="days">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+  <div class="foot">Print it, or write on it &mdash; both work</div>
+</div>
+
+<!-- =========================================================== BEFORE YOU -->
+<div class="page">
+  <div class="daymark">Before you start</div>
+  <h2>What this actually <em>does</em></h2>
+
+  <p>Most manifestation material tells you that thinking about something makes
+  it arrive. There is no evidence for that, and you have probably suspected as
+  much, which is why it has never quite worked for you.</p>
+
+  <p>Here is the honest version. It is smaller than what you were promised and
+  considerably more reliable.</p>
+
+  <p>When you describe a life in detail &mdash; not the headline, the texture of
+  it &mdash; two well-documented things happen. You start noticing opportunities
+  that were always there and were previously filtered out as irrelevant. And you
+  lower the activation cost of acting, because something you have rehearsed
+  feels less like a leap.</p>
+
+  <p>That is the whole mechanism. Attention and follow-through.</p>
+
+  <div class="pin">
+    <b>So why seven days, and why in this order?</b> Because repetition does not
+    care what it reinforces. Say a line your nervous system rejects and you are
+    not installing a belief &mdash; you are practising the flinch that follows
+    it. Three days of clearing before any scripting is the entire reason this
+    book is arranged the way it is.
+  </div>
+
+  <h3>How to use it</h3>
+  <p>One day per page. Ten minutes, not an hour. Write by hand if you can
+  &mdash; slower is the point. If you miss a day, carry on from where you
+  stopped; restarting from Day 1 is the most common way people quit.</p>
+
+  <p class="small">This blueprint is a tool for reflection and focus. It is not
+  therapy, medical or psychological treatment, financial advice, or a guarantee
+  of any particular outcome. If you are struggling with your mental health,
+  please talk to someone qualified.</p>
+
+  <p class="small">Written alongside the ManifestAI app &mdash;
+  <a href="https://trymanifestationai.com">trymanifestationai.com</a></p>
+</div>
+
+<!-- ======================================================= PHASE 1 OPENER -->
+<div class="page">
+  <div class="opener">
+    <div class="num">Phase One</div>
+    <h2>The <em>Purge</em></h2>
+    <div class="divider"></div>
+    <p style="max-width:112mm">Before a single affirmation gets written, you
+    find out what you actually believe. Three days of subtraction. Nothing is
+    added to your life this week until the contradiction underneath it has been
+    named and put down.</p>
+    <div class="days-in">Days one &middot; two &middot; three</div>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 1 -->
+<div class="page">
+  <div class="daymark">Day One &nbsp;&middot;&nbsp; <b>The Purge</b></div>
+  <h2>The Honest <em>Inventory</em></h2>
+
+  <p>Write down what you actually believe about the thing you want. Not the
+  affirmation. The belief underneath it &mdash; the sentence that shows up
+  uninvited at eleven at night.</p>
+
+  <p>Most people have been arguing with themselves for years without ever
+  reading the transcript. Ten minutes of writing is usually enough to find it,
+  and the finding is uncomfortable in a way that tells you it is working.</p>
+
+  <p>Start with the want, in one plain sentence, as though telling a friend who
+  is in a hurry. Then, underneath it, the objection &mdash; whatever your mind
+  says back the moment you have written it.</p>
+
+  <h3>What I want, plainly</h3>
+  <div class="lines tight"><div></div><div></div><div></div></div>
+
+  <h3>What my mind says back</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Read both back out loud, in order. Notice that the second one is louder.
+    That is the thing this week is for &mdash; not the first one.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 2 -->
+<div class="page">
+  <div class="daymark">Day Two &nbsp;&middot;&nbsp; <b>The Purge</b></div>
+  <h2>Locating the <em>Contradiction</em></h2>
+
+  <p>Yesterday produced a page of objections. Today you find the one doing all
+  the damage, because there is almost always only one, and it is rarely the one
+  you would have guessed.</p>
+
+  <p>Take each objection from Day 1 and test it with a single question:
+  <em>if this stopped being true tomorrow, would I move?</em> Most will fail the
+  test &mdash; they are complaints rather than obstacles. One of them will not.</p>
+
+  <blockquote>&ldquo;No money&rdquo; is usually &ldquo;I would have to ask
+  someone.&rdquo; &ldquo;No time&rdquo; is usually &ldquo;I do not want to be
+  bad at it in front of people.&rdquo;</blockquote>
+
+  <p>Write the surviving one in full. Thoughts about obstacles loop; they are
+  designed to. Written down, an obstacle turns out to be a specific sentence of
+  a specific length, and it stops being weather and becomes an object.</p>
+
+  <h3>The one that survives the test</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div></div>
+
+  <h3>And underneath that</h3>
+  <div class="lines tight"><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Nothing. You wrote the hard page. That is the day&rsquo;s work, and
+    adding to it tends to undo it.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 3 -->
+<div class="page">
+  <div class="daymark">Day Three &nbsp;&middot;&nbsp; <b>The Purge</b></div>
+  <h2>Clearing the <em>Glass</em></h2>
+
+  <p>A release exercise, written rather than visualised &mdash; because the
+  thing being separated is too specific to do in your head.</p>
+
+  <p>Take the contradiction from Day 2 and split it into two columns. On the
+  left, <b>what actually happened</b>: events, dates, what was said, what did
+  not work. On the right, <b>what you concluded about yourself afterwards</b>.</p>
+
+  <div class="pin">
+    The left column is history and cannot be argued with. The right column is
+    an interpretation you made once, probably quickly, probably while upset
+    &mdash; and have been treating as a fact about yourself ever since.
+    <b>Only one of those two columns is still true.</b>
+  </div>
+
+  <h3>What happened</h3>
+  <div class="lines tight"><div></div><div></div><div></div><div></div></div>
+
+  <h3>What I concluded about myself</h3>
+  <div class="lines tight"><div></div><div></div><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Read only the right-hand column aloud, then add four words to the front
+    of each line: <em>&ldquo;At the time, I decided&hellip;&rdquo;</em> Say it
+    again. That is the whole exercise.</p>
+  </div>
+</div>
+
+<!-- ======================================================= PHASE 2 OPENER -->
+<div class="page">
+  <div class="opener">
+    <div class="num">Phase Two</div>
+    <h2>The Scripting <em>Protocol</em></h2>
+    <div class="divider"></div>
+    <p style="max-width:112mm">Now the glass is clear, you can pour. Two days
+    on writing lines your mind will actually accept &mdash; and on the single
+    rule that separates scripting from daydreaming with a pen.</p>
+    <div class="days-in">Days four &middot; five</div>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 4 -->
+<div class="page">
+  <div class="daymark">Day Four &nbsp;&middot;&nbsp; <b>Scripting Protocol</b></div>
+  <h2>The Believability <em>Threshold</em></h2>
+
+  <p>There is a measurable edge between a line that stretches you and a line
+  your mind throws out on contact. Today you find yours.</p>
+
+  <p>Affirmations mostly fail because they are lies their author rejects
+  instantly. &ldquo;I am a millionaire&rdquo; does nothing while your account
+  says otherwise &mdash; you are not persuading yourself, you are arguing with
+  yourself, and you lose every time.</p>
+
+  <p>What works is a line that is true <em>now</em> and points where you are
+  going. Physical, present tense, no adjectives doing heavy lifting:</p>
+
+  <blockquote>I walk into rooms without checking if I belong.<br>
+  I answer the message the day it arrives.<br>
+  I put money away before I decide what is left.</blockquote>
+
+  <p>Write three candidates. Say each out loud. Keep the one you can say
+  standing up without your face changing &mdash; that reaction is the
+  measurement, and it is more accurate than your opinion of the sentence.</p>
+
+  <h3>Three candidates</h3>
+  <div class="lines tight"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+  <h3>The one that survives being said aloud</h3>
+  <div class="lines"><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Say it once, standing. If you cringe, make it smaller and truer until
+    you do not. Smaller and true beats larger and rejected, every time.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 5 -->
+<div class="page">
+  <div class="daymark">Day Five &nbsp;&middot;&nbsp; <b>Scripting Protocol</b></div>
+  <h2>Describe the Tuesday, <em>not the trophy</em></h2>
+
+  <p>Today you write a completely unremarkable afternoon several months after
+  the thing is already true, when it has stopped being news.</p>
+
+  <p>This is the part almost everyone skips and the part that works. Picturing
+  the moment of arrival &mdash; the keys, the message, the number on the screen
+  &mdash; is a fantasy about a single event. Picturing an ordinary Tuesday where
+  it is simply true is a rehearsal of a life.</p>
+
+  <h3>The four rules</h3>
+  <ul>
+    <li><b>Present tense, always.</b> Not &ldquo;I will have&rdquo;. The future
+    tense keeps the thing permanently one step away, which is the exact feeling
+    you are dissolving.</li>
+    <li><b>Senses before facts.</b> &ldquo;I have a house&rdquo; does nothing.
+    &ldquo;The second stair creaks and I have stopped noticing&rdquo; does a
+    great deal.</li>
+    <li><b>Ordinary, not triumphant.</b> Write a Wednesday, not the
+    announcement. The life after the news, not the news.</li>
+    <li><b>Include friction.</b> One thing mildly annoying &mdash; traffic, a
+    slow kettle, an email you are putting off. A scene without friction reads as
+    fantasy and your mind files it accordingly.</li>
+  </ul>
+
+  <div class="pin">
+    If you take one rule out of this book, take the last one. <b>One irritation
+    is what makes the whole page plausible</b> &mdash; and plausible is the only
+    state in which any of this does anything.
+  </div>
+
+  <!-- Day 5 was the one day with no ruled space, because it sends you to the
+       scripting pages at the back. It ended 40% down the page and read as
+       unfinished next to the other six. These openings fill it with the thing
+       a reader actually needs at that moment: a first sentence. -->
+  <h3>Three openings, if the blank page is the problem</h3>
+  <p class="small" style="margin-bottom:3mm">Start with one of these and keep
+  going. Do not plan the sentence after &mdash; not planning it is the
+  exercise.</p>
+  <blockquote style="font-size:10pt;margin-bottom:5mm">It is an ordinary
+  Thursday afternoon and the thing I wanted has been true for about six months
+  now. I am standing in&hellip;<br><br>
+  The part nobody warned me about is how normal it feels. This morning
+  I&hellip;<br><br>
+  Someone asked me about it today and I realised I had almost forgotten to be
+  pleased. I told them&hellip;</blockquote>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Eight minutes on the first scripting page at the back. Stop when the
+    timer goes, even mid-sentence &mdash; especially mid-sentence. Wanting to
+    finish it tomorrow is what brings you back.</p>
+  </div>
+</div>
+
+<!-- ======================================================= PHASE 3 OPENER -->
+<div class="page">
+  <div class="opener">
+    <div class="num">Phase Three</div>
+    <h2>Identity <em>Integration</em></h2>
+    <div class="divider"></div>
+    <p style="max-width:112mm">Belief follows behaviour far more reliably than
+    behaviour follows belief. Two days turning everything written so far into
+    something you do on an ordinary weekday without deciding to.</p>
+    <div class="days-in">Days six &middot; seven</div>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 6 -->
+<div class="page">
+  <div class="daymark">Day Six &nbsp;&middot;&nbsp; <b>Identity Integration</b></div>
+  <h2>The Smallest Possible <em>Evidence</em></h2>
+
+  <p>One action. Small enough to finish today, and chosen so that doing it is
+  <em>inconsistent with the belief you wrote on Day 1</em>. That second
+  condition is the whole exercise &mdash; a small action that fits the old
+  belief changes nothing.</p>
+
+  <p>Not &ldquo;build the website&rdquo;. Not &ldquo;get fit&rdquo;. Send one
+  message. Look up one price. Ask one person one question.</p>
+
+  <p>The instinct is to pick something ambitious, because ambitious feels like
+  commitment. It is the opposite. A large first step is a way of postponing the
+  small one, and small ones are the only kind that get done on a Tuesday when
+  you are tired.</p>
+
+  <h3>The action, and why it contradicts Day 1</h3>
+  <div class="lines"><div></div><div></div><div></div><div></div></div>
+
+  <h3>When, exactly</h3>
+  <div class="lines tight"><div></div><div></div></div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Do it, if it takes under ten minutes. Otherwise put it in your calendar
+    now, while you are still the version of you who wrote it down.</p>
+  </div>
+</div>
+
+<!-- =============================================================== DAY 7 -->
+<div class="page">
+  <div class="daymark">Day Seven &nbsp;&middot;&nbsp; <b>Identity Integration</b></div>
+  <h2>Building the <em>Loop</em></h2>
+
+  <p>Everything so far was one-off work. Today you build the thing you keep
+  &mdash; a ten-minute structure that survives a Wednesday when nothing has
+  visibly changed.</p>
+
+  <h3>The loop, three parts</h3>
+  <ul>
+    <li><b>Two minutes &mdash; read.</b> Your line from Day 4. Out loud if the
+    room allows it.</li>
+    <li><b>Five minutes &mdash; write.</b> Half a page of ordinary Tuesday,
+    using the four rules from Day 5. Half a page three times a week beats four
+    pages once.</li>
+    <li><b>Three minutes &mdash; act.</b> One small thing, in the shape of
+    Day 6, done before you close the book.</li>
+  </ul>
+
+  <p>Write the loop out in your own words below, with the time of day you will
+  actually do it. Naming the time is doing most of the work here.</p>
+
+  <h3>My loop</h3>
+  <div class="lines tight"><div></div><div></div><div></div><div></div><div></div></div>
+
+  <div class="pin">
+    Day 8 looks identical to Day 30 &mdash; a blank page asking you to start
+    from nothing, on a Tuesday, when you are tired. <b>Almost nobody stops
+    because they stopped wanting the thing.</b> They stop because the structure
+    asked them to supply the motivation every single time.
+  </div>
+
+  <div class="action">
+    <h3>Tonight</h3>
+    <p>Run the loop once, end to end. Ten minutes. You now know it fits.</p>
+  </div>
+</div>
+
+<!-- ====================================================== SCRIPTING OPENER -->
+<div class="page">
+  <div class="opener">
+    <div class="num">The pages</div>
+    <h2>Five scripting <em>pages</em></h2>
+    <div class="divider"></div>
+    <p style="max-width:112mm">Ruled and dated, with the four rules printed at
+    the foot of each so you never drift. Eight minutes a page. Stop when the
+    timer goes.</p>
+  </div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; <b>one</b></div>
+  <div class="scriptdate">Date</div>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; <b>two</b></div>
+  <div class="scriptdate">Date</div>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; <b>three</b></div>
+  <div class="scriptdate">Date</div>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; <b>four</b></div>
+  <div class="scriptdate">Date</div>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<div class="page script">
+  <div class="daymark">Scripting &mdash; <b>five</b></div>
+  <div class="scriptdate">Date</div>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="scriptfoot">Present tense &middot; senses &middot; ordinary &middot; one thing mildly annoying</div>
+</div>
+
+<!-- ================================================================ DAY 8 -->
+<div class="page">
+  <div class="daymark">Day Eight</div>
+  <h2>What happens <em>now</em></h2>
+
+  <p>You have an honest inventory, the one contradiction that was doing the
+  damage, a line you can say standing up, a scripting method with four rules,
+  and a ten-minute loop with a time of day attached. That is more than most
+  people who buy something like this ever produce.</p>
+
+  <p>The difficulty from here is not motivation. It is that the loop asks you
+  to supply the page every time, and some mornings you will not have one.</p>
+
+  <div class="outro">
+    <h3>You already own the part that fixes this</h3>
+    <p>Lifetime access to the ManifestAI app came with this blueprint &mdash;
+    not a trial, nothing to renew, and no upgrade waiting behind a door. If you
+    have not claimed it yet, it takes about a minute.</p>
+
+    <!-- Points at /auth?mode=signup rather than the homepage so the tap lands
+         on the signup form itself, with no hunting for a button. -->
+    <a class="url" href="https://trymanifestationai.com/auth?mode=signup">trymanifestationai.com</a>
+    <p class="urlnote">Tap it, or type that address into any browser.</p>
+    <p><b>Sign up with the same email you paid with.</b> That address is the
+    only thing joining your order to your account, and it is the one detail
+    worth getting right.</p>
+
+    <p>Type the sentence you wrote on Day 1 into it. It writes the ordinary
+    Tuesday from Day 5 &mdash; a new one whenever you open it, built from your
+    sentence rather than picked off a shelf. It writes your affirmations in your
+    own words. It keeps your loop, your contradiction and your streak, so Day 30
+    starts from something instead of a blank page.</p>
+
+    <p><b>On Android</b> &mdash; the app is on
+    <a href="https://play.google.com/store/apps/details?id=com.manifestai888.app">Google&nbsp;Play</a>,
+    and that link opens the listing directly.</p>
+
+    <p><b>On iPhone</b> &mdash; there is no App Store build yet, so open
+    <a href="https://trymanifestationai.com">trymanifestationai.com</a> in
+    Safari, tap Share, then <b>Add to Home Screen</b>. It opens full screen
+    from then on and can send you the daily reminder. Nothing is missing on
+    iPhone; it just installs differently.</p>
+  </div>
+
+  <p class="small" style="margin-top:6mm">Same promise as this blueprint: it
+  will not tell you that thinking about something makes it happen. It gives you
+  two minutes inside the life you want and one small thing to do about it.</p>
+
+  <p class="small">Something not working, or not landing? Email
+  <a href="mailto:vimanu9.vr@gmail.com?subject=The%207-Day%20Subconscious%20Reset%20Blueprint">vimanu9.vr@gmail.com</a>
+  from the address you paid with and a person will answer the same day.</p>
+</div>
+
+</body>
+</html>
