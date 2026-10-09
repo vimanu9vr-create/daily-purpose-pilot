@@ -85,22 +85,102 @@ Deno.serve(async (req: Request) => {
 
     const event = JSON.parse(raw) as LemonEvent;
     const name = event.meta?.event_name;
-    const userId = event.meta?.custom_data?.user_id;
+    const claimed = event.meta?.custom_data?.user_id;
     if (!name) return json({ error: "bad_request" }, 400);
-
-    // No user id means the checkout was opened without one — which our own
-    // code refuses to do. Acknowledge so Lemon Squeezy stops retrying, but
-    // make the noise loud, because it means somebody paid and we cannot say
-    // who.
-    if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) {
-      console.error(`NO USER ID on ${name} — payment cannot be attributed`);
-      return json({ ok: true, ignored: "no_user_id" }, 200);
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const admin = adminHeaders();
 
     const attrs = event.data?.attributes ?? {};
+
+    /* ------------------------------------------------------------------
+       WHO PAID
+
+       This used to be one line: take custom_data.user_id, and if it isn't
+       there, log loudly and drop the event. That was correct while every
+       checkout started inside the app, where our own code attaches the id.
+
+       It stopped being correct the moment the Seven-Day Reset sales page
+       started selling lifetime app access. That buyer is a stranger — not
+       signed in, often without an account at all — so there is no user id to
+       attach, and every one of those payments was being acknowledged and
+       thrown away. The customer pays, the page promises lifetime access, and
+       nothing anywhere grants it.
+
+       So there are three cases now, in descending order of certainty:
+
+         1. custom_data carries a user id. Someone bought from inside the app.
+            Unchanged, and still the only case that can be fully trusted.
+
+         2. No id, but the email matches an existing account. Grant it to them.
+
+         3. No id and no account yet. Record the grant against the email and
+            stop. The trigger on auth.users redeems it when they sign up —
+            which is the common case, since people read the workbook for a few
+            days before they get round to the app.
+
+       Case 3 is why this cannot simply look the user up and give up if
+       missing: the account legitimately does not exist yet, and "later" is
+       the normal path rather than an error.
+    ------------------------------------------------------------------ */
+    const email = (attrs.user_email ?? "").trim().toLowerCase();
+    let userId: string | undefined =
+      claimed && /^[0-9a-f-]{36}$/i.test(claimed) ? claimed : undefined;
+
+    if (!userId && email) {
+      const lookup = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users?per_page=1&filter=${encodeURIComponent(`email eq "${email}"`)}`,
+        { headers: admin },
+      );
+      if (lookup.ok) {
+        const found = (await lookup.json()) as { users?: { id: string; email?: string }[] };
+        userId = (found.users ?? []).find((u) => u.email?.toLowerCase() === email)?.id;
+      } else {
+        console.warn("admin user lookup failed", lookup.status);
+      }
+    }
+
+    if (!userId) {
+      if (!email) {
+        // Neither an id nor an address. Nothing can ever be matched to this,
+        // so acknowledge rather than retry forever — but say so loudly.
+        console.error(`NO USER ID AND NO EMAIL on ${name} — payment cannot be attributed`);
+        return json({ ok: true, ignored: "unattributable" }, 200);
+      }
+
+      // Only a purchase creates a pending grant. A refund or cancellation for
+      // someone who never had an account has nothing to revoke.
+      if (!GRANTING.has(name)) {
+        return json({ ok: true, ignored: "no_account_for_non_granting_event" }, 200);
+      }
+
+      const variantId = attrs.variant_id ?? attrs.first_order_item?.variant_id;
+      const plan = planForVariant(variantId) ?? FALLBACK_PLAN;
+      const orderId = String(event.data?.id ?? "");
+
+      const pending = await fetch(`${supabaseUrl}/rest/v1/pending_grants`, {
+        method: "POST",
+        headers: { ...admin, Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: JSON.stringify({
+          email,
+          plan,
+          store: "lemonsqueezy",
+          order_id: orderId,
+          price_display: attrs.total_formatted ?? null,
+        }),
+      });
+
+      if (!pending.ok && pending.status !== 409) {
+        const detail = await pending.text().catch(() => "");
+        console.error("failed writing pending_grant", pending.status, detail.slice(0, 300));
+        // Non-2xx so Lemon Squeezy retries. Losing a paid grant is far worse
+        // than processing one twice, and the unique index makes twice safe.
+        return json({ error: "grant_write_failed" }, 500);
+      }
+
+      console.log(`grant stored, awaiting signup: ${maskEmail(email)} plan=${plan}`);
+      return json({ ok: true, state: "awaiting_signup", plan }, 200);
+    }
 
     // Idempotency, before anything is written.
     //
@@ -356,6 +436,16 @@ function adminHeaders(): Record<string, string> {
     ...(looksLikeJwt ? { Authorization: `Bearer ${key}` } : {}),
     "Content-Type": "application/json",
   };
+}
+
+/**
+ * Enough of an address to match a log line to an order, and not enough to be
+ * a customer record sitting in a log aggregator.
+ */
+function maskEmail(email: string): string {
+  const [name, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${(name ?? "").slice(0, 2)}***@${domain}`;
 }
 
 function json(body: unknown, status: number) {

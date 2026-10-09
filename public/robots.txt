@@ -1,16 +1,31 @@
+# A crawler obeys exactly ONE group — the most specific one matching its
+# user-agent — and ignores the others entirely. So a Disallow placed only under
+# `User-agent: *` would not apply to Googlebot, which has its own group below.
+# That is why /stack/files/ is repeated in every group rather than written once.
+#
+# /stack/files/ holds the paid PDF. Keeping it out of the index stops the file
+# turning up in a search for its own title. It does NOT make the URL private —
+# the filename is unguessable, and gating properly means serving the file from
+# Lemon Squeezy instead.
+
 User-agent: Googlebot
+Disallow: /stack/files/
 Allow: /
 
 User-agent: Bingbot
+Disallow: /stack/files/
 Allow: /
 
 User-agent: Twitterbot
+Disallow: /stack/files/
 Allow: /
 
 User-agent: facebookexternalhit
+Disallow: /stack/files/
 Allow: /
 
 User-agent: *
+Disallow: /stack/files/
 Allow: /
 
 Sitemap: https://trymanifestationai.com/sitemap.xml

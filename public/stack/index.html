@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Manifestation Value Stack — ManifestAnything</title>
+<meta name="description" content="The 7-Day Subconscious Reset Blueprint plus lifetime access to the ManifestAnything app. One payment of $79. No subscription.">
+<meta name="theme-color" content="#f6f1e8">
+<link rel="canonical" href="https://trymanifestationai.com/stack/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://trymanifestationai.com/stack/">
+<meta property="og:site_name" content="ManifestAnything">
+<meta property="og:title" content="Stop chasing temporary manifestation — ManifestAnything">
+<meta property="og:description" content="The 7-Day Subconscious Reset Blueprint + lifetime app access. One payment of $79.">
+<!-- Borrowed from the app for now. A paid offer deserves its own share image;
+     this one says nothing about the $79 stack. Worth replacing before any paid
+     traffic, because on social the link preview IS the ad. -->
+<meta property="og:image" content="https://trymanifestationai.com/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Stop chasing temporary manifestation — ManifestAnything">
+<meta name="twitter:description" content="The 7-Day Subconscious Reset Blueprint + lifetime app access. One payment of $79.">
+<meta name="twitter:image" content="https://trymanifestationai.com/og.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  /* One number controls every button's curve, here and in thanks.html.
+     999px is a full pill — it clamps to half the height, so it stays correct
+     whatever the padding. Want it squarer? 14px, 8px, 4px. Change it in both
+     files or the two pages stop matching. */
+  --r-btn:999px;
+
+  --cream:#f6f1e8;
+  --cream-2:#fbf8f3;
+  --sand:#e5dac7;
+  --sand-deep:#d8c7ad;
+  --charcoal:#2e2c29;
+  --charcoal-soft:#5a5551;
+  --slate:#23262a;
+  --slate-2:#2d3137;
+  --gold:#b89355;
+  --gold-light:#d8bd87;
+  --line:rgba(46,44,41,.12);
+  --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  --sans:"Jost",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --max:1120px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans);font-weight:300;font-size:17px;line-height:1.7;
+  color:var(--charcoal-soft);background:var(--cream);-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+h1,h2,h3,h4,.serif{font-family:var(--serif);font-weight:400;color:var(--charcoal);line-height:1.12;letter-spacing:-.01em}
+h1{font-size:clamp(2.4rem,6.4vw,4.4rem)}
+h2{font-size:clamp(1.9rem,4.6vw,3rem)}
+h3{font-size:clamp(1.25rem,2.6vw,1.6rem);line-height:1.25}
+strong{font-weight:500;color:var(--charcoal)}
+em{font-style:italic}
+.wrap{width:100%;max-width:var(--max);margin-inline:auto;padding-inline:24px}
+section{padding:72px 0}
+@media(min-width:900px){section{padding:112px 0}}
+.eyebrow{
+  font-size:.66rem;letter-spacing:.3em;text-transform:uppercase;
+  font-weight:500;color:var(--gold);margin-bottom:20px
+}
+.lede{font-size:clamp(1.02rem,1.6vw,1.16rem);max-width:60ch}
+.center{text-align:center}.center .lede{margin-inline:auto}
+.rule{width:52px;height:1px;background:var(--gold);margin:28px auto}
+
+/* ── buttons ─────────────────────────────── */
+.cta{
+  display:inline-flex;align-items:center;justify-content:center;gap:.6rem;
+  background:var(--charcoal);color:var(--cream-2);
+  font-family:var(--sans);font-weight:500;font-size:.98rem;letter-spacing:.04em;
+  padding:22px 46px;border:0;border-radius:var(--r-btn);cursor:pointer;text-decoration:none;
+  transition:background .25s ease,transform .25s ease,box-shadow .25s ease;
+  box-shadow:0 14px 34px -20px rgba(46,44,41,.8);
+  width:100%;max-width:420px;
+}
+@media(min-width:620px){.cta{width:auto}}
+.cta:hover{background:var(--gold);transform:translateY(-2px);box-shadow:0 18px 40px -20px rgba(184,147,85,.9)}
+.cta:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
+.cta--light{background:var(--cream-2);color:var(--charcoal)}
+.cta--light:hover{background:var(--gold-light);color:var(--charcoal)}
+.cta-note{font-size:.84rem;color:var(--charcoal-soft);opacity:.8;margin-top:16px;letter-spacing:.02em}
+
+/* ── hero ────────────────────────────────── */
+.hero{position:relative;padding-top:56px;overflow:hidden}
+.hero::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 78% 18%,rgba(216,189,135,.34),transparent 56%),
+    radial-gradient(circle at 10% 86%,rgba(229,218,199,.6),transparent 58%);
+}
+.hero>*{position:relative;z-index:1}
+.hero-grid{display:grid;gap:56px;align-items:center}
+@media(min-width:980px){.hero-grid{grid-template-columns:1.08fr .92fr;gap:64px}}
+.hero h1{margin-bottom:24px}
+.hero h1 .gold{color:var(--gold);font-style:italic}
+.badge{
+  display:inline-flex;align-items:center;gap:10px;
+  border:1px solid var(--sand-deep);border-radius:100px;
+  padding:9px 20px;font-size:.76rem;letter-spacing:.16em;text-transform:uppercase;
+  font-weight:500;color:var(--charcoal);margin-bottom:28px;background:rgba(255,255,255,.5)
+}
+.badge i{width:5px;height:5px;border-radius:50%;background:var(--gold);display:block}
+.hero-cta-block{margin-top:40px}
+.trust{display:flex;flex-wrap:wrap;gap:12px 28px;margin-top:34px;padding-top:28px;border-top:1px solid var(--line)}
+.trust span{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--charcoal-soft);display:flex;align-items:center;gap:9px}
+.trust svg{width:13px;height:13px;stroke:var(--gold);stroke-width:2.4;fill:none;flex:0 0 auto}
+
+/* ── 3D phone ────────────────────────────── */
+.stage{perspective:1600px;display:flex;justify-content:center}
+.phone{
+  width:min(300px,76vw);aspect-ratio:9/19;
+  background:linear-gradient(160deg,#35393f,#1a1d21);
+  border-radius:44px;padding:11px;
+  box-shadow:
+    0 60px 90px -40px rgba(46,44,41,.55),
+    0 0 0 1px rgba(255,255,255,.06) inset;
+  transform:rotateY(-17deg) rotateX(7deg) rotateZ(-1.5deg);
+  transition:transform .9s cubic-bezier(.19,1,.22,1);
+  animation:float 7s ease-in-out infinite;
+}
+.stage:hover .phone{transform:rotateY(-6deg) rotateX(2deg) rotateZ(0deg) scale(1.02)}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -14px}}
+.screen{
+  width:100%;height:100%;border-radius:34px;background:var(--cream-2);
+  padding:30px 20px;display:flex;flex-direction:column;overflow:hidden;position:relative
+}
+.notch{position:absolute;top:12px;left:50%;translate:-50% 0;width:76px;height:5px;border-radius:99px;background:rgba(46,44,41,.16)}
+.scr-eyebrow{font-size:.52rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-top:16px}
+.scr-h{font-family:var(--serif);font-size:1.32rem;color:var(--charcoal);line-height:1.2;margin-top:10px}
+.scr-card{background:var(--cream);border:1px solid var(--sand);border-radius:12px;padding:14px;margin-top:18px}
+.scr-card p{font-family:var(--serif);font-style:italic;font-size:.88rem;color:var(--charcoal);line-height:1.35}
+.scr-row{display:flex;align-items:center;gap:9px;margin-top:14px}
+.scr-dot{width:26px;height:26px;border-radius:50%;background:var(--sand);flex:0 0 auto;display:grid;place-items:center;font-size:.6rem;color:var(--charcoal);font-weight:500}
+.scr-row small{font-size:.66rem;color:var(--charcoal-soft);line-height:1.3}
+.scr-streak{margin-top:auto;display:flex;gap:5px;justify-content:center;padding-top:16px}
+.scr-streak i{width:100%;height:4px;border-radius:99px;background:var(--sand);display:block}
+.scr-streak i.on{background:var(--gold)}
+.scr-btn{margin-top:14px;background:var(--charcoal);color:var(--cream-2);text-align:center;border-radius:99px;padding:11px;font-size:.7rem;letter-spacing:.08em;font-weight:500}
+.mock-caption{text-align:center;font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--charcoal-soft);opacity:.6;margin-top:30px}
+
+/* ── problem / agitation ─────────────────── */
+.band-sand{background:var(--sand)}
+.band-cream2{background:var(--cream-2)}
+.pa-grid{display:grid;gap:44px}
+@media(min-width:900px){.pa-grid{grid-template-columns:1fr 1fr;gap:72px;align-items:start}}
+.glass-metaphor{
+  background:var(--cream-2);border:1px solid var(--sand-deep);border-radius:4px;
+  padding:40px 34px;position:relative
+}
+.glass-metaphor::before{
+  content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)
+}
+.glass-metaphor p{font-family:var(--serif);font-size:clamp(1.3rem,2.4vw,1.7rem);font-style:italic;color:var(--charcoal);line-height:1.4}
+.pain-list{list-style:none;margin-top:34px;display:grid;gap:20px}
+.pain-list li{display:flex;gap:16px;align-items:flex-start;font-size:1rem}
+.pain-list li::before{
+  content:"";flex:0 0 auto;width:7px;height:7px;margin-top:11px;
+  border:1px solid var(--gold);transform:rotate(45deg)
+}
+
+/* ── dark callout ────────────────────────── */
+.callout{
+  background:var(--slate);color:#cfcdc9;border-radius:4px;
+  padding:48px 34px;margin-top:48px;position:relative;overflow:hidden
+}
+@media(min-width:760px){.callout{padding:60px 56px}}
+.callout::after{
+  content:"";position:absolute;top:-40%;right:-10%;width:360px;height:360px;border-radius:50%;
+  background:radial-gradient(circle,rgba(184,147,85,.22),transparent 68%);pointer-events:none
+}
+.callout h3,.callout h2{color:var(--cream-2)}
+.callout .eyebrow{color:var(--gold-light)}
+.callout p{color:#b4b1ac;position:relative}
+.callout strong{color:var(--cream-2);font-weight:500}
+
+/* ── timeline ────────────────────────────── */
+.phase{margin-top:56px}
+.phase-head{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.phase-num{font-family:var(--serif);font-size:2.6rem;color:var(--gold);line-height:1}
+.phase-head h3{flex:1 1 240px}
+.phase-head span{font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--charcoal-soft);opacity:.75}
+.days{list-style:none;margin-top:6px}
+.day{border-bottom:1px solid var(--line)}
+.day summary{
+  display:flex;align-items:center;gap:20px;padding:24px 0;cursor:pointer;list-style:none;
+  transition:padding-left .25s ease
+}
+.day summary::-webkit-details-marker{display:none}
+.day summary:hover{padding-left:8px}
+.day-label{
+  font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+  font-weight:600;flex:0 0 58px
+}
+.day summary h4{font-family:var(--serif);font-size:clamp(1.1rem,2.2vw,1.35rem);color:var(--charcoal);flex:1}
+.day .plus{flex:0 0 auto;width:20px;height:20px;position:relative}
+.day .plus::before,.day .plus::after{
+  content:"";position:absolute;background:var(--charcoal-soft);transition:transform .3s ease,opacity .3s ease
+}
+.day .plus::before{top:9px;left:0;width:20px;height:1px}
+.day .plus::after{left:9px;top:0;width:1px;height:20px}
+.day[open] .plus::after{transform:rotate(90deg);opacity:0}
+.day-body{padding:0 0 28px 78px;max-width:62ch}
+@media(max-width:620px){.day-body{padding-left:0}}
+.day-body p{font-size:.98rem}
+
+/* ── app features ────────────────────────── */
+.feat-grid{display:grid;gap:22px;margin-top:52px}
+@media(min-width:780px){.feat-grid{grid-template-columns:repeat(3,1fr)}}
+.feat{
+  background:var(--cream-2);border:1px solid var(--line);border-radius:4px;padding:38px 30px;
+  transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease
+}
+.feat:hover{transform:translateY(-5px);box-shadow:0 26px 50px -34px rgba(46,44,41,.5);border-color:var(--sand-deep)}
+.feat-icon{width:40px;height:40px;margin-bottom:22px;stroke:var(--gold);stroke-width:1.3;fill:none}
+.feat h3{margin-bottom:12px;font-size:1.3rem}
+.feat p{font-size:.95rem}
+
+/* ── price ───────────────────────────────── */
+.price-card{
+  background:var(--cream-2);border:1px solid var(--sand-deep);border-radius:4px;
+  max-width:620px;margin:0 auto;padding:52px 32px;text-align:center;position:relative
+}
+@media(min-width:620px){.price-card{padding:64px 56px}}
+.stack{list-style:none;text-align:left;margin:38px 0;display:grid;gap:0}
+.stack li{display:flex;justify-content:space-between;gap:18px;align-items:baseline;padding:17px 0;border-bottom:1px solid var(--line);font-size:.98rem}
+.stack li:last-child{border-bottom:0}
+.stack .val{font-family:var(--serif);color:var(--charcoal);white-space:nowrap;font-size:1.05rem}
+.stack .was{text-decoration:line-through;opacity:.45;font-size:.9rem}
+.total{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:26px 0;border-top:2px solid var(--charcoal);margin-bottom:8px}
+.total .lbl{font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--charcoal)}
+.price{font-family:var(--serif);font-size:clamp(3rem,9vw,4.2rem);color:var(--charcoal);line-height:1}
+.price sup{font-size:.36em;vertical-align:super;margin-right:3px;color:var(--gold)}
+.once{font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:30px}
+
+/* ── faq ─────────────────────────────────── */
+.faq{max-width:780px;margin:52px auto 0}
+.q{border-bottom:1px solid var(--line)}
+.q summary{
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:26px 0;cursor:pointer;list-style:none;
+  font-family:var(--serif);font-size:clamp(1.08rem,2.2vw,1.3rem);color:var(--charcoal)
+}
+.q summary::-webkit-details-marker{display:none}
+.q .plus{flex:0 0 auto;width:18px;height:18px;position:relative}
+.q .plus::before,.q .plus::after{content:"";position:absolute;background:var(--gold);transition:transform .3s ease,opacity .3s ease}
+.q .plus::before{top:8px;left:0;width:18px;height:1px}
+.q .plus::after{left:8px;top:0;width:1px;height:18px}
+.q[open] .plus::after{transform:rotate(90deg);opacity:0}
+.q-body{padding:0 0 28px;max-width:66ch;font-size:.98rem}
+.q-body p+p{margin-top:14px}
+
+/* ── footer ──────────────────────────────── */
+footer{background:var(--slate);color:#8d8a86;padding:54px 0 64px;text-align:center;font-size:.84rem}
+footer a{color:var(--gold-light);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.disclaimer{max-width:66ch;margin:22px auto 0;font-size:.78rem;line-height:1.7;opacity:.78}
+
+/* ── motion ──────────────────────────────── */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.19,1,.22,1),transform .8s cubic-bezier(.19,1,.22,1)}
+.rv.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+  .phone{transform:none}
+}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:24px;top:14px;z-index:99;background:#fff;padding:12px 20px}
+</style>
+</head>
+<body>
+<a href="#offer" class="skip">Skip to the offer</a>
+
+<!-- ══ HERO ══════════════════════════════ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="badge"><i></i> ManifestAnything</span>
+        <h1>Stop chasing temporary manifestation.<br><span class="gold">Automate your reality shift forever.</span></h1>
+        <p class="lede">A seven-day written reset that clears the foundation first — then a pocket companion that keeps the practice running long after the motivation wears off.</p>
+
+        <div class="hero-cta-block">
+          <a class="cta" href="https://manifestai.lemonsqueezy.com/checkout/buy/a863247f-1055-4d6e-936c-b2d222b80aac" data-cta="hero">
+            Get instant access — $79
+          </a>
+          <p class="cta-note">One payment. No subscription. Instant delivery.</p>
+        </div>
+
+        <div class="trust">
+          <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg> One-time payment</span>
+          <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg> Lifetime app access</span>
+          <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg> Works on any phone</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="stage">
+          <div class="phone">
+            <div class="screen">
+              <span class="notch"></span>
+              <p class="scr-eyebrow">Today · Day 4</p>
+              <p class="scr-h">Identity<br>Integration</p>
+              <div class="scr-card">
+                <p>"I close the laptop at seven and the evening is mine."</p>
+              </div>
+              <div class="scr-row">
+                <span class="scr-dot">1</span>
+                <small>Two minutes of guided audio</small>
+              </div>
+              <div class="scr-row">
+                <span class="scr-dot">2</span>
+                <small>One line, written by hand</small>
+              </div>
+              <div class="scr-row">
+                <span class="scr-dot">3</span>
+                <small>One small action, logged</small>
+              </div>
+              <div class="scr-streak">
+                <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+              </div>
+              <div class="scr-btn">BEGIN TODAY'S RESET</div>
+            </div>
+          </div>
+        </div>
+        <p class="mock-caption">The companion app — included free, forever</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PROBLEM ═══════════════════════════ -->
+<section class="band-sand">
+  <div class="wrap">
+    <div class="pa-grid">
+      <div class="rv">
+        <p class="eyebrow">Why it keeps not working</p>
+        <h2>You are pouring clean water into a dusty glass.</h2>
+        <p class="lede" style="margin-top:24px">
+          The affirmation isn't the problem. The affirmation is fine. It is landing
+          on a foundation that was never cleared — and that is why it tastes wrong
+          every single time you say it.
+        </p>
+      </div>
+
+      <div class="rv">
+        <div class="glass-metaphor">
+          <p>"I am wealthy," said on a Tuesday by someone watching their account, is not a belief. It is a contradiction — and the mind resolves contradictions by quietly discarding the newer one.</p>
+        </div>
+
+        <ul class="pain-list">
+          <li>You script in the morning and feel faintly dishonest by lunchtime.</li>
+          <li>You have repeated the same line for eleven days and felt nothing shift underneath it.</li>
+          <li>The vision board is still there. Nothing followed it.</li>
+          <li>You have started over four times, and each restart is quieter than the last.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- AGITATION -->
+    <div class="callout rv">
+      <p class="eyebrow">The part nobody sells you</p>
+      <h3 style="font-size:clamp(1.4rem,3vw,2rem);margin-bottom:22px">
+        Every month you practise on an unaligned foundation, you are rehearsing the resistance instead.
+      </h3>
+      <p>
+        Repetition doesn't care what it reinforces. Say a line your nervous system
+        doesn't accept and you are not installing a new belief — you are practising
+        the flinch that follows it. <strong>That flinch is the thing getting
+        stronger.</strong>
+      </p>
+      <p style="margin-top:18px">
+        This is why the fifth restart feels heavier than the first, and why more
+        discipline has never once been the answer. The order is wrong. Clear the
+        glass, then pour.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ THE BLUEPRINT ═════════════════════ -->
+<section>
+  <div class="wrap">
+    <div class="center rv">
+      <p class="eyebrow">What you get first</p>
+      <h2>The 7-Day Subconscious<br>Reset Blueprint</h2>
+      <span class="rule"></span>
+      <p class="lede">Seven written sessions, ten minutes each. Three phases, in an order that matters more than any single exercise in it.</p>
+    </div>
+
+    <!-- PHASE 1 -->
+    <div class="phase rv">
+      <div class="phase-head">
+        <span class="phase-num">01</span>
+        <h3>The Purge</h3>
+        <span>Days 1 – 3</span>
+      </div>
+      <div class="days">
+        <details class="day" open>
+          <summary><span class="day-label">Day 1</span><h4>The Honest Inventory</h4><span class="plus"></span></summary>
+          <div class="day-body"><p>Write down what you actually believe about the thing you want — not the affirmation, the belief underneath it. Most people discover in ten minutes that they have been arguing with themselves for years without reading the transcript.</p></div>
+        </details>
+        <details class="day">
+          <summary><span class="day-label">Day 2</span><h4>Locating the Contradiction</h4><span class="plus"></span></summary>
+          <div class="day-body"><p>A short diagnostic that finds the exact sentence your mind rejects. You will usually find one line doing all the damage, and it is rarely the one you expected.</p></div>
+        </details>
+        <details class="day">
+          <summary><span class="day-label">Day 3</span><h4>Clearing the Glass</h4><span class="plus"></span></summary>
+          <div class="day-body"><p>A structured release exercise — written, not visualised — that separates what happened from what you concluded about yourself afterwards. This is the day people describe as the one that felt like something moved.</p></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- PHASE 2 -->
+    <div class="phase rv">
+      <div class="phase-head">
+        <span class="phase-num">02</span>
+        <h3>The Scripting Protocol</h3>
+        <span>Days 4 – 5</span>
+      </div>
+      <div class="days">
+        <details class="day">
+          <summary><span class="day-label">Day 4</span><h4>The Believability Threshold</h4><span class="plus"></span></summary>
+          <div class="day-body"><p>How to write a line your mind will actually accept today — not the version you wish were true. There is a measurable edge between aspiration and rejection, and this day teaches you to find yours.</p></div>
+        </details>
+        <details class="day">
+          <summary><span class="day-label">Day 5</span><h4>Describe the Tuesday, Not the Trophy</h4><span class="plus"></span></summary>
+          <div class="day-body"><p>The scripting method in full. You stop writing the moment you get it and start writing an ordinary afternoon months after it is already true — which is the version that changes what you notice the following morning.</p></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- PHASE 3 -->
+    <div class="phase rv">
+      <div class="phase-head">
+        <span class="phase-num">03</span>
+        <h3>Identity Integration</h3>
+        <span>Days 6 – 7</span>
+      </div>
+      <div class="days">
+        <details class="day">
+          <summary><span class="day-label">Day 6</span><h4>The Smallest Possible Evidence</h4><span class="plus"></span></summary>
+          <div class="day-body"><p>One action, small enough to complete today, chosen so that doing it is inconsistent with the old belief. Belief follows behaviour far more reliably than behaviour follows belief.</p></div>
+        </details>
+        <details class="day">
+          <summary><span class="day-label">Day 7</span><h4>Building the Loop</h4><span class="plus"></span></summary>
+          <div class="day-body"><p>The ten-minute daily structure you keep after the blueprint ends — and the exact point where the app takes over, so that keeping it going stops depending on how you feel that morning.</p></div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ THE APP ═══════════════════════════ -->
+<section class="band-cream2">
+  <div class="wrap">
+    <div class="center rv">
+      <p class="eyebrow">Included free, permanently</p>
+      <h2>The mechanism that keeps it running</h2>
+      <span class="rule"></span>
+      <p class="lede">Seven days changes the foundation. The app is what stops you rebuilding the dust. It installs straight from your browser — no App Store, no account sprawl, no monthly fee.</p>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat rv">
+        <svg class="feat-icon" viewBox="0 0 24 24"><path d="M3 17l4-4 4 3 7-8"/><path d="M3 21h18"/></svg>
+        <h3>Automated Alignment Streaks</h3>
+        <p>The practice logs itself. You see the run of days you have actually done — not a target you are failing, just an honest count that quietly becomes hard to break.</p>
+      </div>
+      <div class="feat rv">
+        <svg class="feat-icon" viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 14 3-10 2 4h5"/></svg>
+        <h3>Immersive Sound Library</h3>
+        <p>Long-form ambient and theta-range frequency tracks for the ten minutes you sit down to write — made to hold attention and settle a restless room, nothing more claimed than that.</p>
+      </div>
+      <div class="feat rv">
+        <svg class="feat-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="9" cy="9" r="1.4"/></svg>
+        <h3>Pocket Vision Board</h3>
+        <p>Your scripted lines and images, in the one place you actually look forty times a day. A board on a wall is seen twice a week; this one travels.</p>
+      </div>
+    </div>
+
+    <div class="callout rv">
+      <p class="eyebrow">Why it is free, and stays free</p>
+      <p>
+        The blueprint is the work. The app is what makes the work survive contact
+        with an ordinary Wednesday — and charging you monthly for that would mean
+        profiting from the exact failure this product exists to fix.
+        <strong>One payment. Lifetime access. No upgrade waiting behind a door.</strong>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ OFFER ═════════════════════════════ -->
+<section id="offer">
+  <div class="wrap">
+    <div class="center rv">
+      <p class="eyebrow">The complete stack</p>
+      <h2>Everything, for one payment</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="price-card rv">
+      <ul class="stack">
+        <li><span>The 7-Day Subconscious Reset Blueprint <em>(PDF)</em></span><span class="val">$79</span></li>
+        <li><span>Lifetime App Access Pass</span><span class="val">$149 <span class="was"></span></span></li>
+        <li><span>Immersive Sound Frequency Library</span><span class="val">$39</span></li>
+        <li><span>Pocket Vision Board</span><span class="val">$29</span></li>
+        <li><span>Every future update to the app</span><span class="val">Included</span></li>
+      </ul>
+
+      <div class="total">
+        <span class="lbl">Today</span>
+        <span class="price"><sup>$</sup>79</span>
+      </div>
+      <p class="once">One-time · No recurring fees</p>
+
+      <a class="cta" href="https://manifestai.lemonsqueezy.com/checkout/buy/a863247f-1055-4d6e-936c-b2d222b80aac" data-cta="offer">
+        Get instant access — $79
+      </a>
+      <p class="cta-note">Secure checkout via Lemon Squeezy · Instant email delivery</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FAQ ═══════════════════════════════ -->
+<section class="band-sand">
+  <div class="wrap">
+    <div class="center rv">
+      <p class="eyebrow">Before you decide</p>
+      <h2>The practical questions</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="faq">
+      <details class="q" open>
+        <summary>Will this work on iPhone and iOS?<span class="plus"></span></summary>
+        <div class="q-body">
+          <p>Yes. The app is a Progressive Web App, which means it runs in Safari and installs to your Home Screen like any other icon — no App Store involved.</p>
+          <p>On iPhone: open the link we email you in <strong>Safari</strong>, tap the Share button, then <strong>Add to Home Screen</strong>. It opens full-screen from then on. One note worth knowing: Apple only permits notifications once an app has been added to the Home Screen, so do that step first if you want reminders.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary>Are there hidden monthly fees?<span class="plus"></span></summary>
+        <div class="q-body">
+          <p>No. $79 once, and nothing recurring. There is no trial that converts, no tier you discover later, and no card stored for a future charge.</p>
+          <p>Lemon Squeezy handles the checkout and will email you a receipt. If you ever see a second charge from us, it is a mistake — reply to that receipt and we will refund it the same day.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary>How do I install it without an App Store?<span class="plus"></span></summary>
+        <div class="q-body">
+          <p>You open a link. That's the whole installation.</p>
+          <p><strong>Android:</strong> open the link in Chrome, tap the menu, then <em>Install app</em> or <em>Add to Home screen</em>.<br>
+          <strong>iPhone:</strong> open it in Safari, tap Share, then <em>Add to Home Screen</em>.<br>
+          <strong>Laptop:</strong> it just runs in the browser — no installation needed at all.</p>
+          <p>Nothing downloads, nothing needs updating, and it works offline once it has loaded.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary>What exactly arrives after I pay?<span class="plus"></span></summary>
+        <div class="q-body">
+          <p>An email, within a minute or two, containing the Blueprint as a PDF and your lifetime access link to the app. If it has not arrived in ten minutes, check Promotions and Spam — and if it is genuinely missing, reply to your Lemon Squeezy receipt and a person will send it manually.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary>How long does each day actually take?<span class="plus"></span></summary>
+        <div class="q-body">
+          <p>Ten minutes, written. Days 3 and 5 run slightly longer for most people because they are the two that do the heavy lifting. Nothing in the blueprint requires a free morning or a quiet retreat — it was built for ordinary weekdays, which is the only condition under which any of this survives.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary>I have tried manifestation before and stopped. Why would this be different?<span class="plus"></span></summary>
+        <div class="q-body">
+          <p>Because stopping is the normal outcome, and it is usually a design problem rather than a discipline one. Most approaches hand you a line to repeat and leave the hardest part — doing it again on a Wednesday when nothing has visibly changed — entirely to you.</p>
+          <p>This clears the contradiction first, writes lines at a believability threshold you can actually accept, and then hands the repetition to something that does not depend on how motivated you feel. That is the whole difference, and it is a structural one.</p>
+        </div>
+      </details>
+
+      <details class="q">
+        <summary>Does this guarantee results?<span class="plus"></span></summary>
+        <div class="q-body">
+          <p>No, and anyone telling you otherwise is selling you something.</p>
+          <p>What this is: a structured reflection and visualisation practice. Writing clearly about what you want changes what you notice and how quickly you act on it — that is the honest mechanism, and it is the one the whole product is built on. It is not therapy, not medical advice, and not a promise about your circumstances.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FINAL CTA ═════════════════════════ -->
+<section class="center">
+  <div class="wrap rv">
+    <h2>Clear the glass first.</h2>
+    <p class="lede" style="margin:24px auto 40px">Seven days of written work, then a practice that keeps itself going. One payment, and it is yours permanently.</p>
+    <a class="cta" href="https://manifestai.lemonsqueezy.com/checkout/buy/a863247f-1055-4d6e-936c-b2d222b80aac" data-cta="final">
+      Get instant access — $79
+    </a>
+    <p class="cta-note">One-time payment · Lifetime access · Instant delivery</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>ManifestAnything · <a href="#offer">The Manifestation Value Stack</a></p>
+    <p class="disclaimer">
+      ManifestAnything is a personal development tool for reflection, journalling
+      and visualisation. It is not therapy, medical or psychological treatment,
+      financial advice, or a guarantee of any particular outcome. The sound library
+      is provided as ambient audio for focus and wind-down; no therapeutic or
+      clinical effect is claimed. Payments are processed by Lemon Squeezy.
+    </p>
+  </div>
+</footer>
+
+<script>
+/* ── ANALYTICS: PUT YOUR TWO IDS HERE ──────────────────────────────────────
+   Until these are filled in, this page tracks NOTHING. Every fbq() and gtag()
+   call below is wrapped in a `typeof === "function"` guard, so with no library
+   loaded they fail silently rather than erroring — which is worse than a crash,
+   because the page looks fine while reporting zero conversions forever.
+
+   META_PIXEL_ID — 15-16 digits, Events Manager → Data Sources → your pixel.
+   GA4_ID        — "G-" then 10 chars, GA4 Admin → Data Streams → your stream.
+
+   Deliberately loaded only when a value is present: a placeholder ID would
+   fetch a real script and report to nobody's account, which is harder to
+   notice than nothing at all. Same two constants are in thanks.html — fill in
+   both files or the funnel has a hole at the point where money changes hands. */
+var META_PIXEL_ID = "";
+var GA4_ID        = "";
+
+(function () {
+  if (META_PIXEL_ID) {
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+    (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', META_PIXEL_ID);
+    fbq('track', 'PageView');
+  }
+  if (GA4_ID) {
+    var g = document.createElement('script');
+    g.async = true;
+    g.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA4_ID);
+    document.head.appendChild(g);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', GA4_ID);
+  }
+})();
+
+/* reveal on scroll */
+(function(){
+  var els=document.querySelectorAll(".rv");
+  if(!("IntersectionObserver" in window)){
+    els.forEach(function(e){e.classList.add("in")}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}
+    });
+  },{threshold:.12,rootMargin:"0px 0px -60px 0px"});
+  els.forEach(function(e){io.observe(e)});
+})();
+
+/* accordion: one open at a time, per group */
+["days","faq"].forEach(function(cls){
+  document.querySelectorAll("."+cls).forEach(function(group){
+    group.querySelectorAll("details").forEach(function(d){
+      d.addEventListener("toggle",function(){
+        if(!d.open) return;
+        group.querySelectorAll("details").forEach(function(o){
+          if(o!==d) o.open=false;
+        });
+      });
+    });
+  });
+});
+
+/* CTA tracking hooks — wire to your pixel when you have one */
+document.querySelectorAll("[data-cta]").forEach(function(a){
+  a.addEventListener("click",function(){
+    var pos=a.getAttribute("data-cta");
+    try{ if(typeof fbq==="function") fbq("track","InitiateCheckout",{content_name:"value-stack-79",position:pos}); }catch(e){}
+    try{ if(typeof gtag==="function") gtag("event","begin_checkout",{value:79,currency:"USD",position:pos}); }catch(e){}
+  });
+});
+</script>
+</body>
+</html>

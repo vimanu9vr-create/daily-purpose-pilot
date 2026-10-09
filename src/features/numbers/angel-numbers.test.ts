@@ -84,15 +84,38 @@ describe("reflectionFor", () => {
 });
 
 describe("numberForToday", () => {
+  /* These build dates with the LOCAL constructor — new Date(y, m, d, h) — and
+     not an ISO "…Z" string, which is what they used to do.
+
+     numberForToday keys off the local calendar date, deliberately: the number
+     should turn over at the reader's own midnight, not at midnight UTC. A test
+     written as "2026-08-16T22:00:00Z" therefore only means "the evening of the
+     16th" in Britain and westward. In IST that instant is already 03:30 on the
+     17th, so the two calls landed on different days and the suite failed — on
+     a developer machine in India, while passing in CI, which runs UTC.
+
+     Note the month is 0-indexed: 7 is August. */
   it("is stable within a day", () => {
-    const morning = new Date("2026-08-16T07:00:00Z");
-    const evening = new Date("2026-08-16T22:00:00Z");
+    const morning = new Date(2026, 7, 16, 7, 0, 0);
+    const evening = new Date(2026, 7, 16, 22, 0, 0);
     expect(numberForToday(morning).number).toBe(numberForToday(evening).number);
   });
 
   it("changes from one day to the next", () => {
-    const today = numberForToday(new Date("2026-08-16T12:00:00Z"));
-    const tomorrow = numberForToday(new Date("2026-08-17T12:00:00Z"));
+    const today = numberForToday(new Date(2026, 7, 16, 12, 0, 0));
+    const tomorrow = numberForToday(new Date(2026, 7, 17, 12, 0, 0));
     expect(today.number).not.toBe(tomorrow.number);
+  });
+
+  // The regression the two above cannot catch on their own: midday is far from
+  // any boundary, so they would still pass if the function went back to using
+  // UTC dates. This pins the actual contract — one number per local day,
+  // whatever the timezone — by walking the full span of a single local day.
+  it("gives one number for the whole of a local day, edge to edge", () => {
+    const expected = numberForToday(new Date(2026, 7, 16, 12, 0, 0)).number;
+    for (const hour of [0, 1, 6, 12, 18, 23]) {
+      const at = new Date(2026, 7, 16, hour, 30, 0);
+      expect(numberForToday(at).number).toBe(expected);
+    }
   });
 });

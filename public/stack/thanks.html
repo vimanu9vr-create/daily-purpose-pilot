@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Value Stack — ManifestAnything</title>
+<meta name="description" content="Your blueprint and your lifetime app access. Here's how to collect both.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#f6f1e8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  /* Must match --r-btn in index.html. 999px is a full pill; it clamps to half
+     the height, so it holds whatever the padding. Squarer: 14px, 8px, 4px. */
+  --r-btn:999px;
+
+  --cream:#f6f1e8; --cream-2:#fbf8f3; --sand:#e5dac7; --sand-deep:#d8c7ad;
+  --charcoal:#2e2c29; --charcoal-soft:#5a5551; --slate:#23262a;
+  --gold:#b89355; --gold-light:#d8bd87; --line:rgba(46,44,41,.12);
+  --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  --sans:"Jost",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--sans);font-weight:300;font-size:17px;line-height:1.7;
+  color:var(--charcoal-soft);background:var(--cream);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);font-weight:400;color:var(--charcoal);line-height:1.14;letter-spacing:-.01em}
+h1{font-size:clamp(2.1rem,5.6vw,3.4rem)}
+h2{font-size:clamp(1.6rem,3.6vw,2.2rem)}
+h3{font-size:1.2rem}
+strong{font-weight:500;color:var(--charcoal)}
+em{font-style:italic}
+a{color:var(--gold)}
+.wrap{width:100%;max-width:720px;margin-inline:auto;padding-inline:24px}
+section{padding:60px 0;border-top:1px solid var(--line)}
+@media(min-width:800px){section{padding:76px 0}}
+.eyebrow{font-size:.66rem;letter-spacing:.3em;text-transform:uppercase;font-weight:500;color:var(--gold);margin-bottom:18px}
+.lede{font-size:clamp(1rem,1.5vw,1.14rem)}
+.center{text-align:center}
+
+.cta{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;
+  background:var(--charcoal);color:var(--cream-2);font-weight:500;font-size:.98rem;letter-spacing:.04em;
+  padding:21px 44px;border:0;border-radius:var(--r-btn);text-decoration:none;
+  transition:background .25s ease,transform .25s ease;box-shadow:0 14px 34px -20px rgba(46,44,41,.8);
+  width:100%;max-width:440px}
+@media(min-width:620px){.cta{width:auto}}
+.cta:hover{background:var(--gold);transform:translateY(-2px);color:var(--cream-2)}
+.cta:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
+.ghost{display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--sand-deep);color:var(--charcoal);background:var(--cream-2);
+  font-weight:500;font-size:.92rem;letter-spacing:.03em;padding:15px 32px;border-radius:var(--r-btn);text-decoration:none;
+  transition:border-color .25s ease,background .25s ease}
+.ghost:hover{border-color:var(--gold);background:#fff;color:var(--charcoal)}
+.note{font-size:.84rem;color:var(--charcoal-soft);opacity:.85;margin-top:14px;line-height:1.6}
+
+/* hero */
+.top{position:relative;padding:54px 0 56px;text-align:center;overflow:hidden}
+.top::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(circle at 70% 14%,rgba(216,189,135,.36),transparent 58%),
+             radial-gradient(circle at 12% 88%,rgba(229,218,199,.55),transparent 58%)}
+.top>*{position:relative;z-index:1}
+.seal{width:62px;height:62px;border-radius:50%;background:var(--charcoal);
+  display:grid;place-items:center;margin:0 auto 26px;box-shadow:0 16px 34px -18px rgba(46,44,41,.9)}
+.seal svg{width:27px;height:27px;stroke:var(--gold-light);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* the two deliverables */
+.deliver{display:grid;gap:18px;margin-top:38px}
+@media(min-width:760px){.deliver{grid-template-columns:1fr 1fr}}
+.item{background:var(--cream-2);border:1px solid var(--sand-deep);border-radius:4px;
+  padding:34px 28px;display:flex;flex-direction:column;position:relative}
+.item::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
+.item .n{font-family:var(--serif);font-size:2.1rem;color:var(--gold);line-height:1;margin-bottom:12px}
+.item h3{margin-bottom:10px}
+.item p{font-size:.95rem;flex:1}
+.item .act{margin-top:22px}
+
+/* dark claim block */
+.claim{background:var(--slate);color:#cfcdc9;border-top:none;position:relative;overflow:hidden}
+.claim::after{content:"";position:absolute;top:-30%;right:-12%;width:380px;height:380px;border-radius:50%;
+  background:radial-gradient(circle,rgba(184,147,85,.2),transparent 68%);pointer-events:none}
+.claim h2,.claim h3{color:var(--cream-2)}
+.claim .eyebrow{color:var(--gold-light)}
+.claim p{color:#b4b1ac;position:relative}
+.claim strong{color:var(--cream-2)}
+.claim .cta{background:var(--cream-2);color:var(--charcoal);box-shadow:none}
+.claim .cta:hover{background:var(--gold-light);color:var(--charcoal)}
+.claim .note{color:#9b9893}
+.gets{list-style:none;margin:26px 0 30px;position:relative}
+.gets li{position:relative;padding:0 0 13px 28px;color:#c9c6c1;font-size:.97rem}
+.gets li:last-child{padding-bottom:0}
+.gets li::before{content:"";position:absolute;left:0;top:11px;width:7px;height:7px;
+  border:1px solid var(--gold-light);transform:rotate(45deg)}
+.gets b{color:var(--cream-2);font-weight:500}
+
+/* step labels inside the dark claim block */
+.stepline{display:flex;align-items:center;gap:12px;margin:30px 0 16px;
+  font-size:.78rem;letter-spacing:.11em;text-transform:uppercase;font-weight:500;
+  color:#9b9893;position:relative}
+.stepline span{flex:0 0 auto;background:var(--gold);color:var(--slate);
+  font-size:.68rem;letter-spacing:.1em;padding:4px 11px;border-radius:999px;font-weight:600}
+
+/* platform picker */
+.plats{display:grid;gap:12px;position:relative}
+@media(min-width:560px){.plats{grid-template-columns:1fr 1fr}}
+.plat{display:flex;flex-direction:column;gap:3px;text-decoration:none;
+  background:rgba(246,241,232,.06);border:1px solid rgba(216,189,135,.3);
+  /* Cards, not buttons — a pill on a block this tall reads as a mistake, so
+     these get a soft corner instead of --r-btn. */
+  border-radius:14px;padding:18px 20px 17px;
+  transition:border-color .25s ease,background .25s ease,transform .25s ease}
+.plat:hover{border-color:var(--gold-light);background:rgba(246,241,232,.11);transform:translateY(-2px)}
+.plat:focus-visible{outline:2px solid var(--gold-light);outline-offset:3px}
+.plat svg{width:21px;height:21px;margin-bottom:7px;
+  fill:none;stroke:var(--gold-light);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* The Play glyph is drawn as filled triangles, so it opts out of the stroke. */
+.plat svg path{fill:var(--gold-light);stroke:none}
+.pl-k{font-size:.95rem;font-weight:500;color:var(--cream-2)}
+.pl-v{font-size:.82rem;color:#a7a4a0}
+
+/* steps */
+.steps{counter-reset:s;list-style:none;margin-top:30px;display:grid;gap:14px}
+.steps li{display:flex;gap:18px;align-items:flex-start;background:var(--cream-2);
+  border:1px solid var(--line);border-radius:4px;padding:22px 24px}
+.steps li::before{counter-increment:s;content:counter(s);flex:0 0 auto;
+  font-family:var(--serif);font-size:1.3rem;color:var(--gold);line-height:1.1}
+.steps p{font-size:.95rem}
+.steps b{color:var(--charcoal);font-weight:500}
+
+footer{background:var(--slate);color:#8d8a86;padding:48px 0 58px;text-align:center;font-size:.84rem;border-top:none}
+footer a{color:var(--gold-light);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.disclaimer{max-width:64ch;margin:20px auto 0;font-size:.77rem;line-height:1.7;opacity:.78}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<!-- ═══ 1. CONFIRM, THEN DELIVER ═══════════════════════════════════════
+     The one unforgivable failure on this page is somebody who has paid and
+     cannot find what they bought. So both deliverables are above the fold,
+     side by side, before any copy about what to do next. -->
+<div class="top">
+  <div class="wrap">
+    <div class="seal" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="4 12.5 9.5 18 20 6.5"/></svg></div>
+    <p class="eyebrow">Payment complete</p>
+    <h1>It&rsquo;s yours. Both halves.</h1>
+    <p class="lede" style="max-width:52ch;margin:16px auto 0">The blueprint to
+    download now, and the app access to claim in about a minute. Take them in
+    that order.</p>
+
+    <div class="deliver">
+      <div class="item">
+        <div class="n">01</div>
+        <h3>The 7-Day Subconscious<br>Reset Blueprint</h3>
+        <p>Seven days, laid out for A4 if you&rsquo;d rather print it and write
+        by hand. Handwriting is slower, and slower is the point.</p>
+        <div class="act">
+          <!-- Unguessable filename, not security. It stops the URL being typed
+               or crawled; it does not stop it being forwarded. The real fix is
+               uploading this PDF to Lemon Squeezy as the product's gated file
+               and pointing this button at the order page instead. -->
+          <!-- download="" renames the file AS SAVED. Without the value the
+               browser would write the hashed filename to the buyer's Downloads
+               folder, which looks like a mistake and is unfindable a week later.
+               Only honoured same-origin, which this is. -->
+          <a class="cta" href="files/7dr-d3ba300656b29b45348e75ed394bc30e.pdf"
+             download="The Seven-Day Reset - ManifestAI.pdf" data-cta="download">
+            Download the PDF
+          </a>
+          <p class="note">Save it somewhere you&rsquo;ll find it again &mdash;
+          this page is tied to your order, not to your account.</p>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="n">02</div>
+        <h3>Lifetime App Access</h3>
+        <p>Included permanently with what you just paid. Not a trial, not a
+        discount code, nothing to renew. Claim it with the same email you paid
+        with.</p>
+        <div class="act">
+          <a class="cta" href="https://trymanifestationai.com/auth?mode=signup" data-cta="claim">
+            Claim your access
+          </a>
+          <!-- No target="_blank" anywhere on this page, deliberately. It is
+               blocked in preview panes, in some file:// contexts and by popup
+               blockers, which makes a button that silently does nothing — the
+               worst possible failure on a page somebody has just paid to reach.
+               Same-tab navigation always works. The cost is leaving this page,
+               which is why the download sits first and says to save it. -->
+          <p class="note">Grab the PDF above first &mdash; this takes you off
+          to signup.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2. THE ONE INSTRUCTION THAT MATTERS ════════════════════════════
+     Matching a Lemon Squeezy order to an app account is done on the email
+     address — there is no shared id. A buyer who signs up with a different
+     one has to be fixed by hand, and it is the single most likely support
+     ticket this page can generate. So it gets its own dark block rather than
+     a line of small print. -->
+<section class="claim">
+  <div class="wrap">
+    <p class="eyebrow">Read this before you sign up</p>
+    <h2>Use the <em>same email</em> you just paid with</h2>
+    <p style="margin-top:18px">That address is the only thing joining your
+    order to your account. Sign up with a different one and the access
+    won&rsquo;t appear &mdash; not because anything is broken, but because
+    there is nothing linking the two.</p>
+    <p style="margin-top:14px"><strong>Already used a different address?</strong>
+    Email me and I&rsquo;ll move it across the same day. It takes me thirty
+    seconds and you keep everything.</p>
+
+    <h3 style="margin:34px 0 0;font-size:1.3rem">What the access actually covers</h3>
+    <ul class="gets">
+      <li><b>Your sentence, carried over.</b> Type in what you wrote on Day 1
+      and everything else is built from it &mdash; nothing picked off a shelf.</li>
+      <li><b>A new visualisation every time you open it</b>, written fresh from
+      that sentence rather than repeated at you.</li>
+      <li><b>Affirmations in your own words</b>, with one marked as the line to
+      carry around that day.</li>
+      <li><b>The five-minute daily practice</b> &mdash; breathe, your intention,
+      one small thing to do. It ends with an action, which is the part paper
+      can&rsquo;t do.</li>
+      <li><b>The Immersive Sound Frequency Library and the Pocket Vision
+      Board</b>, both included in what you paid.</li>
+      <li><b>Every future update</b>, at no further cost. That was part of the
+      offer and it stays part of it.</li>
+    </ul>
+
+    <!-- Two steps, in this order, and the order is not cosmetic.
+         The grant is redeemed by a trigger on auth.users INSERT keyed to the
+         email, so the account has to exist before there is anything for the
+         app to unlock. Someone who installs first and signs up second still
+         works — the trigger fires either way — but someone who installs first
+         and then can't see why it's locked will email you instead of finishing
+         signup. So: account, then phone. -->
+    <p class="stepline"><span>Step 1</span> Create the account &mdash; this is the part that unlocks it</p>
+    <a class="cta" href="https://trymanifestationai.com/auth?mode=signup" data-cta="claim-2">
+      Claim your lifetime access
+    </a>
+
+    <p class="stepline" style="margin-top:38px"><span>Step 2</span> Then put it on your phone</p>
+    <div class="plats">
+      <a class="plat" href="https://play.google.com/store/apps/details?id=com.manifestai888.app" data-cta="android">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 2.1 13.9 12 3.6 21.9a1.7 1.7 0 0 1-.6-1.3V3.4a1.7 1.7 0 0 1 .6-1.3Z"/><path d="m16.2 9.3 2.9 1.6a1.3 1.3 0 0 1 0 2.2l-2.9 1.6L13.1 12Z"/><path d="M4.5 1.6 15.1 7.7l-2.3 2.3Z"/><path d="M4.5 22.4 12.8 14l2.3 2.3Z"/></svg>
+        <span class="pl-k">Android</span>
+        <span class="pl-v">Get it on Google Play</span>
+      </a>
+      <a class="plat" href="https://trymanifestationai.com" data-cta="ios">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.6"/><line x1="10.6" y1="5" x2="13.4" y2="5"/></svg>
+        <span class="pl-k">iPhone &amp; iPad</span>
+        <span class="pl-v">trymanifestationai.com</span>
+      </a>
+    </div>
+    <p class="note" style="margin-top:16px">There&rsquo;s no App Store build
+    yet, so on iPhone it runs in Safari. Open the site, tap Share, then
+    <strong>Add to Home Screen</strong> &mdash; after that it opens like any
+    other app, full screen, and can send you the daily reminder. Nothing is
+    missing on iPhone; it just installs differently.</p>
+
+    <p class="note">One honest caveat, better said now than discovered later:
+    everything above is yours permanently, but the optional narrated human
+    voice sits on a separate plan. Narration costs money every time somebody
+    presses play, and a single payment can&rsquo;t fund a bill that keeps
+    arriving. You never need it &mdash; the practice works read, not listened
+    to.</p>
+  </div>
+</section>
+
+<!-- ═══ 3. START TONIGHT ═══════════════════════════════════════════════
+     The strongest predictor of whether a workbook gets finished is whether
+     it gets opened on the day it was bought. This section exists to convert
+     a purchase into a first session while the intent is still warm. -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">While it&rsquo;s still today</p>
+    <h2>Do Day One <em>tonight</em>, not tomorrow</h2>
+    <p class="lede" style="margin-top:16px">Ten minutes now beats an hour on
+    Sunday that never happens. Three things, and the first one is the whole
+    exercise.</p>
+
+    <ol class="steps">
+      <li><div><p><b>Read the opening page.</b> It&rsquo;s short, and it
+      explains what this actually does &mdash; and what it doesn&rsquo;t.</p></div></li>
+      <li><div><p><b>Do Day 1.</b> One sentence. The real one, not the polished
+      one you&rsquo;d say out loud to somebody else.</p></div></li>
+      <li><div><p><b>Say it before bed.</b> If you wince slightly, you&rsquo;ve
+      written the true one. Keep it &mdash; that&rsquo;s the sentence the whole
+      week is built on.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ═══ 4. SUPPORT, WITH A REAL ADDRESS ════════════════════════════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">If anything goes wrong</p>
+    <h2>A person reads this address</h2>
+    <p class="lede" style="margin-top:16px">If the download fails, the access
+    doesn&rsquo;t appear, or you paid with one email and signed up with
+    another &mdash; email
+    <a href="mailto:vimanu9.vr@gmail.com?subject=Seven-Day%20Reset%20%E2%80%94%20help">vimanu9.vr@gmail.com</a>
+    from the address you paid with and I&rsquo;ll sort it the same day.</p>
+    <p class="lede" style="margin-top:14px">And if it isn&rsquo;t working for
+    you at all, say that instead and I&rsquo;ll refund you. A refund is easier
+    than a quiet grudge, for both of us.</p>
+    <div style="margin-top:28px">
+      <a class="ghost" href="https://app.lemonsqueezy.com/my-orders">Find my order</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>ManifestAnything &middot;
+      <a href="mailto:vimanu9.vr@gmail.com">vimanu9.vr@gmail.com</a> &middot;
+      <a href="https://trymanifestationai.com/privacy">Privacy</a> &middot;
+      <a href="https://trymanifestationai.com/terms">Terms</a></p>
+    <p class="disclaimer">
+      A tool for reflection, journalling and visualisation. Not therapy,
+      medical or psychological treatment, financial advice, or a guarantee of
+      any particular outcome. The sound library is ambient audio for focus and
+      wind-down; no therapeutic or clinical effect is claimed. Payments are
+      processed by Lemon Squeezy.
+    </p>
+  </div>
+</footer>
+
+<script>
+/* ── ANALYTICS: SAME TWO IDS AS index.html ─────────────────────────────────
+   This is the page where the Purchase event fires, so if only one of the two
+   files gets filled in, make it this one. An unfilled value here means you can
+   see clicks to checkout and never see a single sale. */
+var META_PIXEL_ID = "";
+var GA4_ID        = "";
+
+(function () {
+  if (META_PIXEL_ID) {
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+    (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', META_PIXEL_ID);
+    fbq('track', 'PageView');
+  }
+  if (GA4_ID) {
+    var g = document.createElement('script');
+    g.async = true;
+    g.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA4_ID);
+    document.head.appendChild(g);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', GA4_ID);
+  }
+})();
+
+/* Purchase conversion — fired once per order.
+   Lemon Squeezy appends its order id to the redirect, so that is the dedupe
+   key: a refresh or a bookmarked revisit reuses it and does not double-count.
+   Without this, one buyer refreshing twice reports as three sales and every
+   ROAS number downstream is wrong. */
+(function () {
+  var params = new URLSearchParams(location.search);
+  var order = params.get("order_id") || params.get("checkout_id") || "";
+  var key = "ls_purchase_" + (order || "no_order");
+
+  var alreadyCounted = false;
+  try { alreadyCounted = localStorage.getItem(key) === "1"; } catch (e) {}
+
+  if (!alreadyCounted) {
+    try { localStorage.setItem(key, "1"); } catch (e) {}
+    try {
+      if (typeof fbq === "function") {
+        fbq("track", "Purchase", { value: 79, currency: "USD", content_name: "value-stack-79" });
+      }
+    } catch (e) {}
+    try {
+      if (typeof gtag === "function") {
+        gtag("event", "purchase", {
+          transaction_id: order || undefined,
+          value: 79, currency: "USD",
+          items: [{ item_name: "The Manifestation Value Stack", price: 79, quantity: 1 }]
+        });
+      }
+    } catch (e) {}
+  }
+})();
+
+/* CTA tracking */
+document.querySelectorAll("[data-cta]").forEach(function (a) {
+  a.addEventListener("click", function () {
+    var what = a.getAttribute("data-cta");
+    try { if (typeof gtag === "function") gtag("event", "thankyou_action", { action: what }); } catch (e) {}
+    try { if (typeof fbq === "function") fbq("trackCustom", "ThankYouAction", { action: what }); } catch (e) {}
+  });
+});
+</script>
+</body>
+</html>
