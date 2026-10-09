@@ -380,15 +380,15 @@ var GA4_ID        = "";
     try { localStorage.setItem(key, "1"); } catch (e) {}
     try {
       if (typeof fbq === "function") {
-        fbq("track", "Purchase", { value: 79, currency: "USD", content_name: "value-stack-79" });
+        fbq("track", "Purchase", { value: 79.99, currency: "USD", content_name: "value-stack-79" });
       }
     } catch (e) {}
     try {
       if (typeof gtag === "function") {
         gtag("event", "purchase", {
           transaction_id: order || undefined,
-          value: 79, currency: "USD",
-          items: [{ item_name: "The Manifestation Value Stack", price: 79, quantity: 1 }]
+          value: 79.99, currency: "USD",
+          items: [{ item_name: "The Manifestation Value Stack", price: 79.99, quantity: 1 }]
         });
       }
     } catch (e) {}
