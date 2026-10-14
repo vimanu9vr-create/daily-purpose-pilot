@@ -352,6 +352,33 @@ Deno.serve(async (req: Request) => {
       }
 
       console.log(`granted ${plan} to ${userId} (${name})`);
+
+      /**
+       * Tell Meta a sale happened — from here, because here is the only place
+       * that knows one did.
+       *
+       * The browser can't report this. Checkout runs on Lemon Squeezy's
+       * domain, so a pixel on our site never sees the payment; the best it can
+       * honestly fire is InitiateCheckout, which means "opened a checkout and
+       * possibly wandered off". Optimising ad spend against that teaches Meta
+       * to find people who browse.
+       *
+       * This event is different: the signature was verified above, so money
+       * provably moved. Awaited rather than fired and forgotten because an
+       * edge function can be torn down the moment it returns, which would
+       * cancel the request in flight.
+       *
+       * It must never be able to fail the webhook. A sale is already recorded
+       * at this point and Lemon Squeezy retries on a non-2xx — so throwing
+       * here would re-deliver an order that was handled correctly, purely
+       * because an analytics call timed out.
+       */
+      await reportPurchaseToMeta({
+        email,
+        orderId: String(event.data?.id ?? ""),
+        value: Number(attrs.total_formatted?.replace(/[^\d.]/g, "")) || 0,
+      });
+
       return json({ ok: true }, 200);
     }
 
@@ -453,4 +480,86 @@ function json(body: unknown, status: number) {
     status,
     headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });
+}
+
+/**
+ * Meta Conversions API — the server half of ad attribution.
+ *
+ * ## Why the email is hashed
+ *
+ * Meta matches a purchase to the person who saw the ad, and the match key here
+ * is the email address. Sending it in the clear would hand a third party the
+ * plaintext address of every customer. Meta's own spec requires SHA-256 of the
+ * trimmed, lowercased address, so the hash is both the correct format and the
+ * only form this function ever transmits.
+ *
+ * ## Why event_id is the Lemon Squeezy order id
+ *
+ * Deduplication. The webhook is idempotent and the store retries, so the same
+ * order can legitimately arrive more than once. Meta discards repeats that
+ * share an event_id — and a double-counted purchase is worse than a missing
+ * one, because it inflates the measured return on ad spend and the algorithm
+ * then chases an audience that was never that profitable.
+ *
+ * ## Why every failure is swallowed
+ *
+ * By the time this runs, the subscription row is written and the customer has
+ * their access. Throwing would return a non-2xx, Lemon Squeezy would re-deliver
+ * a correctly handled order, and the cause would be an analytics call timing
+ * out. Analytics must never be able to disturb the thing it measures.
+ */
+async function reportPurchaseToMeta(order: {
+  email: string;
+  orderId: string;
+  value: number;
+}): Promise<void> {
+  const token = Deno.env.get("META_CAPI_TOKEN");
+  const pixelId = Deno.env.get("META_PIXEL_ID") ?? "2005035126879215";
+
+  // Absent token is the normal state in local development and on any branch
+  // that has not been given the secret. Silence, not a warning.
+  if (!token || !order.email || !order.orderId) return;
+
+  try {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(order.email.trim().toLowerCase()),
+    );
+    const hashed = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${encodeURIComponent(token)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: [
+            {
+              event_name: "Purchase",
+              event_time: Math.floor(Date.now() / 1000),
+              // Matches the browser-side event if one was also sent, so a
+              // single sale is never counted twice across the two channels.
+              event_id: order.orderId,
+              action_source: "website",
+              user_data: { em: [hashed] },
+              custom_data: { currency: "USD", value: order.value },
+            },
+          ],
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      // Logged, not thrown. Worth seeing in the logs when attribution looks
+      // wrong; not worth re-delivering a completed order over.
+      console.error(`meta capi ${res.status}`, (await res.text().catch(() => "")).slice(0, 300));
+      return;
+    }
+
+    console.log(`meta purchase reported order=${order.orderId} value=${order.value}`);
+  } catch (error) {
+    console.error("meta capi failed", error instanceof Error ? error.message : error);
+  }
 }

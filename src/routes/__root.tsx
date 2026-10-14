@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { applyStoredTheme } from "@/components/theme-toggle";
 import { primeAuthSession, registerNavigator } from "@/lib/auth-session";
+import { initPixel } from "@/lib/meta-pixel";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
@@ -221,6 +222,21 @@ function RootComponent() {
     // boundary and would otherwise disappear entirely.
     void startTelemetry();
   }, [navigate]);
+
+  /**
+   * Meta Pixel, for ad attribution on the public site.
+   *
+   * Here rather than in the landing route because the pixel must also see
+   * people who arrive deeper in — an ad pointing at /app or a shared link
+   * never touches the landing page, and a PageView that only fires on the
+   * home route silently under-reports every campaign that doesn't aim there.
+   *
+   * `initPixel` is idempotent and a no-op without VITE_META_PIXEL_ID, so this
+   * is safe on every build including the native one.
+   */
+  useEffect(() => {
+    initPixel();
+  }, []);
 
   // Register the service worker so the app is installable and can receive push.
   useEffect(() => {

@@ -82,9 +82,14 @@ export function useStudioNarration(
    * error text under the play button, which is what somebody who has just been
    * promised "a real human voice" would see.
    *
-   * Right now this is the state the app is actually in: the balance is zero, so
-   * every single person who presses play gets this. Worth being honest about
-   * and offering the words instead, rather than looking broken.
+   * This file used to assert that the balance was zero and that therefore every
+   * listener hit this state. That was true when it was written and has been
+   * repeated as fact since, including back to Viggnesh, after it stopped being
+   * true. A comment stating the current contents of a billing account is a
+   * comment that is wrong by default — the account changes, the file does not.
+   *
+   * So: this state is reachable whenever the voice is off for reasons that are
+   * ours, and `query_logs` is the only way to know whether it is happening.
    */
   const [voiceUnavailable, setVoiceUnavailable] = useState(false);
 

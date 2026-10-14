@@ -29,6 +29,18 @@ const TONE_FILES: Record<number, string> = {
   963: "/audio/tone-963.mp3",
 };
 
+/**
+ * Whether a real recording exists for this frequency.
+ *
+ * `start()` already falls back to the pad for anything missing, so playback is
+ * safe either way. This exists because the CAPTION is not: telling somebody
+ * "the 432 Hz tone is playing" while they are in fact hearing the ambient bed
+ * is a false claim about the one thing the track promises.
+ */
+export function hasToneFile(frequencyHz: number): boolean {
+  return frequencyHz in TONE_FILES;
+}
+
 /** One-frame silent WAV. Playing this escapes the iOS silent switch. */
 export const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";

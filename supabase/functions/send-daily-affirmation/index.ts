@@ -393,11 +393,44 @@ async function claimDueProfiles(
   admin: Record<string, string>,
   limit: number,
 ): Promise<DueProfile[]> {
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_due_morning_pushes`, {
+  /**
+   * Retry a "JWT issued at future" rejection instead of losing the morning.
+   *
+   * Observed at 08:15 — PGRST303, `iat` in the future — while the identical
+   * run at 08:30 succeeded. That pattern is clock skew, not a broken key: the
+   * opaque `sb_secret_` credential is minted by one machine and validated by
+   * PostgREST on another, and when the validator's clock is a second or two
+   * behind, a token issued "now" looks issued in the future and is refused.
+   *
+   * Skew of this kind resolves in seconds, so waiting is a real fix rather
+   * than a hopeful one. Throwing instead meant nobody got a notification that
+   * quarter-hour — and because the next cron tick finds `last_notified_on`
+   * still unset it does eventually recover, which is precisely why this went
+   * unnoticed: it fails silently and self-heals fifteen minutes later, by
+   * which time the person's morning window has passed.
+   *
+   * Bounded at three attempts. If the clocks are genuinely far apart this is a
+   * real outage and should surface as one, not be papered over.
+   */
+  let response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_due_morning_pushes`, {
     method: "POST",
     headers: admin,
     body: JSON.stringify({ p_limit: limit }),
   });
+
+  for (let attempt = 1; attempt <= 2 && response.status === 401; attempt += 1) {
+    const body = await response.clone().text().catch(() => "");
+    if (!body.includes("PGRST303")) break; // A real auth failure. Retrying won't help.
+
+    console.warn(`claim rejected on clock skew (PGRST303), retry ${attempt}`);
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+
+    response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_due_morning_pushes`, {
+      method: "POST",
+      headers: admin,
+      body: JSON.stringify({ p_limit: limit }),
+    });
+  }
 
   if (!response.ok) {
     // Loud on purpose, and specific. If the claim fails nobody is notified at

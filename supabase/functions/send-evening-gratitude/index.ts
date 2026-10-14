@@ -25,6 +25,7 @@ import {
   type Delivery,
   type Subscription,
 } from "../_shared/push.ts";
+import { eveningPhrase } from "./voice.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -39,23 +40,16 @@ const PUSH_CONCURRENCY = 25;
 type DueProfile = { profile_id: string; profile_name: string | null; sent_for: string };
 
 /**
- * The copy.
- *
- * Three lines, not a blank box — the gratitude screen asks for three things
- * for the same reason the notification does: "what are you grateful for?" is
- * hard on a bad day and "what are three things?" is answerable, and the bad
- * day is the one that matters.
- *
- * No exclamation marks and no "Don't forget!". This arrives at night, and a
- * nudge that sounds like a task is a nudge people switch off.
+ * The copy now lives in voice.ts, rotating once per night on the user's own
+ * local date. It used to be a single hardcoded line sent every evening
+ * forever — see the note at the top of that file for why that is worse than
+ * it sounds.
  */
 type Notification = { title: string; body: string; payload: string };
 
-function buildNotification(displayName: string | null): Notification {
+function buildNotification(displayName: string | null, sentFor: string): Notification {
   const firstName = displayName?.trim().split(" ")[0];
-
-  const title = firstName ? `${firstName}, three things` : "Three things";
-  const body = "What went right today? Two minutes before you sleep.";
+  const { title, body } = eveningPhrase({ firstName }, sentFor);
 
   return {
     title,
@@ -130,7 +124,7 @@ Deno.serve(async (req: Request) => {
 
     const deliveries: Delivery[] = [];
     for (const profile of due) {
-      const note = buildNotification(profile.profile_name);
+      const note = buildNotification(profile.profile_name, profile.sent_for);
       for (const sub of byUser.get(profile.profile_id) ?? []) {
         deliveries.push({ sub, ...note });
       }

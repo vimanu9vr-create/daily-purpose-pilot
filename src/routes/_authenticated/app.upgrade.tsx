@@ -15,6 +15,7 @@ import {
 } from "@/features/billing/plans";
 import { purchaseStore } from "@/features/billing/store";
 import { useAwaitEntitlement, useSubscription } from "@/features/billing/use-subscription";
+import { trackInitiateCheckout } from "@/lib/meta-pixel";
 import { cn } from "@/lib/utils";
 
 /**
@@ -88,6 +89,28 @@ function Upgrade() {
    */
   async function buy() {
     setBusy(true);
+
+    /**
+     * Report the intent to Meta before the checkout opens, not after.
+     *
+     * On web, `purchase()` hands off to Lemon Squeezy and this tab may never
+     * run another line — the person pays on another origin and comes back via
+     * the webhook, or doesn't come back at all. Firing afterwards would lose
+     * every conversion that completed, which is the opposite of the intended
+     * filter.
+     *
+     * The real Purchase event is sent server-side by `lemonsqueezy-webhook`,
+     * where an HMAC-verified order proves money moved. This one is only ever
+     * "they opened a checkout", and the price is attached so Meta can weight a
+     * $79 lifetime intent above a $2.49 weekly one.
+     */
+    const chosen = plans.find((plan) => plan.id === selected);
+    // Parsed from the display string rather than stored twice. A second price
+    // field is a second thing to forget to change, and the two silently
+    // disagreeing would mean reporting the wrong value to Meta forever.
+    const amount = Number(chosen?.priceDisplay.replace(/[^\d.]/g, "")) || 0;
+    trackInitiateCheckout(selected, amount);
+
     const result = await purchaseStore().purchase(selected);
 
     if (result.status === "purchased") {

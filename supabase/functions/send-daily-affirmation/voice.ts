@@ -89,6 +89,33 @@ const RETURNING: ((s: Signals) => Line)[] = [
     title: "The streak is not the point",
     body: "The practice is. Start a new one this morning — it costs five minutes.",
   }),
+  // Four more, added when the taper went in.
+  //
+  // Past seven days idle a person now drops to ONE push a week, so these three
+  // lines were everything they would ever see — the same message on a monthly
+  // loop, which reads as an automated system rather than an invitation. Seven
+  // lines is seven weeks before a repeat, and by then the wording is not the
+  // problem.
+  //
+  // All four obey the rule at the top of this block: make returning cheap,
+  // never make leaving expensive. Nothing here counts days, mentions what was
+  // lost, or implies a backlog.
+  () => ({
+    title: "No catching up to do",
+    body: "There is no backlog here. Today is just today, and it takes five minutes.",
+  }),
+  (s) => ({
+    title: s.firstName ? `${s.firstName}, the page is still open` : "The page is still open",
+    body: "Whatever you wrote is where you left it. Nothing needs restarting.",
+  }),
+  () => ({
+    title: "Five minutes, not a fresh start",
+    body: "Starting over is the expensive version. This is the cheap one.",
+  }),
+  () => ({
+    title: "Still here when you are",
+    body: "No streak to rebuild, nothing lost. Just the next five minutes.",
+  }),
 ];
 
 /** Lines for the programme, which has its own day and its own intention. */

@@ -456,6 +456,20 @@ Deno.serve(async (req: Request) => {
       .filter(Boolean)
       .join("\n\n");
 
+    /**
+     * How long the model actually took.
+     *
+     * Added because "it takes too long" could not be acted on: nothing
+     * recorded a duration, so there was no way to tell a slow model from a
+     * slow retry from six parallel calls all waiting on the slowest. Guessing
+     * which of those to optimise would have been a coin flip.
+     *
+     * Logged around the upstream call only — not the whole request — so it
+     * measures generation rather than auth, entitlement reads and parsing,
+     * which are milliseconds and would just add noise.
+     */
+    const askStartedAt = Date.now();
+
     const upstream = await askWithRetry(
       (model) =>
         fetch(provider.url, {
@@ -474,6 +488,13 @@ Deno.serve(async (req: Request) => {
           }),
         }),
       provider.model,
+    );
+
+    // One line per generation, so the next person asking "why is it slow" can
+    // read an answer instead of forming a theory. Includes the status, because
+    // a fast 429 and a slow 200 are opposite problems with opposite fixes.
+    console.log(
+      `affirmations upstream ${upstream.status} in ${Date.now() - askStartedAt}ms model=${provider.model}`,
     );
 
     // Log the reason, not just the status. A bare "429" is what turned a spent

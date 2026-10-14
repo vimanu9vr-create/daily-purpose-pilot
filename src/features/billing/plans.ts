@@ -235,8 +235,14 @@ export const STANDARD_FEATURES = [
 
 export const VOICE_FEATURES = [
   "Everything in Standard",
-  "Studio narration in a real human voice",
-  "Sleep sessions, meditations and frequencies, narrated",
+  // "Sleep sessions, meditations and frequencies, narrated" used to be sold
+  // here. It moved to the free tier when it became clear the tier was
+  // charging for a file that is rendered once and shared by every user —
+  // see the note above the gate in narrate-story/index.ts.
+  //
+  // What is left is the thing with a real per-use bill: the voice reading
+  // words written for one person. Narrower, and far easier to explain.
+  "Your own stories read aloud in a real human voice",
   "Around fifty narrations a month — four in a day if you want them",
   "Sentence-by-sentence highlighting as it reads",
 ] as const;
@@ -274,8 +280,16 @@ export const PREMIUM_FEATURES = [...STANDARD_FEATURES, ...VOICE_FEATURES.slice(1
  * to question is whether that single result is impressive enough — not
  * whether to give away a second one.
  *
- * Narration is not on this list, because free users get none. See
- * `SAMPLE_TRACK_TITLE` for the one track that is shared with everybody.
+ * Narration of YOUR OWN stories is not on this list — that is the Voice plan,
+ * and it carries a fresh ElevenLabs bill every time.
+ *
+ * The narrated library is a different matter and is free on every plan: sleep
+ * sessions, meditations and frequencies are rendered once, keyed by title, and
+ * the same file is served to everyone thereafter. Charging for it meant
+ * charging for access to something already paid for. See the gate in
+ * narrate-story/index.ts, and note that the spend block there has always read
+ * `if (!isCatalogue)` — the cost model treated these as shared long before the
+ * paywall did.
  */
 export const FREE_LIMITS = {
   /**

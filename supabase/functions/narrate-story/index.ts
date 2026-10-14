@@ -206,7 +206,7 @@ Deno.serve(async (req: Request) => {
 
     // Read the story as the user, so RLS confirms they own it.
     const storyRes = await fetch(
-      `${supabaseUrl}/rest/v1/moments?select=id,body,title,source,audio_url,audio_voice,audio_marks&id=eq.${encodeURIComponent(storyId)}`,
+      `${supabaseUrl}/rest/v1/moments?select=id,body,title,kind,source,audio_url,audio_voice,audio_marks&id=eq.${encodeURIComponent(storyId)}`,
       { headers: { Authorization: authHeader, apikey: anonKey } },
     );
     if (!storyRes.ok) return json({ error: "not_found" }, 404);
@@ -214,6 +214,7 @@ Deno.serve(async (req: Request) => {
       id: string;
       body: string;
       title: string;
+      kind: string;
       source: string;
       audio_url: string | null;
       audio_voice: string | null;
@@ -223,6 +224,31 @@ Deno.serve(async (req: Request) => {
     if (!story) return json({ error: "not_found" }, 404);
 
     const isCatalogue = story.source === "catalogue";
+
+    /**
+     * Sleep, meditation and frequency are free to listen to, on every plan.
+     *
+     * The reasoning is the cost model, not generosity. A catalogue track is
+     * rendered ONCE, keyed by title, and the same MP3 is served to everybody
+     * afterwards — which is why the allowance block further down already reads
+     * `if (!isCatalogue)` and has never charged anyone for these. The bill for
+     * the entire library is roughly one render per track per voice, paid once,
+     * and `prewarm-catalogue` exists to pay it up front so nobody waits.
+     *
+     * So the old gate was not protecting a cost. It was charging for access to
+     * a file that had already been paid for, while the thing that genuinely
+     * costs money every single time — narrating a story written for one
+     * person — sat behind the same wall and got no extra protection from it.
+     *
+     * What stays on Voice is exactly that: narration of YOUR words. That is
+     * the thing with a per-use bill, and now it is the only thing the tier
+     * sells, which also makes it much easier to explain.
+     *
+     * "visualization" appears because older rows carry it; generate-track
+     * normalises new ones to "meditation".
+     */
+    const LISTENING_KINDS = new Set(["sleep", "meditation", "frequency", "visualization"]);
+    const isFreeToListen = isCatalogue && LISTENING_KINDS.has(story.kind);
 
     /**
      * ENTITLEMENT. Checked here, before any cache path — see NOTES.md §9b.
@@ -238,15 +264,20 @@ Deno.serve(async (req: Request) => {
     const tier = await tierFor(supabaseUrl, serviceKey, user.id);
     const isSample = isCatalogue && story.title === SAMPLE_TRACK_TITLE;
 
-    if (tier !== "voice" && !isSample) {
+    // `force` re-renders stay on Voice even for catalogue tracks. It is the
+    // one path that can cost money repeatedly for an asset already paid for,
+    // and it exists for fixing a bad render, not for listening.
+    const needsVoice = (!isFreeToListen && !isSample) || (force && tier !== "voice");
+
+    if (tier !== "voice" && needsVoice) {
       console.log(`voice not in plan user=${user.id} tier=${tier} story=${storyId}`);
       return json(
         {
           error: "voice_not_included",
           message:
             tier === "standard"
-              ? "Your plan covers everything written. The narrated voice is on the Voice plan."
-              : "Studio narration is on the Voice plan. Everything here is still yours to read.",
+              ? "Your plan covers everything written, and every sleep session, meditation and frequency narrated. The voice reading your own stories is on the Voice plan."
+              : "Sleep, meditations and frequencies are all narrated and free. The voice reading stories written for you is on the Voice plan.",
           tier,
           sample: SAMPLE_TRACK_TITLE,
         },
@@ -278,14 +309,18 @@ Deno.serve(async (req: Request) => {
     const partSuffix = part ? `-${part}` : "";
 
     // See NOTES.md §11.
+    // Keyed on the SCRIPT, not just the title. A title-only key serves the old
+    // audio forever after a rewrite, and the older-version fallback below made
+    // bumping RENDER_VERSION useless because it reused the stale file too.
+    const bodyTag = await shortHash(story.body);
     const path = isCatalogue
-      ? `catalogue/${slugify(story.title)}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`
+      ? `catalogue/${slugify(story.title)}-${bodyTag}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`
       : `${user.id}/${storyId}-${voice}-${RENDER_VERSION}${partSuffix}.mp3`;
     // Older renders of the same track, newest first. A file from v5 is still
     // Sarah reading the same words, and reusing it costs nothing.
     const olderPaths = isCatalogue
       ? ["v6", "v5", "v4", "v3"].map(
-          (v) => `catalogue/${slugify(story.title)}-${voice}-${v}${partSuffix}.mp3`,
+          (v) => `catalogue/${slugify(story.title)}-${bodyTag}-${voice}-${v}${partSuffix}.mp3`,
         )
       : [];
     const audioUrl = `${supabaseUrl}/storage/v1/object/public/narration/${path}`;
@@ -646,4 +681,14 @@ function json(body: unknown, status: number) {
     status,
     headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });
+}
+
+
+/** First 8 hex chars of SHA-256. Enough to separate rewrites, short in a path. */
+async function shortHash(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest))
+    .slice(0, 4)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }

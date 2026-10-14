@@ -767,6 +767,9 @@ Deno.serve(async (req: Request) => {
       ...(rewriteBlock ? [rewriteBlock] : []),
     ].join("\n\n");
 
+    // Measured because "it takes too long" was unactionable without a number.
+    const askStartedAt = Date.now();
+
     const upstream = await askWithRetry(
       (model) =>
         fetch(provider!.url, {
@@ -783,6 +786,10 @@ Deno.serve(async (req: Request) => {
           }),
         }),
       provider!.model,
+    );
+
+    console.log(
+      `moment upstream ${upstream.status} in ${Date.now() - askStartedAt}ms model=${provider!.model}`,
     );
 
     /**

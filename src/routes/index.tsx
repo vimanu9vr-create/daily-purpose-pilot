@@ -115,7 +115,7 @@ const features = [
   {
     icon: Headphones,
     title: "A real human voice",
-    body: "Studio narration on the Voice plan, not your phone's robot reader. Everything written works read, if you'd rather not pay for it.",
+    body: "Every sleep session, meditation and frequency is narrated and free on any plan. The Voice plan is for hearing your own stories read aloud.",
   },
   {
     icon: Moon,
@@ -172,7 +172,7 @@ const steps = [
 const faqs = [
   {
     q: "What do I actually get for free?",
-    a: `One personalised affirmation set, written from your own words — the real thing, not a sample — plus the whole library to read and one narrated sleep track so you can hear the voice. No card, and nothing expires. After that the paid plans unlock unlimited writing.`,
+    a: `One personalised affirmation set, written from your own words — the real thing, not a sample. Plus the whole library to read, and every sleep session, meditation and frequency narrated in the real voice, not just written. No card, and nothing expires. The paid plans add unlimited writing, and the voice reading your own stories.`,
   },
   {
     q: "Is this a subscription?",
@@ -255,7 +255,10 @@ const tiers = [
       // worse than a smaller promise it does.
       `${FREE_LIMITS.affirmationSets} personalised affirmation set, written for your own words`,
       "The whole library to read",
-      "One narrated sleep track, so you can hear the voice",
+      // Was "One narrated sleep track, so you can hear the voice". The whole
+      // narrated library is free now — these are rendered once and shared, so
+      // the tier was charging for access to a file already paid for.
+      "Every sleep session, meditation and frequency — narrated, not just written",
     ],
     cta: "Start free",
     featured: false,

@@ -8,6 +8,25 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '2005035126879215');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=2005035126879215&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel -->
+
 <style>
 :root{
   --cream:#faf7f1;
@@ -536,7 +555,7 @@ footer{
     </div>
 
     <div class="final">
-      <a class="btn btn-gold" href="REPLACE_WITH_LEMON_SQUEEZY_CHECKOUT_URL" data-checkout>Claim Lifetime Access — $79</a>
+      <a class="btn btn-gold" href="https://manifestai.lemonsqueezy.com/checkout/buy/a863247f-1055-4d6e-936c-b2d222b80aac" data-checkout>Claim Lifetime Access — $79</a>
       <span class="btn-sub">One-time payment · No recurring fees · Secure checkout by Lemon Squeezy</span>
     </div>
   </div>
@@ -619,7 +638,7 @@ footer{
     </div>
 
     <div class="final" style="margin-top:56px">
-      <a class="btn" href="REPLACE_WITH_LEMON_SQUEEZY_CHECKOUT_URL" data-checkout>Claim Lifetime Access — $79</a>
+      <a class="btn" href="https://manifestai.lemonsqueezy.com/checkout/buy/a863247f-1055-4d6e-936c-b2d222b80aac" data-checkout>Claim Lifetime Access — $79</a>
       <span class="btn-sub">14-day refund · Instant access · No recurring fees</span>
     </div>
   </div>
@@ -661,6 +680,32 @@ document.querySelectorAll("[data-acc]").forEach(function (group) {
 window.addEventListener("resize", function () {
   document.querySelectorAll(".acc-item.open .acc-body").forEach(function (body) {
     body.style.maxHeight = body.scrollHeight + "px";
+  });
+});
+
+/**
+ * Tell Meta somebody opened the checkout.
+ *
+ * This is the last event a script on THIS page can honestly report. Checkout
+ * happens on Lemon Squeezy's domain, so the purchase itself is invisible from
+ * here — firing a Purchase event on click would mean reporting a sale every
+ * time somebody opened the page and changed their mind, which trains Meta to
+ * find people who browse. The real Purchase is sent server-side from the
+ * lemonsqueezy-webhook function, where an HMAC-verified order proves money
+ * moved.
+ *
+ * The value is sent so Meta can weight this above a $2.49 subscription intent.
+ * Without it every conversion looks identical and the algorithm optimises for
+ * whichever is cheapest to get.
+ */
+document.querySelectorAll("[data-checkout]").forEach(function (link) {
+  link.addEventListener("click", function () {
+    if (typeof window.fbq !== "function") return; // Blocked, or still loading.
+    window.fbq("track", "InitiateCheckout", {
+      content_name: "seven_day_reset",
+      value: 79,
+      currency: "USD",
+    });
   });
 });
 </script>
